@@ -10,6 +10,4 @@ declare global {
 	}
 }
 
-declare module '@heroui/styles/css';
-
 export {};

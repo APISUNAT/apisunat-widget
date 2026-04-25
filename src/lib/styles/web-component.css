@@ -1,4 +1,3 @@
-@import "@heroui/styles";
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@config "../../../tailwind.config.cjs";
+@source "../../../src/**/*.{html,js,svelte,ts}";
