@@ -1,0 +1,6 @@
+:root,
+:host {
+	--form-color-1: oklch(0.278 0.033 256.848);
+	--form-color-2: oklch(0.373 0.034 259.733);
+	--form-color-3: oklch(79.211% 0.02408 258.42);
+}

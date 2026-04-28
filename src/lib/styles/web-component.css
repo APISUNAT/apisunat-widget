@@ -1,3 +1,4 @@
 @import "tailwindcss";
+@import "./form-colors.css";
 @config "../../../tailwind.config.cjs";
 @source "../../../src/**/*.{html,js,svelte,ts}";

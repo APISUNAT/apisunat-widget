@@ -1,0 +1,20 @@
+{
+    "editor.rulers": [],
+    "editor.tabCompletion": "on",
+    "editor.tabSize": 4,
+    "editor.trimAutoWhitespace": true,
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+        "source.organizeImports": "explicit",
+        "source.fixAll.eslint": "explicit"
+    },
+    "files.exclude": {
+        "**/.DS_Store": true,
+        "**/.git": true,
+        "**/.hg": true,
+        "**/.svn": true,
+        "**/CVS": true,
+        "dist": true,
+    },
+    "files.trimTrailingWhitespace": true,
+}

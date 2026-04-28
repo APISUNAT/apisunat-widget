@@ -1,5 +1,5 @@
-import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { sveltekit } from '@sveltejs/kit/vite';
+import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { defineConfig } from 'vite';
 
 export default defineConfig(({ mode }) => {
@@ -19,7 +19,7 @@ export default defineConfig(({ mode }) => {
 			build: {
 				cssCodeSplit: false,
 				lib: {
-					entry: 'src/lib/index.js',
+					entry: 'src/lib/elements/SunatInvoiceElement.svelte',
 					formats: ['es'],
 					fileName: () => 'sunat-invoice.js'
 				},
