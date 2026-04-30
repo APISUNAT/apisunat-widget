@@ -1,6 +1,23 @@
 :root,
-:host {
-	--form-color-1: oklch(0.278 0.033 256.848);
-	--form-color-2: oklch(0.373 0.034 259.733);
-	--form-color-3: oklch(79.211% 0.02408 258.42);
+sunat-invoice {
+	/* Fondo principal */
+	--form-color-1: var(--sunat-invoice-main-bg, oklch(58.466% 0.00241 15.712));
+	/* Fondo secundario (tarjetas, modales) */
+	--form-color-2: var(--sunat-invoice-surface, oklch(87.858% 0.00769 16.589));
+	/* Bordes, líneas, acentos */
+	--form-color-3: var(--sunat-invoice-border-active, oklch(46.873% 0.30187 264.707));
+
+	/* Alias internos para no acoplar fondo base con superficies */
+	--form-panel-bg: var(--form-color-2);
+	--form-field-bg: var(--form-color-2);
+	/* Tipografía */
+	--form-font-family: var(--sunat-invoice-font-family, "Inter", ui-sans-serif, system-ui, sans-serif);
+
+	/* Color de texto*/
+	--form-text-color: var(--sunat-invoice-text-color, oklch(60.659% 0.24187 28.598));
+
+	/* Colores de texto secundarios */
+	--form-text-muted: color-mix(in oklab, var(--form-text-color) 70%, transparent);
+	--form-text-soft: color-mix(in oklab, var(--form-text-color) 66%, transparent);
+	--form-text-faint: color-mix(in oklab, var(--form-text-color) 48%, transparent);
 }

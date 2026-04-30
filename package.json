@@ -18,11 +18,13 @@
 		"**/*.css"
 	],
 	"module": "./dist/sunat-invoice.js",
+	"style": "./dist/assets/invoice-sunat.css",
 	"type": "module",
 	"exports": {
 		".": {
 			"default": "./dist/sunat-invoice.js"
-		}
+		},
+		"./styles.css": "./dist/assets/invoice-sunat.css"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-auto": "^7.0.1",

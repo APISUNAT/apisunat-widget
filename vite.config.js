@@ -19,7 +19,7 @@ export default defineConfig(({ mode }) => {
 			build: {
 				cssCodeSplit: false,
 				lib: {
-					entry: 'src/lib/elements/SunatInvoiceElement.svelte',
+					entry: 'src/lib/buildeador.svelte',
 					formats: ['es'],
 					fileName: () => 'sunat-invoice.js'
 				},

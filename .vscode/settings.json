@@ -13,8 +13,7 @@
         "**/.git": true,
         "**/.hg": true,
         "**/.svn": true,
-        "**/CVS": true,
-        "dist": true,
+        "**/CVS": true
     },
     "files.trimTrailingWhitespace": true,
 }
