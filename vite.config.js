@@ -1,10 +1,16 @@
 import { sveltekit } from '@sveltejs/kit/vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { defineConfig } from 'vite';
+import { resolve } from 'path';
 
 export default defineConfig(({ mode }) => {
 	if (mode === 'element') {
 		return {
+			resolve: {
+				alias: {
+					$lib: resolve('./src/lib')
+				}
+			},
 			define: {
 				'process.env.NODE_ENV': JSON.stringify('production')
 			},
