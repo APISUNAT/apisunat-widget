@@ -39,9 +39,10 @@ export function getDocumentOutput(): Record<string, any> {
 export function getDocumentFileName(): string {
   const doc = get(documentStore)
   const supplierDocument = doc['cac:AccountingSupplierParty']?.['cac:Party']?.['cac:PartyIdentification']?.['cbc:ID']?._text
+  const documentType = doc['cbc:InvoiceTypeCode']?._text
   const documentID = doc['cbc:ID']?._text
-  const id = doc['cbc:InvoiceTypeCode']?._text
-  return supplierDocument + '-' + documentID + '-' + id
+
+  return supplierDocument + '-'+ documentType +'-' + documentID
 }
 
 (window as any).apisunat = (config: any) => {
