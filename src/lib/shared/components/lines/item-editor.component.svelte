@@ -20,18 +20,19 @@
   function normalizeIgvRate(raw: any): number {
     const n = Number(raw);
     if (isNaN(n)) return 18;
-    // si viene como decimal (0.18) convertir a entero (18)
     return n < 1 ? Math.round(n * 100) : n;
   }
 
   function createEditableItem(source: any = {}) {
+    // Protección: si source es null o undefined, usar objeto vacío
+    const s = source ?? {};
     return {
-      description:    source.description    ?? "",
-      quantity:       source.quantity       ?? "1",
-      unitCode:       source.unitCode       ?? "NIU",
-      valorUnitario:  source.valorUnitario  ?? "",
-      precioUnitario: source.precioUnitario ?? "",
-      igvRate:        normalizeIgvRate(source.igvRate ?? 18),
+      description:    s.description    ?? "",
+      quantity:       s.quantity       ?? "1",
+      unitCode:       s.unitCode       ?? "NIU",
+      valorUnitario:  s.valorUnitario  ?? "",
+      precioUnitario: s.precioUnitario ?? "",
+      igvRate:        normalizeIgvRate(s.igvRate ?? 18),
     };
   }
 
@@ -41,7 +42,8 @@
     if (!isOpen) {
       editorItem = createEditableItem();
     } else {
-      editorItem = createEditableItem(itemEditor);
+      // itemEditor puede ser null cuando mode === "create"
+      editorItem = createEditableItem(itemEditor ?? {});
     }
   });
 
@@ -79,12 +81,6 @@
     const precio = parseFloat(raw) || 0;
     const rate   = editorItem.igvRate / 100;
     editorItem.valorUnitario = precio > 0 ? (precio / (1 + rate)).toFixed(2) : "";
-  }
-
-  function onIgvRateChange(newRate: number) {
-    editorItem.igvRate = newRate;
-    const precio = parseFloat(editorItem.precioUnitario) || 0;
-    editorItem.valorUnitario = precio > 0 ? (precio / (1 + newRate / 100)).toFixed(2) : "";
   }
 </script>
 

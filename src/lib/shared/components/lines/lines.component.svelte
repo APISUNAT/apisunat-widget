@@ -36,20 +36,28 @@
           "cbc:Percent"
         ]?._text;
 
-      // igvPercent viene como 18 (entero) desde el JSON, guardamos tal cual
       const igvRate = igvPercent ? parseFloat(String(igvPercent)) : 18;
+
+      const valorUnitario = String(line["cac:Price"]?.["cbc:PriceAmount"]?._text ?? "");
+
+      const precioRaw =
+        line["cac:PricingReference"]?.["cac:AlternativeConditionPrice"]?.[
+          "cbc:PriceAmount"
+        ]?._text;
+
+      const precioUnitario = precioRaw
+        ? String(precioRaw)
+        : valorUnitario
+          ? (parseFloat(valorUnitario) * (1 + igvRate / 100)).toFixed(2)
+          : "";
 
       return {
         id: i + 1,
         description: line["cac:Item"]?.["cbc:Description"]?._text ?? "",
         quantity: String(line["cbc:InvoicedQuantity"]?._text ?? "1"),
         unitCode: line["cbc:InvoicedQuantity"]?._attributes?.unitCode ?? "NIU",
-        valorUnitario: String(line["cac:Price"]?.["cbc:PriceAmount"]?._text ?? ""),
-        precioUnitario: String(
-          line["cac:PricingReference"]?.["cac:AlternativeConditionPrice"]?.[
-            "cbc:PriceAmount"
-          ]?._text ?? ""
-        ),
+        valorUnitario,
+        precioUnitario,
         igvRate,
       };
     });
@@ -126,7 +134,7 @@
       description: data.description,
       valorUnitario,
       precioUnitario,
-      igvRate: data.igvRate, // llega como 18 (entero)
+      igvRate: data.igvRate,
     });
 
     handleClose();

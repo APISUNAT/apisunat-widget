@@ -4,12 +4,14 @@
   import Supplier from '$lib/shared/components/suplier/suplier.component.svelte'
   import Customer from '$lib/shared/components/customer/customer.component.svelte'
   import Lines from '$lib/shared/components/lines/lines.component.svelte'
-  import DocumentReference from '$lib/shared/components/document-reference/document-reference.component.svelte'
   import PaymentTerms from '$lib/shared/components/payment-terms/payment-terms.component.svelte'
+  import NotesPanel from '$lib/shared/components/notes/notes-panel.component.svelte'
   import { documentStore } from '$lib/store/document.store'
   import { derived } from 'svelte/store'
 
-  let { title = 'Factura SUNAT', showHeader = true , showSupplier = true } = $props()
+  let { title = 'Factura SUNAT', showHeader = true, showSupplier = true } = $props()
+
+  let openNotes = $state(false)
 
   const totals = derived(documentStore, ($doc) => {
     const opGravada = $doc['cac:LegalMonetaryTotal']?.['cbc:LineExtensionAmount']?._text ?? 0
@@ -72,32 +74,34 @@
           <!-- Columna izquierda: ítems (70%) -->
           <Lines />
 
-          <!-- Columna derecha: resumen + pago (30%) -->
+          <!-- Columna derecha: notas + resumen + pago (30%) -->
           <div class="grid gap-4">
 
-          <!-- Resumen -->
-          <div class={panelClass}>
-            <div class="border-b border-[color:color-mix(in_oklab,var(--form-color-3)_16%,transparent)] px-5 py-3">
-              <p class={sectionLabel}>Resumen</p>
+            <!-- Botón notas — arriba del resumen -->
+             <NotesPanel />
+            <!-- Resumen -->
+            <div class={panelClass}>
+              <div class="border-b border-[color:color-mix(in_oklab,var(--form-color-3)_16%,transparent)] px-5 py-3">
+                <p class={sectionLabel}>Resumen</p>
+              </div>
+              <div class="px-5 py-4 space-y-2.5">
+                <div class="flex items-center justify-between gap-4">
+                  <span class="text-sm text-[var(--form-text-soft)]">Op. gravada</span>
+                  <span class="text-sm font-semibold tabular-nums text-[var(--form-text-color)]">S/ {$totals.opGravada}</span>
+                </div>
+                <div class="flex items-center justify-between gap-4">
+                  <span class="text-sm text-[var(--form-text-soft)]">IGV (18%)</span>
+                  <span class="text-sm font-semibold tabular-nums text-[var(--form-text-color)]">S/ {$totals.igv}</span>
+                </div>
+                <div class="border-t border-[color:color-mix(in_oklab,var(--form-color-3)_18%,transparent)] pt-2.5 flex items-center justify-between gap-4">
+                  <span class="text-base font-semibold text-[var(--form-text-color)]">Total</span>
+                  <span class="text-xl font-semibold tabular-nums text-[var(--form-text-color)]">S/ {$totals.total.toFixed(2)}</span>
+                </div>
+              </div>
             </div>
-            <div class="px-5 py-4 space-y-2.5">
-              <div class="flex items-center justify-between gap-4">
-                <span class="text-sm text-[var(--form-text-soft)]">Op. gravada</span>
-                <span class="text-sm font-semibold tabular-nums text-[var(--form-text-color)]">S/ {$totals.opGravada}</span>
-              </div>
-              <div class="flex items-center justify-between gap-4">
-                <span class="text-sm text-[var(--form-text-soft)]">IGV (18%)</span>
-                <span class="text-sm font-semibold tabular-nums text-[var(--form-text-color)]">S/ {$totals.igv}</span>
-              </div>
-              <div class="border-t border-[color:color-mix(in_oklab,var(--form-color-3)_18%,transparent)] pt-2.5 flex items-center justify-between gap-4">
-                <span class="text-base font-semibold text-[var(--form-text-color)]">Total</span>
-                <span class="text-xl font-semibold tabular-nums text-[var(--form-text-color)]">S/ {$totals.total.toFixed(2)}</span>
-              </div>
-            </div>
-          </div>
 
-          <!-- Método de pago -->
-          <PaymentTerms total={$totals.total} />
+            <!-- Método de pago -->
+            <PaymentTerms total={$totals.total} />
 
           </div>
         </div>

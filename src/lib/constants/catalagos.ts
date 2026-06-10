@@ -1622,7 +1622,7 @@ export const CATALOGO51 = [
         label: 'Comprobante emitido por AFP'
     }
 ]
-export const catalogo52 = [
+export const CATALOGO52 = [
     {
         value: '1000',
         label: 'Monto en Letras'
@@ -1669,7 +1669,7 @@ export const catalogo52 = [
     }
 ]
 
-export const catalogo54 = [
+export const CATALOGO54 = [
     {
         value: '001',
         label: 'Azúcar y melaza de caña',

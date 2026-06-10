@@ -24,7 +24,7 @@
     if (!doc["cbc:ID"] || isReady) return;
 
     series        = doc["cbc:ID"]?._text?.split("-")[0] ?? "";
-    correlative   = doc["cbc:ID"]?._text?.split("-")[1] ?? "";
+    correlative = (doc["cbc:ID"]?._text?.split("-")[1] ?? "").padStart(8, "0");
     documentType  = doc["cbc:InvoiceTypeCode"]?._text ?? "";
     operationType = doc["cbc:InvoiceTypeCode"]?._attributes?.listID ?? "";
     isReady = true;
@@ -74,12 +74,14 @@
       icon={documentIcon}
       required
     />
-    <Input
-      placeholder="Correlativo"
-      showLabel={false}
-      bind:value={correlative}
-      icon={documentIcon}
-      required
-    />
+    <div onfocusout={() => { if (correlative) correlative = correlative.padStart(8, "0") }}>
+      <Input
+        placeholder="Correlativo"
+        showLabel={false}
+        bind:value={correlative}
+        icon={documentIcon}
+        required
+      />
+    </div>
   </div>
 </section>

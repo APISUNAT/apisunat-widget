@@ -1,4 +1,5 @@
 import { documentStore } from '../document.store'
+import { numeroALetras } from '$lib/shared/utils/convert.utils'
 
 export function addInvoiceLine(data: {
   id: number
@@ -7,7 +8,7 @@ export function addInvoiceLine(data: {
   description: string
   valorUnitario: number
   precioUnitario: number
-  igvRate: number  // entero: 18
+  igvRate: number
   itemCode?: string
 }) {
   const rate          = data.igvRate / 100
@@ -31,7 +32,7 @@ export function addInvoiceLine(data: {
         'cbc:TaxableAmount': { _attributes: { currencyID: 'PEN' }, _text: lineExtension },
         'cbc:TaxAmount':     { _attributes: { currencyID: 'PEN' }, _text: taxAmount },
         'cac:TaxCategory': {
-          'cbc:Percent':                { _text: data.igvRate }, // entero: 18
+          'cbc:Percent':                { _text: data.igvRate },
           'cbc:TaxExemptionReasonCode': { _text: '10' },
           'cac:TaxScheme': {
             'cbc:ID':          { _text: '1000' },
@@ -56,11 +57,16 @@ export function addInvoiceLine(data: {
     const existing = ((body['cac:InvoiceLine'] as any[]) ?? [])
       .filter((l: any) => l['cbc:ID']._text !== data.id)
     const lines = [...existing, line]
+    const { total, ...ubl } = recalcTotals(lines)
 
     return {
       ...body,
       'cac:InvoiceLine': lines,
-      ...recalcTotals(lines),
+      ...ubl,
+      'cbc:Note': [
+        ...(body['cbc:Note'] ?? []).filter((n: any) => n._attributes?.languageLocaleID !== '1000'),
+        { _text: numeroALetras(total), _attributes: { languageLocaleID: '1000' } }
+      ]
     }
   })
 }
@@ -69,21 +75,34 @@ export function removeInvoiceLine(id: number) {
   documentStore.update(body => {
     const lines = ((body['cac:InvoiceLine'] as any[]) ?? [])
       .filter((l: any) => l['cbc:ID']._text !== id)
+    const { total, ...ubl } = recalcTotals(lines)
 
     return {
       ...body,
       'cac:InvoiceLine': lines,
-      ...recalcTotals(lines),
+      ...ubl,
+      'cbc:Note': [
+        ...(body['cbc:Note'] ?? []).filter((n: any) => n._attributes?.languageLocaleID !== '1000'),
+        { _text: numeroALetras(total), _attributes: { languageLocaleID: '1000' } }
+      ]
     }
   })
 }
 
 export function clearInvoiceLines() {
-  documentStore.update(body => ({
-    ...body,
-    'cac:InvoiceLine': [],
-    ...recalcTotals([]),
-  }))
+  documentStore.update(body => {
+    const { total, ...ubl } = recalcTotals([])
+
+    return {
+      ...body,
+      'cac:InvoiceLine': [],
+      ...ubl,
+      'cbc:Note': [
+        ...(body['cbc:Note'] ?? []).filter((n: any) => n._attributes?.languageLocaleID !== '1000'),
+        { _text: numeroALetras(total), _attributes: { languageLocaleID: '1000' } }
+      ]
+    }
+  })
 }
 
 function recalcTotals(lines: any[]) {
@@ -94,6 +113,7 @@ function recalcTotals(lines: any[]) {
   const total      = parseFloat((opGravadaR + igvR).toFixed(2))
 
   return {
+    total,
     'cac:TaxTotal': {
       'cbc:TaxAmount': { _attributes: { currencyID: 'PEN' }, _text: igvR },
       'cac:TaxSubtotal': [{
