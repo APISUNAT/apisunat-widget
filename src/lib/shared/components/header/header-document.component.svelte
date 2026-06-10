@@ -19,16 +19,17 @@
     filterOperationsByDocumentType(documentType, CATALOGO51)
   )
 
-  $effect(() => {
-    const doc = $documentStore;
-    if (!doc["cbc:ID"] || isReady) return;
+ $effect(() => {
+  const doc = $documentStore;
+  if (isReady) return;
 
-    series        = doc["cbc:ID"]?._text?.split("-")[0] ?? "";
-    correlative = (doc["cbc:ID"]?._text?.split("-")[1] ?? "").padStart(8, "0");
-    documentType  = doc["cbc:InvoiceTypeCode"]?._text ?? "";
-    operationType = doc["cbc:InvoiceTypeCode"]?._attributes?.listID ?? "";
-    isReady = true;
-  });
+  series      = doc["cbc:ID"]?._text?.split("-")[0] ?? "";
+  correlative = (doc["cbc:ID"]?._text?.split("-")[1] ?? "").padStart(8, "0");
+  documentType  = doc["cbc:InvoiceTypeCode"]?._text ?? "";
+  operationType = doc["cbc:InvoiceTypeCode"]?._attributes?.listID ?? "";
+
+  if (documentType) isReady = true;
+});
 
   $effect(() => {
     if (!isReady) return;

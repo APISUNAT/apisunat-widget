@@ -230,8 +230,8 @@
                     onchange={(e) => {
                       const newRate = Number((e.currentTarget as HTMLSelectElement).value);
                       editorItem.igvRate = newRate;
-                      const precio = parseFloat(editorItem.precioUnitario) || 0;
-                      editorItem.valorUnitario = precio > 0 ? (precio / (1 + newRate / 100)).toFixed(2) : "";
+                      const valor = parseFloat(editorItem.valorUnitario) || 0;
+                      editorItem.precioUnitario = valor > 0 ? (valor * (1 + newRate / 100)).toFixed(2) : "";
                     }}
                   >
                     {#each CATALOGOIGVPercents as opt}
