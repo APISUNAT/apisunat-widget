@@ -2,12 +2,14 @@
   import { CATALOGO02 } from "$lib/constants/catalagos";
   import DatePicker from "$lib/shared/ui/date-picker.svelte";
   import Select from "$lib/shared/ui/select.svelte";
-  import { setHeaderOptions } from "$lib/store/actions/header.actions";
   import { documentStore } from "$lib/store/document.store";
+  import {
+    buildHeaderOptionsAction,
+    getPeruTime,
+  } from "./header-options.component";
 
   let date = $state("");
   let currency = $state("");
-
   let isReady = false;
 
   $effect(() => {
@@ -24,7 +26,14 @@
     const d = date;
     const c = currency;
     if (!isReady) return;
-    setHeaderOptions({ date: d, currency: c });
+    documentStore.update((body) => ({
+      ...body,
+      ...buildHeaderOptionsAction({
+        date: d,
+        currency: c,
+        time: getPeruTime(),
+      }),
+    }));
   });
 </script>
 

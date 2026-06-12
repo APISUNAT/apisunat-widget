@@ -32,7 +32,7 @@
   }
 
   const inputClass =
-    "block w-full rounded-xl border border-[color:color-mix(in_oklab,var(--form-color-3)_30%,transparent)] bg-[var(--form-field-bg)] ps-12 pe-4 py-3 text-sm font-medium text-[var(--form-text-color)] outline-none [appearance:textfield] [&::-webkit-calendar-picker-indicator]:hidden";
+  "block h-10 w-full rounded-xl border border-[color:color-mix(in_oklab,var(--form-color-3)_30%,transparent)] bg-[var(--form-field-bg)] ps-12 pe-4 text-sm font-medium text-[var(--form-text-color)] outline-none [appearance:textfield] [&::-webkit-calendar-picker-indicator]:hidden";
 </script>
 
 <div class="grid gap-1.5 text-[13px] text-[var(--form-text-muted)]">

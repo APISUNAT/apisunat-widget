@@ -27,3 +27,23 @@ export const plusIcon = '<svg class="size-4 shrink-0" fill="none" stroke="curren
 export const trashIcon = '<svg class="size-4 shrink-0" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M3 6h18" /><path d="M8 6V4h8v2" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /></svg>';
 
 export const referenceIcon = '<svg class="size-4 shrink-0" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M8 12h8" /><path d="M8 8h8" /><path d="M8 16h5" /><rect x="4" y="3" width="16" height="18" rx="2" /></svg>';
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

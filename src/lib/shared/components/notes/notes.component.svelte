@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { setNote, removeNote } from '$lib/store/actions/notes.actions'
+  import { setNoteActions, removeNoteActions } from './notes.component'
   import { noteIcon } from '$lib/constants/icons.constants'
   import { CATALOGO52 } from '$lib/constants/catalagos'
   import { documentStore } from '$lib/store/document.store'
@@ -38,10 +38,10 @@
     if (activeTab === 'predefined' && selectedCodes.size > 0) {
       for (const code of selectedCodes) {
         const found = CATALOGO52.find((n) => n.value === code)
-        if (found) setNote({ notecode: found.value, note: found.label })
+        if (found) setNoteActions({ notecode: found.value, note: found.label })
       }
     } else if (activeTab === 'custom' && customNote.trim()) {
-      setNote({ note: customNote.trim() })
+      setNoteActions({ note: customNote.trim() })
     }
     reset()
   }
@@ -106,7 +106,7 @@
           <span class="text-[12px] leading-snug text-[var(--form-text-color)]">{note._text}</span>
           <button
             class="shrink-0 text-[var(--form-text-soft)] transition hover:text-red-400"
-            onclick={() => removeNote(note._originalIndex)}
+            onclick={() => removeNoteActions(note._originalIndex)}
             aria-label="Eliminar nota"
           >
             <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">

@@ -1,6 +1,6 @@
 <script lang="ts">
   import Note from '$lib/shared/components/notes/notes.component.svelte'
-  import { removeNote } from '$lib/store/actions/notes.actions'
+  import { removeNoteActions } from './notes.component'
   import { documentStore } from '$lib/store/document.store'
   import { derived } from 'svelte/store'
 
@@ -40,7 +40,7 @@
         </div>
         <button
           class="mt-0.5 shrink-0 text-[var(--form-text-soft)] transition hover:text-red-400"
-          onclick={() => removeNote(i)}
+          onclick={() => removeNoteActions(i)}
           aria-label="Eliminar nota"
         >
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">

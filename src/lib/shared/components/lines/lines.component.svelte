@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { addInvoiceLine, removeInvoiceLine } from "$lib/store/actions/lines.actions";
+  import { addInvoiceLine, removeInvoiceLine } from "./lines.component";
   import { documentStore } from "$lib/store/document.store";
   import ItemEditor from "./item-editor.component.svelte";
 

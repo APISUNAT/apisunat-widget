@@ -21,21 +21,20 @@
     </span>
   {/if}
 
-  <select
-    bind:value
-    {disabled}
-    {required}
+    <select
+        bind:value
+        {disabled}
+        {required}
+        class={selectClass}
+    >
+        <option value="">
+            {placeholder || label}
+        </option>
 
-    class={selectClass}
-  >
-    <option value="">
-      {placeholder || label}
-    </option>
-
-    {#each options as option}
-      <option value={option.value}>
-        {option.label}
-      </option>
-    {/each}
-  </select>
+        {#each options as option}
+            <option value={option.value}>
+            {option.label}
+            </option>
+        {/each}
+    </select>
 </div>

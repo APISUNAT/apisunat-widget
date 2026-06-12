@@ -9,6 +9,7 @@
     disabled = false,
     required = false,
     maxLength = undefined,
+    onlyNumbers = false
   }: {
     label?: string;
     value?: string;
@@ -19,7 +20,15 @@
     disabled?: boolean;
     required?: boolean;
     maxLength?: number;
+    onlyNumbers?: boolean;
   } = $props();
+
+  function handleInput(event: Event) {
+    if (!onlyNumbers) return;
+
+    const target = event.target as HTMLInputElement;
+    value = target.value.replace(/\D/g, '');
+  }
 
   const inputClass =
     'block w-full rounded-xl border border-[color:color-mix(in_oklab,var(--form-color-3)_30%,transparent)] bg-[var(--form-field-bg)] px-4 py-3 ps-11 text-sm font-medium text-[var(--form-text-color)] outline-none';
@@ -41,6 +50,8 @@
       {disabled}
       {required}
       maxlength={maxLength}
+      inputmode={onlyNumbers ? 'numeric' : undefined}
+      oninput={handleInput}
       class={inputClass}
     />
 

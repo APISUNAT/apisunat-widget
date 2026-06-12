@@ -4,16 +4,14 @@
   import Supplier from "$lib/shared/components/suplier/supplier.component.svelte";
   import Customer from "$lib/shared/components/customer/customer.component.svelte";
   import Lines from "$lib/shared/components/lines/lines.component.svelte";
-  import PaymentTerms from "$lib/shared/components/payment-terms/payment-terms.component.svelte";
+  import DocumentReference from "$lib/shared/components/document-reference/document-reference.component.svelte";
   import NotesPanel from "$lib/shared/components/notes/notes-panel.component.svelte";
-  import Retention from "$lib/modules/invoice/components/retention.component.svelte";
   import { documentStore } from "$lib/store/document.store";
   import { derived } from "svelte/store";
 
   let {
     showHeader = true,
     showSupplier = true,
-    showRetention = true,
     onEmitClick = undefined as (() => Promise<any>) | undefined,
   } = $props();
 
@@ -36,7 +34,6 @@
     "text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--form-text-soft)]";
   const panelClass =
     "overflow-hidden rounded-[1.15rem] border border-[color:color-mix(in_oklab,var(--form-color-3)_22%,transparent)] bg-[var(--form-panel-bg)]";
-
   async function handleEmit() {
     if (!onEmitClick) return;
     emitting = true;
@@ -90,7 +87,6 @@
 
           <!-- Columna derecha: notas + resumen + pago (30%) -->
           <div class="grid gap-4">
-            <!-- Botón notas — arriba del resumen -->
             <NotesPanel />
 
             <!-- Resumen -->
@@ -107,17 +103,17 @@
                   >
                   <span
                     class="text-sm font-semibold tabular-nums text-[var(--form-text-color)]"
+                    >S/ {$totals.opGravada}</span
                   >
-                    S/ {$totals.opGravada}
-                  </span>
                 </div>
                 <div class="flex items-center justify-between gap-4">
-                  <span class="text-sm text-[var(--form-text-soft)]">IGV</span>
+                  <span class="text-sm text-[var(--form-text-soft)]"
+                    >IGV (18%)</span
+                  >
                   <span
                     class="text-sm font-semibold tabular-nums text-[var(--form-text-color)]"
+                    >S/ {$totals.igv}</span
                   >
-                    S/ {$totals.igv}
-                  </span>
                 </div>
                 <div
                   class="border-t border-[color:color-mix(in_oklab,var(--form-color-3)_18%,transparent)] pt-2.5 flex items-center justify-between gap-4"
@@ -128,24 +124,14 @@
                   >
                   <span
                     class="text-xl font-semibold tabular-nums text-[var(--form-text-color)]"
+                    >S/ {$totals.total.toFixed(2)}</span
                   >
-                    S/ {$totals.total.toFixed(2)}
-                  </span>
                 </div>
               </div>
             </div>
-
-            <!-- Retención -->
-            {#if showRetention}
-              <Retention />
-            {/if}
-
-            <!-- Método de pago -->
-            <PaymentTerms total={$totals.total} />
           </div>
         </div>
       </section>
-
       <!-- Botón emitir -->
       {#if onEmitClick}
         <section class="pt-1 pb-2 flex justify-end">

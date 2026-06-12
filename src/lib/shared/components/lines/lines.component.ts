@@ -1,5 +1,10 @@
-import { documentStore } from '../document.store'
+import { get } from 'svelte/store'
+import { documentStore } from '$lib/store/document.store'
 import { numeroALetras } from '$lib/shared/utils/convert.utils'
+
+function getCurrency(): string {
+  return get(documentStore)['cbc:DocumentCurrencyCode']?._text ?? 'PEN'
+}
 
 export function addInvoiceLine(data: {
   id: number
@@ -11,6 +16,7 @@ export function addInvoiceLine(data: {
   igvRate: number
   itemCode?: string
 }) {
+  const currency      = getCurrency()
   const rate          = data.igvRate / 100
   const totalLinea    = parseFloat((data.quantity * data.precioUnitario).toFixed(2))
   const lineExtension = parseFloat((totalLinea / (1 + rate)).toFixed(2))
@@ -19,18 +25,18 @@ export function addInvoiceLine(data: {
   const line = {
     'cbc:ID':               { _text: data.id },
     'cbc:InvoicedQuantity': { _attributes: { unitCode: data.unitCode }, _text: data.quantity },
-    'cbc:LineExtensionAmount': { _attributes: { currencyID: 'PEN' }, _text: lineExtension },
+    'cbc:LineExtensionAmount': { _attributes: { currencyID: currency }, _text: lineExtension },
     'cac:PricingReference': {
       'cac:AlternativeConditionPrice': {
-        'cbc:PriceAmount':   { _attributes: { currencyID: 'PEN' }, _text: data.precioUnitario },
+        'cbc:PriceAmount':   { _attributes: { currencyID: currency }, _text: data.precioUnitario },
         'cbc:PriceTypeCode': { _text: '01' }
       }
     },
     'cac:TaxTotal': {
-      'cbc:TaxAmount': { _attributes: { currencyID: 'PEN' }, _text: taxAmount },
+      'cbc:TaxAmount': { _attributes: { currencyID: currency }, _text: taxAmount },
       'cac:TaxSubtotal': [{
-        'cbc:TaxableAmount': { _attributes: { currencyID: 'PEN' }, _text: lineExtension },
-        'cbc:TaxAmount':     { _attributes: { currencyID: 'PEN' }, _text: taxAmount },
+        'cbc:TaxableAmount': { _attributes: { currencyID: currency }, _text: lineExtension },
+        'cbc:TaxAmount':     { _attributes: { currencyID: currency }, _text: taxAmount },
         'cac:TaxCategory': {
           'cbc:Percent':                { _text: data.igvRate },
           'cbc:TaxExemptionReasonCode': { _text: '10' },
@@ -49,7 +55,7 @@ export function addInvoiceLine(data: {
       })
     },
     'cac:Price': {
-      'cbc:PriceAmount': { _attributes: { currencyID: 'PEN' }, _text: data.valorUnitario }
+      'cbc:PriceAmount': { _attributes: { currencyID: currency }, _text: data.valorUnitario }
     }
   }
 
@@ -57,7 +63,7 @@ export function addInvoiceLine(data: {
     const existing = ((body['cac:InvoiceLine'] as any[]) ?? [])
       .filter((l: any) => l['cbc:ID']._text !== data.id)
     const lines = [...existing, line]
-    const { total, ...ubl } = recalcTotals(lines)
+    const { total, ...ubl } = recalcTotals(lines, currency)
 
     return {
       ...body,
@@ -72,10 +78,12 @@ export function addInvoiceLine(data: {
 }
 
 export function removeInvoiceLine(id: number) {
+  const currency = getCurrency()
+
   documentStore.update(body => {
     const lines = ((body['cac:InvoiceLine'] as any[]) ?? [])
       .filter((l: any) => l['cbc:ID']._text !== id)
-    const { total, ...ubl } = recalcTotals(lines)
+    const { total, ...ubl } = recalcTotals(lines, currency)
 
     return {
       ...body,
@@ -90,8 +98,10 @@ export function removeInvoiceLine(id: number) {
 }
 
 export function clearInvoiceLines() {
+  const currency = getCurrency()
+
   documentStore.update(body => {
-    const { total, ...ubl } = recalcTotals([])
+    const { total, ...ubl } = recalcTotals([], currency)
 
     return {
       ...body,
@@ -105,7 +115,7 @@ export function clearInvoiceLines() {
   })
 }
 
-function recalcTotals(lines: any[]) {
+function recalcTotals(lines: any[], currency: string) {
   const opGravada  = lines.reduce((s, l) => s + (l['cbc:LineExtensionAmount']?._text ?? 0), 0)
   const igv        = lines.reduce((s, l) => s + (l['cac:TaxTotal']?.['cbc:TaxAmount']?._text ?? 0), 0)
   const opGravadaR = parseFloat(opGravada.toFixed(2))
@@ -115,10 +125,10 @@ function recalcTotals(lines: any[]) {
   return {
     total,
     'cac:TaxTotal': {
-      'cbc:TaxAmount': { _attributes: { currencyID: 'PEN' }, _text: igvR },
+      'cbc:TaxAmount': { _attributes: { currencyID: currency }, _text: igvR },
       'cac:TaxSubtotal': [{
-        'cbc:TaxableAmount': { _attributes: { currencyID: 'PEN' }, _text: opGravadaR },
-        'cbc:TaxAmount':     { _attributes: { currencyID: 'PEN' }, _text: igvR },
+        'cbc:TaxableAmount': { _attributes: { currencyID: currency }, _text: opGravadaR },
+        'cbc:TaxAmount':     { _attributes: { currencyID: currency }, _text: igvR },
         'cac:TaxCategory': {
           'cac:TaxScheme': {
             'cbc:ID':          { _text: '1000' },
@@ -129,9 +139,9 @@ function recalcTotals(lines: any[]) {
       }]
     },
     'cac:LegalMonetaryTotal': {
-      'cbc:LineExtensionAmount': { _attributes: { currencyID: 'PEN' }, _text: opGravadaR },
-      'cbc:TaxInclusiveAmount':  { _attributes: { currencyID: 'PEN' }, _text: total },
-      'cbc:PayableAmount':       { _attributes: { currencyID: 'PEN' }, _text: total },
+      'cbc:LineExtensionAmount': { _attributes: { currencyID: currency }, _text: opGravadaR },
+      'cbc:TaxInclusiveAmount':  { _attributes: { currencyID: currency }, _text: total },
+      'cbc:PayableAmount':       { _attributes: { currencyID: currency }, _text: total },
     }
   }
 }

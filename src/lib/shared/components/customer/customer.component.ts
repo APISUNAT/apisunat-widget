@@ -1,20 +1,86 @@
-export const DOCUMENT_TYPE_ALLOWED: Record<string, string[]> = {
-  '01': ['6'],
-  '03': ['-', '1', '6', 'H', '7', '4', 'E', 'A', 'G', 'C', 'D', 'B', '0'],
+import { documentStore } from '$lib/store/document.store'
+import { getDNIGETAsync, getRUCGETAsync } from '$lib/api/documents.api'
+
+export function setCustomerActions(data: {
+  typeDocument: string
+  numberDocument: string
+  name: string
+  address: string
+  phone?: string
+  email?: string
+}) {
+  const isNoDocument = data.typeDocument === '-'
+
+  documentStore.update(body => ({
+    ...body,
+    'cac:AccountingCustomerParty': {
+      'cac:Party': {
+        'cac:PartyIdentification': {
+          'cbc:ID': {
+            _attributes: { schemeID: isNoDocument ? '-' : data.typeDocument },
+            _text: isNoDocument ? '00000000' : data.numberDocument,
+          }
+        },
+        ...(data.name || data.address) && {
+          'cac:PartyLegalEntity': {
+            ...(data.name && {
+              'cbc:RegistrationName': { _text: data.name }
+            }),
+            ...(data.address && {
+              'cac:RegistrationAddress': {
+                'cac:AddressLine': {
+                  'cbc:Line': { _text: data.address }
+                }
+              }
+            }),
+          }
+        },
+        ...(data.phone || data.email) && {
+          'cac:Contact': {
+            ...(data.phone && { 'cbc:Telephone': { _text: data.phone } }),
+            ...(data.email && { 'cbc:ElectronicMail': { _text: data.email } }),
+          }
+        }
+      }
+    }
+  }))
 }
 
-export function getFilteredCatalogo(
-  catalogoOptions: { value: string; label: string }[],
-  documentType: string
-) {
-  const allowed = DOCUMENT_TYPE_ALLOWED[documentType]
-  if (!allowed) return catalogoOptions
-  return catalogoOptions.filter(opt => allowed.includes(opt.value))
+function buildAddress(domicilio: any): string {
+  return [
+    domicilio?.direccion,
+    domicilio?.distrito,
+    domicilio?.provincia,
+    domicilio?.departamento,
+  ]
+    .filter(Boolean)
+    .join(', ')
 }
 
-export function getDefaultTypeDocument(documentType: string, current: string): string {
-  const allowed = DOCUMENT_TYPE_ALLOWED[documentType]
-  if (!allowed) return current
-  if (allowed.includes(current)) return current
-  return ''
+export async function fetchCustomerByDocument(
+  typeDocument: string,
+  numberDocument: string
+): Promise<{ name: string; address: string } | null> {
+  try {
+    if (typeDocument === '1') {
+      const json = await getDNIGETAsync(numberDocument)
+      if (!json?.success) return null
+      const d = json.data
+      const name = [d.nombre, d.apellido_paterno, d.apellido_materno]
+        .filter(Boolean)
+        .join(' ')
+      return { name, address: buildAddress(d.domicilio) }
+    }
+
+    if (typeDocument === '6') {
+      const json = await getRUCGETAsync(numberDocument)
+      if (!json?.success) return null
+      const d = json.data
+      return { name: d.nombre ?? '', address: buildAddress(d.domicilio) }
+    }
+
+    return null
+  } catch {
+    return null
+  }
 }
