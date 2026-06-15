@@ -45,7 +45,7 @@
 		"svelte"
 	],
 	"dependencies": {
+		"flatpickr": "^4.6.13",
 		"preline": "^4.1.3"
 	}
-
 }
