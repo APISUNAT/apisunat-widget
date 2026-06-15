@@ -11,16 +11,16 @@
   import Select from "$lib/shared/ui/select.svelte";
   import { documentStore } from "$lib/store/document.store";
   import {
+    fetchCustomerByDocument,
+    setCustomerActions,
+  } from "./customer.component";
+  import {
     getFilteredCatalogo,
-    maxLengthInput,
-    isValidRuc,
     handleNoDocumentSelection,
     isDocumentComplete,
+    isValidRuc,
+    maxLengthInput,
   } from "./customer.utils";
-  import {
-    setCustomerActions,
-    fetchCustomerByDocument,
-  } from "./customer.component";
 
   let typeDocument = $state("");
   let numberDocument = $state("");
@@ -56,7 +56,11 @@
     if (isReady) return;
 
     // Esperar a que loadDocument haya corrido — el supplier confirma que el store está listo
-    if (!doc["cac:AccountingCustomerParty"] && !doc["cac:AccountingSupplierParty"]) return;
+    if (
+      !doc["cac:AccountingCustomerParty"] &&
+      !doc["cac:AccountingSupplierParty"]
+    )
+      return;
 
     if (!doc["cac:AccountingCustomerParty"]) {
       isReady = true;
@@ -65,7 +69,8 @@
 
     const party = doc["cac:AccountingCustomerParty"]?.["cac:Party"];
     typeDocument =
-      party?.["cac:PartyIdentification"]?.["cbc:ID"]?._attributes?.schemeID ?? "";
+      party?.["cac:PartyIdentification"]?.["cbc:ID"]?._attributes?.schemeID ??
+      "";
     numberDocument =
       party?.["cac:PartyIdentification"]?.["cbc:ID"]?._text ?? "";
     name =

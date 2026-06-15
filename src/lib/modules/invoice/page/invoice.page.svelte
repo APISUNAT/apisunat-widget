@@ -1,7 +1,7 @@
 <script lang="ts">
   import HeaderDocument from "$lib/shared/components/header/header-document.component.svelte";
   import HeaderOptions from "$lib/shared/components/header/header-options.component.svelte";
-  import Supplier from "$lib/shared/components/suplier/supplier.component.svelte";
+  import Supplier from "$lib/shared/components/supplier/supplier.component.svelte";
   import Customer from "$lib/shared/components/customer/customer.component.svelte";
   import Lines from "$lib/shared/components/lines/lines.component.svelte";
   import PaymentTerms from "$lib/shared/components/payment-terms/payment-terms.component.svelte";
@@ -9,6 +9,7 @@
   import Retention from "$lib/modules/invoice/components/retention.component.svelte";
   import { documentStore } from "$lib/store/document.store";
   import { derived } from "svelte/store";
+  import EmitButton from '$lib/shared/components/emit/emit-button.component.svelte'
 
   let {
     showHeader = true,
@@ -17,7 +18,6 @@
     onEmitClick = undefined as (() => Promise<any>) | undefined,
   } = $props();
 
-  let emitting = $state(false);
 
   const totals = derived(documentStore, ($doc) => {
     const opGravada =
@@ -37,15 +37,7 @@
   const panelClass =
     "overflow-hidden rounded-[1.15rem] border border-[color:color-mix(in_oklab,var(--form-color-3)_22%,transparent)] bg-[var(--form-panel-bg)]";
 
-  async function handleEmit() {
-    if (!onEmitClick) return;
-    emitting = true;
-    try {
-      await onEmitClick();
-    } finally {
-      emitting = false;
-    }
-  }
+
 </script>
 
 <section
@@ -149,17 +141,7 @@
       <!-- Botón emitir -->
       {#if onEmitClick}
         <section class="pt-1 pb-2 flex justify-end">
-          <button
-            onclick={handleEmit}
-            disabled={emitting}
-            class="flex items-center justify-center gap-2 rounded-[1.15rem] border border-dashed border-[color:color-mix(in_oklab,var(--form-color-3)_35%,transparent)] px-4 py-3 text-[13px] font-medium text-[var(--form-text-soft)] transition hover:border-[color:color-mix(in_oklab,var(--form-color-3)_55%,transparent)] hover:text-[var(--form-text-color)] disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            {#if emitting}
-              Emitiendo...
-            {:else}
-              Emitir comprobante
-            {/if}
-          </button>
+          <EmitButton {onEmitClick} />
         </section>
       {/if}
     </div>

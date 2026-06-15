@@ -3,11 +3,11 @@
   import { documentIcon } from "$lib/constants/icons.constants";
   import Input from "$lib/shared/ui/input.svelte";
   import Select from "$lib/shared/ui/select.svelte";
-  import { documentStore } from "$lib/store/document.store";
+  import { documentStore, documentTypeStore } from "$lib/store/document.store";
   import { buildHeaderDocumentAction, filterOperationsByDocumentType, loadLastDocumentAction } from "./header-document.component";
 
   let series        = $state("");
-  let correlative = $state("00000000");
+  let correlative   = $state("00000000");
   let documentType  = $state("");
   let operationType = $state("");
   let locked        = $state(false);
@@ -20,13 +20,15 @@
   );
 
   $effect(() => {
-    const doc = $documentStore;
-    if (isReady) return;
+    const doc  = $documentStore;
+    const type = $documentTypeStore;
 
-    documentType  = doc["cbc:InvoiceTypeCode"]?._text ?? "";
+    if (isReady) return;
+    if (!type) return;
+
+    documentType  = type;
     operationType = doc["cbc:InvoiceTypeCode"]?._attributes?.listID ?? "";
 
-    if (!documentType) return;
     isReady = true;
 
     loadLastDocumentAction().then(result => {
@@ -53,7 +55,10 @@
     const d = documentType;
     const o = operationType;
     if (!isReady) return;
-    documentStore.update(body => ({ ...body, ...buildHeaderDocumentAction({ series: s, correlative: c, documentType: d, operationType: o }) }));
+    documentStore.update(body => ({
+      ...body,
+      ...buildHeaderDocumentAction({ series: s, correlative: c, documentType: d, operationType: o })
+    }));
   });
 </script>
 
@@ -65,8 +70,8 @@
       showLabel={false}
       bind:value={operationType}
       options={filteredOperations}
-      required
     />
+
     <Input
       placeholder="Serie"
       showLabel={false}
@@ -74,8 +79,8 @@
       icon={documentIcon}
       maxLength={4}
       disabled={locked}
-      required
     />
+
     <div onfocusout={() => { if (correlative && !locked) correlative = correlative.padStart(8, "0") }}>
       <Input
         placeholder="Correlativo"
@@ -85,8 +90,8 @@
         icon={documentIcon}
         maxLength={8}
         disabled={locked}
-        required
       />
     </div>
+
   </div>
 </section>
