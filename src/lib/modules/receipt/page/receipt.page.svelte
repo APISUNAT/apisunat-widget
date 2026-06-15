@@ -8,6 +8,7 @@
   import NotesPanel from "$lib/shared/components/notes/notes-panel.component.svelte";
   import { documentStore } from "$lib/store/document.store";
   import { derived } from "svelte/store";
+  import EmitButton from "$lib/shared/components/emit/emit-button.component.svelte";
 
   let {
     showHeader = true,
@@ -15,7 +16,6 @@
     onEmitClick = undefined as (() => Promise<any>) | undefined,
   } = $props();
 
-  let emitting = $state(false);
 
   const totals = derived(documentStore, ($doc) => {
     const opGravada =
@@ -34,15 +34,7 @@
     "text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--form-text-soft)]";
   const panelClass =
     "overflow-hidden rounded-[1.15rem] border border-[color:color-mix(in_oklab,var(--form-color-3)_22%,transparent)] bg-[var(--form-panel-bg)]";
-  async function handleEmit() {
-    if (!onEmitClick) return;
-    emitting = true;
-    try {
-      await onEmitClick();
-    } finally {
-      emitting = false;
-    }
-  }
+
 </script>
 
 <section
@@ -135,17 +127,7 @@
       <!-- Botón emitir -->
       {#if onEmitClick}
         <section class="pt-1 pb-2 flex justify-end">
-          <button
-            onclick={handleEmit}
-            disabled={emitting}
-            class="flex items-center justify-center gap-2 rounded-[1.15rem] border border-dashed border-[color:color-mix(in_oklab,var(--form-color-3)_35%,transparent)] px-4 py-3 text-[13px] font-medium text-[var(--form-text-soft)] transition hover:border-[color:color-mix(in_oklab,var(--form-color-3)_55%,transparent)] hover:text-[var(--form-text-color)] disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            {#if emitting}
-              Emitiendo...
-            {:else}
-              Emitir comprobante
-            {/if}
-          </button>
+          <EmitButton {onEmitClick} />
         </section>
       {/if}
     </div>
