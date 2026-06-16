@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import { CATALOGO51 } from "$lib/constants/catalagos";
   import { documentIcon } from "$lib/constants/icons.constants";
   import Input from "$lib/shared/ui/input.svelte";
@@ -11,9 +12,10 @@
   let documentType  = $state("");
   let operationType = $state("");
   let locked        = $state(false);
+  let isReady       = $state(false);
+  let lastType      = $state("");
 
-  let isReady     = false;
-  let isFirstLoad = true;
+  let loadToken = 0;
 
   const filteredOperations = $derived(
     filterOperationsByDocumentType(documentType, CATALOGO51)
@@ -23,26 +25,35 @@
     const doc  = $documentStore;
     const type = $documentTypeStore;
 
-    if (isReady) return;
-    if (!type) return;
+    untrack(() => {
+      if (!type) return;
 
-    documentType  = type;
-    operationType = doc["cbc:InvoiceTypeCode"]?._attributes?.listID ?? "";
+      if (type !== lastType) {
+        lastType      = type;
+        isReady       = false;
+        locked        = false;
+        operationType = "";
+        series        = "";
+        correlative   = "00000000";
+        loadToken++
+      }
 
-    isReady = true;
+      if (isReady) return;
 
-    loadLastDocumentAction().then(result => {
-      if (!result) return;
-      series      = result.series;
-      correlative = result.correlative;
-      locked      = true;
+      documentType  = type;
+      operationType = doc["cbc:InvoiceTypeCode"]?._attributes?.listID ?? "";
+      isReady       = true;
+
+      const currentToken = loadToken;
+
+      loadLastDocumentAction().then(result => {
+        if (loadToken !== currentToken) return;
+        if (!result) return;
+        series      = result.series;
+        correlative = result.correlative;
+        locked      = true;
+      });
     });
-  });
-
-  $effect(() => {
-    if (!isReady) return;
-    if (isFirstLoad) { isFirstLoad = false; return; }
-    operationType = "";
   });
 
   $effect(() => {
@@ -55,10 +66,13 @@
     const d = documentType;
     const o = operationType;
     if (!isReady) return;
-    documentStore.update(body => ({
-      ...body,
-      ...buildHeaderDocumentAction({ series: s, correlative: c, documentType: d, operationType: o })
-    }));
+
+    untrack(() => {
+      documentStore.update(body => ({
+        ...body,
+        ...buildHeaderDocumentAction({ series: s, correlative: c, documentType: d, operationType: o })
+      }));
+    });
   });
 </script>
 

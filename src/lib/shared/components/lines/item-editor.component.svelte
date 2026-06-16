@@ -1,8 +1,9 @@
 <script lang="ts">
   import { packageIcon, quantityIcon, moneyIcon } from "$lib/constants/icons.constants";
   import { createEventDispatcher } from "svelte";
-  import { CATALOGO03, CATALOGOIGVPercents } from "$lib/constants/catalagos";
+  import { CATALOGO02, CATALOGO03, CATALOGOIGVPercents } from "$lib/constants/catalagos";
   import SelectString from "$lib/shared/ui/select.svelte";
+  import { documentStore } from "$lib/store/document.store";
 
   let {
     isOpen = false,
@@ -11,6 +12,10 @@
   } = $props();
 
   const dispatch = createEventDispatcher();
+
+  const symbol = $derived(
+    CATALOGO02.find(c => c.value === ($documentStore['cbc:DocumentCurrencyCode']?._text ?? 'PEN'))?.symbol ?? 'S/'
+  );
 
   const fieldInputClass =
     "peer block w-full rounded-xl border border-[color:color-mix(in_oklab,var(--form-color-3)_30%,transparent)] bg-[var(--form-field-bg)] px-4 py-3 ps-11 text-sm text-[var(--form-text-color)] outline-none transition focus:border-[var(--form-color-3)] sm:py-3";
@@ -24,7 +29,6 @@
   }
 
   function createEditableItem(source: any = {}) {
-    // Protección: si source es null o undefined, usar objeto vacío
     const s = source ?? {};
     return {
       description:    s.description    ?? "",
@@ -42,7 +46,6 @@
     if (!isOpen) {
       editorItem = createEditableItem();
     } else {
-      // itemEditor puede ser null cuando mode === "create"
       editorItem = createEditableItem(itemEditor ?? {});
     }
   });
@@ -193,7 +196,7 @@
                     oninput={(e) => onValorInput((e.currentTarget as HTMLInputElement).value)}
                   />
                   <span class="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-4 text-[var(--form-text-soft)]">
-                    {@html moneyIcon}
+                    {symbol}
                   </span>
                 </div>
               </div>
@@ -212,7 +215,7 @@
                     oninput={(e) => onPrecioInput((e.currentTarget as HTMLInputElement).value)}
                   />
                   <span class="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-4 text-[var(--form-text-soft)]">
-                    {@html moneyIcon}
+                    {symbol}
                   </span>
                 </div>
               </div>
@@ -244,16 +247,16 @@
 
                 <div class="flex items-center justify-between gap-4">
                   <span class="text-sm text-[var(--form-text-soft)]">Op. gravada</span>
-                  <span class="text-sm font-semibold text-[var(--form-text-color)]">S/ {itemAmounts.subtotal}</span>
+                  <span class="text-sm font-semibold text-[var(--form-text-color)]">{symbol} {itemAmounts.subtotal}</span>
                 </div>
                 <div class="flex items-center justify-between gap-4">
                   <span class="text-sm text-[var(--form-text-soft)]">IGV ({editorItem.igvRate}%)</span>
-                  <span class="text-sm font-semibold text-[var(--form-text-color)]">S/ {itemAmounts.tax}</span>
+                  <span class="text-sm font-semibold text-[var(--form-text-color)]">{symbol} {itemAmounts.tax}</span>
                 </div>
                 <div class="border-t border-[color:color-mix(in_oklab,var(--form-color-3)_20%,transparent)] pt-2.5">
                   <div class="flex items-center justify-between gap-4">
                     <span class="text-base font-semibold text-[var(--form-text-color)]">Importe total</span>
-                    <span class="text-lg font-semibold text-[var(--form-text-color)]">S/ {itemAmounts.total}</span>
+                    <span class="text-lg font-semibold text-[var(--form-text-color)]">{symbol} {itemAmounts.total}</span>
                   </div>
                 </div>
 

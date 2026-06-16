@@ -55,32 +55,24 @@
     const doc = $documentStore;
     if (isReady) return;
 
-    // Esperar a que loadDocument haya corrido — el supplier confirma que el store está listo
     if (
       !doc["cac:AccountingCustomerParty"] &&
       !doc["cac:AccountingSupplierParty"]
-    )
-      return;
+    ) return;
 
     if (!doc["cac:AccountingCustomerParty"]) {
+      previousDocumentType = currentDocumentType;
       isReady = true;
       return;
     }
 
-    const party = doc["cac:AccountingCustomerParty"]?.["cac:Party"];
-    typeDocument =
-      party?.["cac:PartyIdentification"]?.["cbc:ID"]?._attributes?.schemeID ??
-      "";
-    numberDocument =
-      party?.["cac:PartyIdentification"]?.["cbc:ID"]?._text ?? "";
-    name =
-      party?.["cac:PartyLegalEntity"]?.["cbc:RegistrationName"]?._text ?? "";
-    address =
-      party?.["cac:PartyLegalEntity"]?.["cac:RegistrationAddress"]?.[
-        "cac:AddressLine"
-      ]?.["cbc:Line"]?._text ?? "";
-    email = party?.["cac:Contact"]?.["cbc:ElectronicMail"]?._text ?? "";
-    phone = party?.["cac:Contact"]?.["cbc:Telephone"]?._text ?? "";
+    const party = doc['cac:AccountingCustomerParty']?.['cac:Party'];
+    typeDocument   = party?.['cac:PartyIdentification']?.['cbc:ID']?._attributes?.schemeID ?? '';
+    numberDocument = party?.['cac:PartyIdentification']?.['cbc:ID']?._text ?? '';
+    name           = party?.['cac:PartyLegalEntity']?.['cbc:RegistrationName']?._text ?? '';
+    address        = party?.['cac:PartyLegalEntity']?.['cac:RegistrationAddress']?.['cac:AddressLine']?.['cbc:Line']?._text ?? '';
+    email          = party?.['cac:Contact']?.['cbc:ElectronicMail']?._text ?? '';
+    phone          = party?.['cac:Contact']?.['cbc:Telephone']?._text ?? '';
     previousDocumentType = currentDocumentType;
     isReady = true;
   });
@@ -92,11 +84,13 @@
     if (!isReady) return;
     if (current !== previousDocumentType) {
       previousDocumentType = current;
-      typeDocument = "";
+      if (!options.some((opt) => opt.value === td)) {
+        typeDocument = '';
+      }
       return;
     }
     if (options.length > 0 && !options.some((opt) => opt.value === td)) {
-      typeDocument = "";
+      typeDocument = '';
     }
   });
 
@@ -194,7 +188,6 @@
     bind:value={phone}
     icon={phoneIcon}
   />
-
   {#if customerError}
     <span class="text-xs text-red-500">{customerError}</span>
   {/if}

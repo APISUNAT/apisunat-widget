@@ -7,9 +7,9 @@
   import PaymentTerms from "$lib/shared/components/payment-terms/payment-terms.component.svelte";
   import NotesPanel from "$lib/shared/components/notes/notes-panel.component.svelte";
   import Retention from "$lib/modules/invoice/components/retention.component.svelte";
-  import { documentStore } from "$lib/store/document.store";
-  import { derived } from "svelte/store";
   import EmitButton from '$lib/shared/components/emit/emit-button.component.svelte'
+  import SummaryPanel from '$lib/shared/components/summary/summary-panel.component.svelte'
+  import { documentStore } from "$lib/store/document.store";
 
   let {
     showHeader = true,
@@ -18,26 +18,8 @@
     onEmitClick = undefined as (() => Promise<any>) | undefined,
   } = $props();
 
-
-  const totals = derived(documentStore, ($doc) => {
-    const opGravada =
-      $doc["cac:LegalMonetaryTotal"]?.["cbc:LineExtensionAmount"]?._text ?? 0;
-    const igv = $doc["cac:TaxTotal"]?.["cbc:TaxAmount"]?._text ?? 0;
-    const total =
-      $doc["cac:LegalMonetaryTotal"]?.["cbc:PayableAmount"]?._text ?? 0;
-    return {
-      opGravada: parseFloat(String(opGravada)).toFixed(2),
-      igv: parseFloat(String(igv)).toFixed(2),
-      total: parseFloat(String(total)),
-    };
-  });
-
   const sectionLabel =
     "text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--form-text-soft)]";
-  const panelClass =
-    "overflow-hidden rounded-[1.15rem] border border-[color:color-mix(in_oklab,var(--form-color-3)_22%,transparent)] bg-[var(--form-panel-bg)]";
-
-
 </script>
 
 <section
@@ -45,7 +27,6 @@
 >
   <div class="bg-[var(--form-color-2)]">
     <div class="grid gap-4 px-4 py-4">
-      <!-- Documento -->
       {#if showHeader}
         <section class="space-y-3 pt-1">
           <p class={sectionLabel}>Documento</p>
@@ -53,13 +34,11 @@
         </section>
       {/if}
 
-      <!-- Opciones del documento -->
       <section class="space-y-3 pt-1">
         <p class={sectionLabel}></p>
         <HeaderOptions />
       </section>
 
-      <!-- Emisor -->
       {#if showSupplier}
         <section class="space-y-3 pt-1">
           <p class={sectionLabel}>Emisor</p>
@@ -67,78 +46,30 @@
         </section>
       {/if}
 
-      <!-- Cliente -->
       <section class="space-y-3 pt-1">
         <p class={sectionLabel}>Cliente</p>
         <Customer />
       </section>
 
-      <!-- Ítems + sidebar derecha (resumen + pago) -->
       <section class="space-y-3 pt-1">
         <p class={sectionLabel}>Ítems</p>
         <div class="grid gap-4 lg:grid-cols-[70%_1fr] lg:items-start">
-          <!-- Columna izquierda: ítems (70%) -->
           <Lines />
 
-          <!-- Columna derecha: notas + resumen + pago (30%) -->
           <div class="grid gap-4">
-            <!-- Botón notas — arriba del resumen -->
             <NotesPanel />
 
-            <!-- Resumen -->
-            <div class={panelClass}>
-              <div
-                class="border-b border-[color:color-mix(in_oklab,var(--form-color-3)_16%,transparent)] px-5 py-3"
-              >
-                <p class={sectionLabel}>Resumen</p>
-              </div>
-              <div class="px-5 py-4 space-y-2.5">
-                <div class="flex items-center justify-between gap-4">
-                  <span class="text-sm text-[var(--form-text-soft)]"
-                    >Op. gravada</span
-                  >
-                  <span
-                    class="text-sm font-semibold tabular-nums text-[var(--form-text-color)]"
-                  >
-                    S/ {$totals.opGravada}
-                  </span>
-                </div>
-                <div class="flex items-center justify-between gap-4">
-                  <span class="text-sm text-[var(--form-text-soft)]">IGV</span>
-                  <span
-                    class="text-sm font-semibold tabular-nums text-[var(--form-text-color)]"
-                  >
-                    S/ {$totals.igv}
-                  </span>
-                </div>
-                <div
-                  class="border-t border-[color:color-mix(in_oklab,var(--form-color-3)_18%,transparent)] pt-2.5 flex items-center justify-between gap-4"
-                >
-                  <span
-                    class="text-base font-semibold text-[var(--form-text-color)]"
-                    >Total</span
-                  >
-                  <span
-                    class="text-xl font-semibold tabular-nums text-[var(--form-text-color)]"
-                  >
-                    S/ {$totals.total.toFixed(2)}
-                  </span>
-                </div>
-              </div>
-            </div>
+            <SummaryPanel />
 
-            <!-- Retención -->
             {#if showRetention}
               <Retention />
             {/if}
 
-            <!-- Método de pago -->
-            <PaymentTerms total={$totals.total} />
+            <PaymentTerms total={$documentStore['cac:LegalMonetaryTotal']?.['cbc:PayableAmount']?._text ?? 0} />
           </div>
         </div>
       </section>
 
-      <!-- Botón emitir -->
       {#if onEmitClick}
         <section class="pt-1 pb-2 flex justify-end">
           <EmitButton {onEmitClick} />

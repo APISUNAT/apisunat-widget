@@ -11,39 +11,47 @@ export function setCustomerActions(data: {
 }) {
   const isNoDocument = data.typeDocument === '-'
 
-  documentStore.update(body => ({
-    ...body,
-    'cac:AccountingCustomerParty': {
-      'cac:Party': {
-        'cac:PartyIdentification': {
-          'cbc:ID': {
-            _attributes: { schemeID: isNoDocument ? '-' : data.typeDocument },
-            _text: isNoDocument ? '00000000' : data.numberDocument,
-          }
-        },
-        ...(data.name || data.address) && {
-          'cac:PartyLegalEntity': {
-            ...(data.name && {
-              'cbc:RegistrationName': { _text: data.name }
-            }),
-            ...(data.address && {
-              'cac:RegistrationAddress': {
-                'cac:AddressLine': {
-                  'cbc:Line': { _text: data.address }
+  documentStore.update(body => {
+    const current = body['cac:AccountingCustomerParty']?.['cac:Party'] ?? {}
+
+    return {
+      ...body,
+      'cac:AccountingCustomerParty': {
+        'cac:Party': {
+          'cac:PartyIdentification': {
+            'cbc:ID': {
+              ...current['cac:PartyIdentification']?.['cbc:ID'],
+              _attributes: {
+                ...current['cac:PartyIdentification']?.['cbc:ID']?._attributes,
+                schemeID: isNoDocument ? '-' : data.typeDocument,
+              },
+              _text: isNoDocument ? '00000000' : data.numberDocument,
+            }
+          },
+          ...(data.name || data.address) && {
+            'cac:PartyLegalEntity': {
+              ...(data.name && {
+                'cbc:RegistrationName': { _text: data.name }
+              }),
+              ...(data.address && {
+                'cac:RegistrationAddress': {
+                  'cac:AddressLine': {
+                    'cbc:Line': { _text: data.address }
+                  }
                 }
-              }
-            }),
-          }
-        },
-        ...(data.phone || data.email) && {
-          'cac:Contact': {
-            ...(data.phone && { 'cbc:Telephone': { _text: data.phone } }),
-            ...(data.email && { 'cbc:ElectronicMail': { _text: data.email } }),
+              }),
+            }
+          },
+          ...(data.phone || data.email) && {
+            'cac:Contact': {
+              ...(data.phone && { 'cbc:Telephone': { _text: data.phone } }),
+              ...(data.email && { 'cbc:ElectronicMail': { _text: data.email } }),
+            }
           }
         }
       }
     }
-  }))
+  })
 }
 
 function buildAddress(domicilio: any): string {

@@ -1,12 +1,13 @@
 import { get } from 'svelte/store'
 import { documentStore } from '$lib/store/document.store'
 import { numeroALetras } from '$lib/shared/utils/convert.utils'
+import { buildTotalsUBL } from '$lib/shared/components/summary/summary-panel.component'
 
 function getCurrency(): string {
   return get(documentStore)['cbc:DocumentCurrencyCode']?._text ?? 'PEN'
 }
 
-export function addInvoiceLine(data: {
+export function addInvoiceLineActions(data: {
   id: number
   quantity: number
   unitCode: string
@@ -22,48 +23,96 @@ export function addInvoiceLine(data: {
   const lineExtension = parseFloat((totalLinea / (1 + rate)).toFixed(2))
   const taxAmount     = parseFloat((totalLinea - lineExtension).toFixed(2))
 
-  const line = {
-    'cbc:ID':               { _text: data.id },
-    'cbc:InvoicedQuantity': { _attributes: { unitCode: data.unitCode }, _text: data.quantity },
-    'cbc:LineExtensionAmount': { _attributes: { currencyID: currency }, _text: lineExtension },
-    'cac:PricingReference': {
-      'cac:AlternativeConditionPrice': {
-        'cbc:PriceAmount':   { _attributes: { currencyID: currency }, _text: data.precioUnitario },
-        'cbc:PriceTypeCode': { _text: '01' }
-      }
-    },
-    'cac:TaxTotal': {
-      'cbc:TaxAmount': { _attributes: { currencyID: currency }, _text: taxAmount },
-      'cac:TaxSubtotal': [{
-        'cbc:TaxableAmount': { _attributes: { currencyID: currency }, _text: lineExtension },
-        'cbc:TaxAmount':     { _attributes: { currencyID: currency }, _text: taxAmount },
-        'cac:TaxCategory': {
-          'cbc:Percent':                { _text: data.igvRate },
-          'cbc:TaxExemptionReasonCode': { _text: '10' },
-          'cac:TaxScheme': {
-            'cbc:ID':          { _text: '1000' },
-            'cbc:Name':        { _text: 'IGV' },
-            'cbc:TaxTypeCode': { _text: 'VAT' }
-          }
-        }
-      }]
-    },
-    'cac:Item': {
-      'cbc:Description': { _text: data.description },
-      ...(data.itemCode && {
-        'cac:SellersItemIdentification': { 'cbc:ID': { _text: data.itemCode } }
-      })
-    },
-    'cac:Price': {
-      'cbc:PriceAmount': { _attributes: { currencyID: currency }, _text: data.valorUnitario }
-    }
-  }
-
   documentStore.update(body => {
-    const existing = ((body['cac:InvoiceLine'] as any[]) ?? [])
-      .filter((l: any) => l['cbc:ID']._text !== data.id)
-    const lines = [...existing, line]
-    const { total, ...ubl } = recalcTotals(lines, currency)
+    const allLines = (body['cac:InvoiceLine'] as any[]) ?? []
+    const existingIndex = allLines.findIndex((l: any) => l['cbc:ID']._text === data.id)
+    const existingLine = existingIndex !== -1 ? allLines[existingIndex] : {}
+
+    const resolvedItemCode = data.itemCode
+      ?? existingLine['cac:Item']?.['cac:SellersItemIdentification']?.['cbc:ID']?._text
+
+    const mergedLine = {
+      ...existingLine,
+      'cbc:ID': { _text: data.id },
+      'cbc:InvoicedQuantity': {
+        ...existingLine['cbc:InvoicedQuantity'],
+        _attributes: { ...existingLine['cbc:InvoicedQuantity']?._attributes, unitCode: data.unitCode },
+        _text: data.quantity,
+      },
+      'cbc:LineExtensionAmount': {
+        ...existingLine['cbc:LineExtensionAmount'],
+        _attributes: { ...existingLine['cbc:LineExtensionAmount']?._attributes, currencyID: currency },
+        _text: lineExtension,
+      },
+      'cac:PricingReference': {
+        ...existingLine['cac:PricingReference'],
+        'cac:AlternativeConditionPrice': {
+          ...existingLine['cac:PricingReference']?.['cac:AlternativeConditionPrice'],
+          'cbc:PriceAmount': {
+            ...existingLine['cac:PricingReference']?.['cac:AlternativeConditionPrice']?.['cbc:PriceAmount'],
+            _attributes: { ...existingLine['cac:PricingReference']?.['cac:AlternativeConditionPrice']?.['cbc:PriceAmount']?._attributes, currencyID: currency },
+            _text: data.precioUnitario,
+          },
+          'cbc:PriceTypeCode': { _text: '01' },
+        }
+      },
+      'cac:TaxTotal': {
+        ...existingLine['cac:TaxTotal'],
+        'cbc:TaxAmount': {
+          ...existingLine['cac:TaxTotal']?.['cbc:TaxAmount'],
+          _attributes: { ...existingLine['cac:TaxTotal']?.['cbc:TaxAmount']?._attributes, currencyID: currency },
+          _text: taxAmount,
+        },
+        'cac:TaxSubtotal': [{
+          ...existingLine['cac:TaxTotal']?.['cac:TaxSubtotal']?.[0],
+          'cbc:TaxableAmount': {
+            ...existingLine['cac:TaxTotal']?.['cac:TaxSubtotal']?.[0]?.['cbc:TaxableAmount'],
+            _attributes: { ...existingLine['cac:TaxTotal']?.['cac:TaxSubtotal']?.[0]?.['cbc:TaxableAmount']?._attributes, currencyID: currency },
+            _text: lineExtension,
+          },
+          'cbc:TaxAmount': {
+            ...existingLine['cac:TaxTotal']?.['cac:TaxSubtotal']?.[0]?.['cbc:TaxAmount'],
+            _attributes: { ...existingLine['cac:TaxTotal']?.['cac:TaxSubtotal']?.[0]?.['cbc:TaxAmount']?._attributes, currencyID: currency },
+            _text: taxAmount,
+          },
+          'cac:TaxCategory': {
+            ...existingLine['cac:TaxTotal']?.['cac:TaxSubtotal']?.[0]?.['cac:TaxCategory'],
+            'cbc:Percent':                { _text: data.igvRate },
+            'cbc:TaxExemptionReasonCode': { _text: '10' },
+            'cac:TaxScheme': {
+              ...existingLine['cac:TaxTotal']?.['cac:TaxSubtotal']?.[0]?.['cac:TaxCategory']?.['cac:TaxScheme'],
+              'cbc:ID':          { _text: '1000' },
+              'cbc:Name':        { _text: 'IGV' },
+              'cbc:TaxTypeCode': { _text: 'VAT' },
+            }
+          }
+        }]
+      },
+      'cac:Item': {
+        ...existingLine['cac:Item'],
+        'cbc:Description': { _text: data.description },
+        ...(resolvedItemCode && {
+          'cac:SellersItemIdentification': {
+            ...existingLine['cac:Item']?.['cac:SellersItemIdentification'],
+            'cbc:ID': { _text: resolvedItemCode }
+          }
+        })
+      },
+      'cac:Price': {
+        ...existingLine['cac:Price'],
+        'cbc:PriceAmount': {
+          ...existingLine['cac:Price']?.['cbc:PriceAmount'],
+          _attributes: { ...existingLine['cac:Price']?.['cbc:PriceAmount']?._attributes, currencyID: currency },
+          _text: data.valorUnitario,
+        }
+      },
+    }
+
+    const lines = existingIndex !== -1
+      ? allLines.map((l: any, i: number) => i === existingIndex ? mergedLine : l)
+      : [...allLines, mergedLine]
+
+    const { total, ...ubl } = buildTotalsUBL(lines, currency)
 
     return {
       ...body,
@@ -77,13 +126,13 @@ export function addInvoiceLine(data: {
   })
 }
 
-export function removeInvoiceLine(id: number) {
+export function removeInvoiceLineActions(id: number) {
   const currency = getCurrency()
 
   documentStore.update(body => {
     const lines = ((body['cac:InvoiceLine'] as any[]) ?? [])
       .filter((l: any) => l['cbc:ID']._text !== id)
-    const { total, ...ubl } = recalcTotals(lines, currency)
+    const { total, ...ubl } = buildTotalsUBL(lines, currency)
 
     return {
       ...body,
@@ -101,7 +150,7 @@ export function clearInvoiceLines() {
   const currency = getCurrency()
 
   documentStore.update(body => {
-    const { total, ...ubl } = recalcTotals([], currency)
+    const { total, ...ubl } = buildTotalsUBL([], currency)
 
     return {
       ...body,
@@ -113,35 +162,4 @@ export function clearInvoiceLines() {
       ]
     }
   })
-}
-
-function recalcTotals(lines: any[], currency: string) {
-  const opGravada  = lines.reduce((s, l) => s + (l['cbc:LineExtensionAmount']?._text ?? 0), 0)
-  const igv        = lines.reduce((s, l) => s + (l['cac:TaxTotal']?.['cbc:TaxAmount']?._text ?? 0), 0)
-  const opGravadaR = parseFloat(opGravada.toFixed(2))
-  const igvR       = parseFloat(igv.toFixed(2))
-  const total      = parseFloat((opGravadaR + igvR).toFixed(2))
-
-  return {
-    total,
-    'cac:TaxTotal': {
-      'cbc:TaxAmount': { _attributes: { currencyID: currency }, _text: igvR },
-      'cac:TaxSubtotal': [{
-        'cbc:TaxableAmount': { _attributes: { currencyID: currency }, _text: opGravadaR },
-        'cbc:TaxAmount':     { _attributes: { currencyID: currency }, _text: igvR },
-        'cac:TaxCategory': {
-          'cac:TaxScheme': {
-            'cbc:ID':          { _text: '1000' },
-            'cbc:Name':        { _text: 'IGV' },
-            'cbc:TaxTypeCode': { _text: 'VAT' }
-          }
-        }
-      }]
-    },
-    'cac:LegalMonetaryTotal': {
-      'cbc:LineExtensionAmount': { _attributes: { currencyID: currency }, _text: opGravadaR },
-      'cbc:TaxInclusiveAmount':  { _attributes: { currencyID: currency }, _text: total },
-      'cbc:PayableAmount':       { _attributes: { currencyID: currency }, _text: total },
-    }
-  }
 }
