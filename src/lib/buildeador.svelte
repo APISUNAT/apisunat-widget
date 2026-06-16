@@ -36,6 +36,8 @@
 
   let { config = {} as InvoiceConfig } = $props();
 
+  let loadSeq = 0;
+
   $effect(() => {
     if (!config?.personaId || !config?.personaToken) return;
 
@@ -57,11 +59,18 @@
 
   $effect(() => {
     if (!config?.type) return;
+
+    const current = ++loadSeq;
+    const type = config.type;
+    const json = config.json;
+
     tick().then(() => {
-      if (config.json) {
-        loadDocument(config.json as Record<string, any>, config.type);
+      if (current !== loadSeq) return;
+
+      if (json) {
+        loadDocument(json as Record<string, any>, type);
       } else {
-        initDocument(config.type);
+        initDocument(type);
       }
     });
   });
@@ -94,16 +103,17 @@
 </script>
 
 <div>
-  <CurrentForm
-    {showHeader}
-    {showSupplier}
-    {showCustomer}
-    {showLines}
-    {showPaymentTerms}
-    {showRetention}
-    onEmitClick={config?.onEmit ? emitDocument : undefined}
-
-  />
+  {#key `${config?.type ?? ""}-${config?.serie ?? ""}`}
+    <CurrentForm
+      {showHeader}
+      {showSupplier}
+      {showCustomer}
+      {showLines}
+      {showPaymentTerms}
+      {showRetention}
+      onEmitClick={config?.onEmit ? emitDocument : undefined}
+    />
+  {/key}
 </div>
 
 <style>

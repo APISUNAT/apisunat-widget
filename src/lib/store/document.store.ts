@@ -165,11 +165,22 @@ export const documentStore = writable<Record<string, any>>({})
  */
 export const documentTypeStore = writable<documentType | null>(null)
 
+/**
+ * Incrementa en cada loadDocument/initDocument.
+ * Permite que los componentes re-hidratan cuando otra instancia pisa el store global.
+ */
+export const documentLoadSeq = writable(0)
+
+function bumpDocumentLoadSeq() {
+    documentLoadSeq.update((n) => n + 1)
+}
+
 /*
  * Carga un documento existente en el store.
  * Requiere pasar el tipo explícitamente para sincronizar documentTypeStore.
  */
 export function loadDocument(json: Record<string, any>, type: documentType) {
+    bumpDocumentLoadSeq()
     documentTypeStore.set(type)
     documentStore.set(json)
 }
@@ -180,6 +191,7 @@ export function loadDocument(json: Record<string, any>, type: documentType) {
 export function initDocument(type: documentType) {
     const template = emitBody[type]
     if (!template) throw new Error('Tipo de documento no soportado: ' + type)
+    bumpDocumentLoadSeq()
     documentTypeStore.set(type)
     documentStore.set(structuredClone(template))
 }
