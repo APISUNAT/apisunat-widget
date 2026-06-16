@@ -39,6 +39,7 @@ export const summary = derived(documentStore, ($doc) => {
   const total     = parseFloat(String(lmt?.['cbc:PayableAmount']?._text ?? 0))
   const igv       = parseFloat((total - opGravada).toFixed(2))
 
+   
   return {
     symbol,
     opGravada: opGravada.toFixed(2),

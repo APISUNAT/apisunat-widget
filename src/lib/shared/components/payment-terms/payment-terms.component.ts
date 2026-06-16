@@ -1,5 +1,4 @@
 import { documentStore } from '$lib/store/document.store'
-
 export type Cuota = {
   id: number
   monto: string
@@ -17,7 +16,7 @@ export function validateCuotas(
   emisionDate: string
 ): Record<number, CuotaError> {
   const errors: Record<number, CuotaError> = {}
-
+  
   cuotas.forEach((cuota, i) => {
     const err: CuotaError = {}
     const suma = cuotas.reduce((s, c) => s + (parseFloat(c.monto) || 0), 0)

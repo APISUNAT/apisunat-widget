@@ -4,6 +4,7 @@ import { documentStore } from '$lib/store/document.store'
 export function setSupplierActions(data: {
   supplier: string
   numberDocument: string
+  codeAdress?: string
   address: string
 }) {
   documentStore.update(body => {
@@ -31,7 +32,7 @@ export function setSupplierActions(data: {
             'cbc:RegistrationName': { _text: data.supplier },
             'cac:RegistrationAddress': {
               ...current['cac:PartyLegalEntity']?.['cac:RegistrationAddress'],
-              'cbc:AddressTypeCode': { _text: '0000' },
+              'cbc:AddressTypeCode': { _text: data.codeAdress || '0000' },
               'cac:AddressLine': {
                 ...current['cac:PartyLegalEntity']?.['cac:RegistrationAddress']?.['cac:AddressLine'],
                 'cbc:Line': { _text: data.address }

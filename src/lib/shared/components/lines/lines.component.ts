@@ -53,7 +53,7 @@ export function addInvoiceLineActions(data: {
             _attributes: { ...existingLine['cac:PricingReference']?.['cac:AlternativeConditionPrice']?.['cbc:PriceAmount']?._attributes, currencyID: currency },
             _text: data.precioUnitario,
           },
-          'cbc:PriceTypeCode': { _text: '01' },
+          'cbc:PriceTypeCode': { _text: '01' },//quitar el por defecto
         }
       },
       'cac:TaxTotal': {
@@ -81,9 +81,9 @@ export function addInvoiceLineActions(data: {
             'cbc:TaxExemptionReasonCode': { _text: '10' },
             'cac:TaxScheme': {
               ...existingLine['cac:TaxTotal']?.['cac:TaxSubtotal']?.[0]?.['cac:TaxCategory']?.['cac:TaxScheme'],
-              'cbc:ID':          { _text: '1000' },
-              'cbc:Name':        { _text: 'IGV' },
-              'cbc:TaxTypeCode': { _text: 'VAT' },
+              'cbc:ID':          { _text: '1000' },//quitar el por defecto
+              'cbc:Name':        { _text: 'IGV' },//quitar el por defecto
+              'cbc:TaxTypeCode': { _text: 'VAT' },//quitar el por defecto
             }
           }
         }]

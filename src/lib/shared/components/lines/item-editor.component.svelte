@@ -1,7 +1,11 @@
 <script lang="ts">
   import { packageIcon, quantityIcon } from "$lib/constants/icons.constants";
   import { createEventDispatcher } from "svelte";
-  import { CATALOGO02, CATALOGO03, CATALOGOIGVPercents } from "$lib/constants/catalagos";
+  import {
+    CATALOGO02,
+    CATALOGO03,
+    CATALOGOIGVPercents,
+  } from "$lib/constants/catalagos";
   import SelectString from "$lib/shared/ui/select.svelte";
   import { documentStore } from "$lib/store/document.store";
   import {
@@ -10,18 +14,19 @@
     calcPrecioFromValor,
     calcValorFromPrecio,
     calcPrecioOnRateChange,
+    limitDecimals,
   } from "./item-editor.utils";
 
-  let {
-    isOpen = false,
-    itemEditor = null,
-    mode = "create",
-  } = $props();
+  let { isOpen = false, itemEditor = null, mode = "create" } = $props();
 
   const dispatch = createEventDispatcher();
 
   const symbol = $derived(
-    CATALOGO02.find(c => c.value === ($documentStore['cbc:DocumentCurrencyCode']?._text ?? 'PEN'))?.symbol ?? 'S/'
+    CATALOGO02.find(
+      (c) =>
+        c.value ===
+        ($documentStore["cbc:DocumentCurrencyCode"]?._text ?? "PEN"),
+    )?.symbol ?? "S/",
   );
 
   const fieldInputClass =
@@ -32,32 +37,45 @@
   let editorItem = $state(createEditableItem());
 
   $effect(() => {
-    editorItem = isOpen ? createEditableItem(itemEditor ?? {}) : createEditableItem();
+    editorItem = isOpen
+      ? createEditableItem(itemEditor ?? {})
+      : createEditableItem();
   });
 
   const itemAmounts = $derived.by(() =>
-    calcItemAmounts(editorItem.quantity, editorItem.precioUnitario, editorItem.igvRate)
+    calcItemAmounts(
+      editorItem.quantity,
+      editorItem.precioUnitario,
+      editorItem.igvRate,
+    ),
   );
 
   const isValid = $derived(
     editorItem.description.trim().length > 0 &&
-    parseFloat(editorItem.precioUnitario) > 0 &&
-    parseFloat(editorItem.quantity) > 0
+      parseFloat(editorItem.precioUnitario) > 0 &&
+      parseFloat(editorItem.quantity) > 0,
   );
 
   function onValorInput(raw: string) {
-    editorItem.valorUnitario  = raw;
-    editorItem.precioUnitario = calcPrecioFromValor(raw, editorItem.igvRate);
+    const value = limitDecimals(raw);
+
+    editorItem.valorUnitario = value;
+    editorItem.precioUnitario = calcPrecioFromValor(value, editorItem.igvRate);
   }
 
   function onPrecioInput(raw: string) {
-    editorItem.precioUnitario = raw;
-    editorItem.valorUnitario  = calcValorFromPrecio(raw, editorItem.igvRate);
+    const value = limitDecimals(raw);
+
+    editorItem.precioUnitario = value;
+    editorItem.valorUnitario = calcValorFromPrecio(value, editorItem.igvRate);
   }
 
   function onRateChange(newRate: number) {
-    editorItem.igvRate        = newRate;
-    editorItem.precioUnitario = calcPrecioOnRateChange(editorItem.valorUnitario, newRate);
+    editorItem.igvRate = newRate;
+    editorItem.precioUnitario = calcPrecioOnRateChange(
+      editorItem.valorUnitario,
+      newRate,
+    );
   }
 </script>
 
@@ -77,12 +95,17 @@
       role="dialog"
       tabindex="-1"
     >
-      <div class="relative rounded-[1.1rem] border border-[color:color-mix(in_oklab,var(--form-color-3)_20%,transparent)] bg-[var(--form-color-2)]">
-
+      <div
+        class="relative rounded-[1.1rem] border border-[color:color-mix(in_oklab,var(--form-color-3)_20%,transparent)] bg-[var(--form-color-2)]"
+      >
         <!-- Header -->
-        <div class="flex items-start justify-between gap-4 border-b border-[color:color-mix(in_oklab,var(--form-color-3)_20%,transparent)] px-4 py-4">
+        <div
+          class="flex items-start justify-between gap-4 border-b border-[color:color-mix(in_oklab,var(--form-color-3)_20%,transparent)] px-4 py-4"
+        >
           <div class="space-y-1">
-            <p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--form-text-soft)]">
+            <p
+              class="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--form-text-soft)]"
+            >
               Ítem
             </p>
             <h5
@@ -101,7 +124,15 @@
             onclick={() => dispatch("close")}
             type="button"
           >
-            <svg class="size-4 shrink-0" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24">
+            <svg
+              class="size-4 shrink-0"
+              fill="none"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+            >
               <path d="M18 6 6 18" /><path d="m6 6 12 12" />
             </svg>
           </button>
@@ -109,10 +140,8 @@
 
         <!-- Body -->
         <div class="space-y-4 px-4 py-4">
-
           <!-- Fila 1: Cantidad + Unidad + Descripción -->
           <div class="grid gap-3 sm:grid-cols-[100px_200px_minmax(0,1fr)]">
-
             <div class="grid gap-1.5 text-[13px] text-[var(--form-text-muted)]">
               <span class={fieldLabelClass}>Cantidad</span>
               <div class="relative">
@@ -121,9 +150,14 @@
                   inputmode="decimal"
                   type="text"
                   value={editorItem.quantity}
-                  oninput={(e) => (editorItem.quantity = (e.currentTarget as HTMLInputElement).value)}
+                  oninput={(e) =>
+                    (editorItem.quantity = limitDecimals(
+                      (e.currentTarget as HTMLInputElement).value,
+                    ))}
                 />
-                <span class="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-4 text-[var(--form-text-soft)]">
+                <span
+                  class="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-4 text-[var(--form-text-soft)]"
+                >
                   {@html quantityIcon}
                 </span>
               </div>
@@ -142,9 +176,14 @@
                   class={fieldInputClass}
                   type="text"
                   value={editorItem.description}
-                  oninput={(e) => (editorItem.description = (e.currentTarget as HTMLInputElement).value)}
+                  oninput={(e) =>
+                    (editorItem.description = (
+                      e.currentTarget as HTMLInputElement
+                    ).value)}
                 />
-                <span class="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-4 text-[var(--form-text-soft)]">
+                <span
+                  class="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-4 text-[var(--form-text-soft)]"
+                >
                   {@html packageIcon}
                 </span>
               </div>
@@ -152,13 +191,18 @@
           </div>
 
           <!-- Fila 2: Precios + Panel totales -->
-          <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-start">
-
+          <div
+            class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-start"
+          >
             <div class="grid gap-3 sm:grid-cols-2">
-              <div class="grid gap-1.5 text-[13px] text-[var(--form-text-muted)]">
+              <div
+                class="grid gap-1.5 text-[13px] text-[var(--form-text-muted)]"
+              >
                 <span class={fieldLabelClass}>
                   Valor unitario
-                  <span class="font-normal text-[var(--form-text-soft)]">(sin IGV)</span>
+                  <span class="font-normal text-[var(--form-text-soft)]"
+                    >(sin IGV)</span
+                  >
                 </span>
                 <div class="relative">
                   <input
@@ -167,17 +211,24 @@
                     type="text"
                     value={editorItem.valorUnitario}
                     placeholder="0.00"
-                    oninput={(e) => onValorInput((e.currentTarget as HTMLInputElement).value)}
+                    oninput={(e) =>
+                      onValorInput((e.currentTarget as HTMLInputElement).value)}
                   />
-                  <span class="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-4 text-[var(--form-text-soft)]">
+                  <span
+                    class="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-4 text-[var(--form-text-soft)]"
+                  >
                     {symbol}
                   </span>
                 </div>
               </div>
-              <div class="grid gap-1.5 text-[13px] text-[var(--form-text-muted)]">
+              <div
+                class="grid gap-1.5 text-[13px] text-[var(--form-text-muted)]"
+              >
                 <span class={fieldLabelClass}>
                   Precio unitario
-                  <span class="font-normal text-[var(--form-text-soft)]">(con IGV)</span>
+                  <span class="font-normal text-[var(--form-text-soft)]"
+                    >(con IGV)</span
+                  >
                 </span>
                 <div class="relative">
                   <input
@@ -186,9 +237,14 @@
                     type="text"
                     value={editorItem.precioUnitario}
                     placeholder="0.00"
-                    oninput={(e) => onPrecioInput((e.currentTarget as HTMLInputElement).value)}
+                    oninput={(e) =>
+                      onPrecioInput(
+                        (e.currentTarget as HTMLInputElement).value,
+                      )}
                   />
-                  <span class="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-4 text-[var(--form-text-soft)]">
+                  <span
+                    class="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-4 text-[var(--form-text-soft)]"
+                  >
                     {symbol}
                   </span>
                 </div>
@@ -196,18 +252,27 @@
             </div>
 
             <!-- Panel totales -->
-            <div class="rounded-[1rem] border border-[color:color-mix(in_oklab,var(--form-color-3)_24%,transparent)] bg-[var(--form-panel-bg)] px-4 py-4">
+            <div
+              class="rounded-[1rem] border border-[color:color-mix(in_oklab,var(--form-color-3)_24%,transparent)] bg-[var(--form-panel-bg)] px-4 py-4"
+            >
               <div class="space-y-2.5">
-
                 <div class="flex items-center justify-between gap-4">
-                  <span class="text-sm text-[var(--form-text-soft)]">Tasa IGV</span>
+                  <span class="text-sm text-[var(--form-text-soft)]"
+                    >Tasa IGV</span
+                  >
                   <select
                     class="rounded-lg border border-[color:color-mix(in_oklab,var(--form-color-3)_30%,transparent)] bg-[var(--form-field-bg)] px-2 py-1 text-sm text-[var(--form-text-color)] outline-none focus:border-[var(--form-color-3)]"
                     value={String(editorItem.igvRate)}
-                    onchange={(e) => onRateChange(Number((e.currentTarget as HTMLSelectElement).value))}
+                    onchange={(e) =>
+                      onRateChange(
+                        Number((e.currentTarget as HTMLSelectElement).value),
+                      )}
                   >
                     {#each CATALOGOIGVPercents as opt}
-                      <option value={String(opt.value)} selected={opt.value === editorItem.igvRate}>
+                      <option
+                        value={String(opt.value)}
+                        selected={opt.value === editorItem.igvRate}
+                      >
                         {opt.label}
                       </option>
                     {/each}
@@ -215,40 +280,59 @@
                 </div>
 
                 <div class="flex items-center justify-between gap-4">
-                  <span class="text-sm text-[var(--form-text-soft)]">Op. gravada</span>
-                  <span class="text-sm font-semibold text-[var(--form-text-color)]">{symbol} {itemAmounts.subtotal}</span>
+                  <span class="text-sm text-[var(--form-text-soft)]"
+                    >Op. gravada</span
+                  >
+                  <span
+                    class="text-sm font-semibold text-[var(--form-text-color)]"
+                    >{symbol} {itemAmounts.subtotal}</span
+                  >
                 </div>
                 <div class="flex items-center justify-between gap-4">
-                  <span class="text-sm text-[var(--form-text-soft)]">IGV ({editorItem.igvRate}%)</span>
-                  <span class="text-sm font-semibold text-[var(--form-text-color)]">{symbol} {itemAmounts.tax}</span>
+                  <span class="text-sm text-[var(--form-text-soft)]"
+                    >IGV ({editorItem.igvRate}%)</span
+                  >
+                  <span
+                    class="text-sm font-semibold text-[var(--form-text-color)]"
+                    >{symbol} {itemAmounts.tax}</span
+                  >
                 </div>
-                <div class="border-t border-[color:color-mix(in_oklab,var(--form-color-3)_20%,transparent)] pt-2.5">
+                <div
+                  class="border-t border-[color:color-mix(in_oklab,var(--form-color-3)_20%,transparent)] pt-2.5"
+                >
                   <div class="flex items-center justify-between gap-4">
-                    <span class="text-base font-semibold text-[var(--form-text-color)]">Importe total</span>
-                    <span class="text-lg font-semibold text-[var(--form-text-color)]">{symbol} {itemAmounts.total}</span>
+                    <span
+                      class="text-base font-semibold text-[var(--form-text-color)]"
+                      >Importe total</span
+                    >
+                    <span
+                      class="text-lg font-semibold text-[var(--form-text-color)]"
+                      >{symbol} {itemAmounts.total}</span
+                    >
                   </div>
                 </div>
-
               </div>
             </div>
           </div>
         </div>
 
         <!-- Footer -->
-        <div class="flex flex-col-reverse gap-3 border-t border-[color:color-mix(in_oklab,var(--form-color-3)_20%,transparent)] px-4 py-4 sm:flex-row sm:justify-end">
+        <div
+          class="flex flex-col-reverse gap-3 border-t border-[color:color-mix(in_oklab,var(--form-color-3)_20%,transparent)] px-4 py-4 sm:flex-row sm:justify-end"
+        >
           <button
             class="inline-flex items-center justify-center rounded-full border border-[color:color-mix(in_oklab,var(--form-color-3)_28%,transparent)] bg-transparent px-4 py-2 text-sm font-medium text-[var(--form-text-color)] transition hover:bg-[color:color-mix(in_oklab,var(--form-color-3)_10%,transparent)]"
             onclick={() => dispatch("close")}
-            type="button"
-          >Cancelar</button>
+            type="button">Cancelar</button
+          >
           <button
             class="inline-flex items-center justify-center rounded-full border border-[var(--form-color-3)] bg-[var(--form-color-3)] px-4 py-2 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-45"
             disabled={!isValid}
             onclick={() => dispatch("save", editorItem)}
             type="button"
-          >{mode === "edit" ? "Guardar ítem" : "Agregar ítem"}</button>
+            >{mode === "edit" ? "Guardar ítem" : "Agregar ítem"}</button
+          >
         </div>
-
       </div>
     </div>
   </div>
