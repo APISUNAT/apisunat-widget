@@ -63,10 +63,8 @@
             <NotesPanel />
 
             <SummaryPanel />
-            
-            <PaymentTerms
-              total={$documentStore['cac:LegalMonetaryTotal']?.['cbc:PayableAmount']?._text ?? 0}
-            />
+
+
           </div>
         </div>
       </section>

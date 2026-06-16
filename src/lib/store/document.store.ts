@@ -1,5 +1,6 @@
 import { writable, get } from 'svelte/store'
 import { runtimeConfigStore } from './config.store'
+export const documentResetKey = writable(0)
 export const emitBody = {
     '01': {
         'cbc:UBLVersionID': { _text: '2.1' },
@@ -152,6 +153,11 @@ export const emitBody = {
 
 export type documentType = keyof typeof emitBody
 
+export type DocumentLoadedEvent = {
+    type: documentType
+    timestamp: number
+}
+
 /**
  * Store principal del documento activo.
  * Contiene todos los campos UBL del comprobante que se está editando.
@@ -166,13 +172,13 @@ export const documentStore = writable<Record<string, any>>({})
 export const documentTypeStore = writable<documentType | null>(null)
 
 /**
- * Incrementa en cada loadDocument/initDocument.
- * Permite que los componentes re-hidratan cuando otra instancia pisa el store global.
+ * Se emite cada vez que loadDocument/initDocument reemplaza el store.
+ * Los componentes lo usan para re-hidratar su estado local.
  */
-export const documentLoadSeq = writable(0)
+export const documentLoaded = writable<DocumentLoadedEvent | null>(null)
 
-function bumpDocumentLoadSeq() {
-    documentLoadSeq.update((n) => n + 1)
+function notifyDocumentLoaded(type: documentType) {
+    documentLoaded.set({ type, timestamp: Date.now() })
 }
 
 /*
@@ -180,7 +186,7 @@ function bumpDocumentLoadSeq() {
  * Requiere pasar el tipo explícitamente para sincronizar documentTypeStore.
  */
 export function loadDocument(json: Record<string, any>, type: documentType) {
-    bumpDocumentLoadSeq()
+    notifyDocumentLoaded(type)
     documentTypeStore.set(type)
     documentStore.set(json)
 }
@@ -191,21 +197,38 @@ export function loadDocument(json: Record<string, any>, type: documentType) {
 export function initDocument(type: documentType) {
     const template = emitBody[type]
     if (!template) throw new Error('Tipo de documento no soportado: ' + type)
-    bumpDocumentLoadSeq()
+    notifyDocumentLoaded(type)
     documentTypeStore.set(type)
     documentStore.set(structuredClone(template))
 }
+/** Resetea el store kuego de emitir el documento */
+export function resetDocument() {
+    const type = get(documentTypeStore)
+    const config = get(runtimeConfigStore)
 
+    if (!type) return
+
+    const template = structuredClone(emitBody[type]) as Record<string, any>
+
+    if (config.serie) {
+        template['cbc:ID'] = {
+            _text: `${config.serie}-`
+        }
+    }
+
+    documentTypeStore.set(type)
+    notifyDocumentLoaded(type)
+    documentStore.set(template)
+
+    documentResetKey.update(n => n + 1)
+}
 /**
  * Toma los datos del store y los estructura según el tipo de comprobante activo,
  * usando `emitBody` como esqueleto para respetar el orden de campos exigido por UBL.
- *
- * Los campos fijos (`cbc:UBLVersionID`, `cbc:CustomizationID`) siempre se sobreescriben
- * con los valores estándar. Los demás se toman del store.
  */
 export function getDocumentOutput(): Record<string, any> {
-    const doc  = get(documentStore)
-    const type = get(documentTypeStore)
+    const doc    = get(documentStore)
+    const type   = get(documentTypeStore)
     const config = get(runtimeConfigStore)
     if (!type || !emitBody[type]) return {}
 
@@ -218,11 +241,11 @@ export function getDocumentOutput(): Record<string, any> {
     )
 
     return {
-        personaId: config.personaId,
+        personaId:    config.personaId,
         personaToken: config.personaToken,
-        fileName: getDocumentFileName(),
+        fileName:     getDocumentFileName(),
         documentBody: output
-     }
+    }
 }
 
 /**

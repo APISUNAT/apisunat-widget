@@ -28,11 +28,10 @@ export function setCustomerActions(data: {
               _text: isNoDocument ? '00000000' : data.numberDocument,
             }
           },
-          ...(data.name || data.address) && {
-            'cac:PartyLegalEntity': {
-              ...(data.name && {
-                'cbc:RegistrationName': { _text: data.name }
-              }),
+          'cac:PartyLegalEntity': {
+             'cbc:RegistrationName': {
+                    _text: data.name?.trim() || '---'
+                  },
               ...(data.address && {
                 'cac:RegistrationAddress': {
                   'cac:AddressLine': {
@@ -40,8 +39,7 @@ export function setCustomerActions(data: {
                   }
                 }
               }),
-            }
-          },
+            },
           ...(data.phone || data.email) && {
             'cac:Contact': {
               ...(data.phone && { 'cbc:Telephone': { _text: data.phone } }),

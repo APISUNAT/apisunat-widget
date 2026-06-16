@@ -3,10 +3,11 @@
     addInvoiceLineActions,
     removeInvoiceLineActions,
   } from "./lines.component";
-  import { documentStore, documentLoadSeq } from "$lib/store/document.store";
+  import { documentStore, documentLoaded } from "$lib/store/document.store";
   import ItemEditor from "./item-editor.component.svelte";
   import { CATALOGO02 } from "$lib/constants/catalagos";
-import { buildTotalsUBL } from "$lib/shared/components/summary/summary-panel.component";
+  import { buildTotalsUBL } from "$lib/shared/components/summary/summary-panel.component";
+
   type EditableItem = {
     description: string;
     quantity: string;
@@ -24,18 +25,18 @@ import { buildTotalsUBL } from "$lib/shared/components/summary/summary-panel.com
   let mode = $state<"create" | "edit">("create");
   let itemEditor = $state<LineItem | null>(null);
   let nextId = $state(1);
-  let hydratedSeq = -1;
+  let lastLoaded: { type: string; timestamp: number } | null = null;  // ← reemplaza hydratedSeq
   let lastCurrency = '';
 
   const symbol = $derived(
     CATALOGO02.find(c => c.value === ($documentStore['cbc:DocumentCurrencyCode']?._text ?? 'PEN'))?.symbol ?? 'S/'
   );
 
-  // Re-hidrata cuando loadDocument/initDocument reemplaza el store (p. ej. cambio factura → boleta).
+  // Re-hidrata cuando loadDocument/initDocument reemplaza el store.
   $effect(() => {
-    const seq = $documentLoadSeq;
+    const loaded = $documentLoaded;  // ← antes era $documentLoadSeq
     const doc = $documentStore;
-    if (seq === hydratedSeq) return;
+    if (!loaded || loaded === lastLoaded) return;  // ← antes comparaba números
 
     const lines = doc["cac:InvoiceLine"];
     if (lines === undefined) return;
@@ -102,14 +103,14 @@ import { buildTotalsUBL } from "$lib/shared/components/summary/summary-panel.com
       documentStore.update(body => ({ ...body, ...ubl }));
     }
 
-    hydratedSeq = seq;
+    lastLoaded = loaded;  // ← antes era hydratedSeq = seq
   });
 
   // Re-sincroniza currencyID cuando cambia la moneda tras la hidratación.
   $effect(() => {
     const currency = $documentStore['cbc:DocumentCurrencyCode']?._text;
-    const seq = $documentLoadSeq;
-    if (!currency || hydratedSeq !== seq || currency === lastCurrency) return;
+    const loaded = $documentLoaded;
+    if (!currency || loaded !== lastLoaded || currency === lastCurrency) return;
 
     lastCurrency = currency;
 
@@ -126,6 +127,8 @@ import { buildTotalsUBL } from "$lib/shared/components/summary/summary-panel.com
       });
     });
   });
+
+
 
   function lineTotal(item: LineItem): string {
     const qty = parseFloat(item.quantity) || 0;

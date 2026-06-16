@@ -1,9 +1,16 @@
 <script lang="ts">
-  import { packageIcon, quantityIcon, moneyIcon } from "$lib/constants/icons.constants";
+  import { packageIcon, quantityIcon } from "$lib/constants/icons.constants";
   import { createEventDispatcher } from "svelte";
   import { CATALOGO02, CATALOGO03, CATALOGOIGVPercents } from "$lib/constants/catalagos";
   import SelectString from "$lib/shared/ui/select.svelte";
   import { documentStore } from "$lib/store/document.store";
+  import {
+    createEditableItem,
+    calcItemAmounts,
+    calcPrecioFromValor,
+    calcValorFromPrecio,
+    calcPrecioOnRateChange,
+  } from "./item-editor.utils";
 
   let {
     isOpen = false,
@@ -22,49 +29,15 @@
 
   const fieldLabelClass = "font-medium";
 
-  function normalizeIgvRate(raw: any): number {
-    const n = Number(raw);
-    if (isNaN(n)) return 18;
-    return n < 1 ? Math.round(n * 100) : n;
-  }
-
-  function createEditableItem(source: any = {}) {
-    const s = source ?? {};
-    return {
-      description:    s.description    ?? "",
-      quantity:       s.quantity       ?? "1",
-      unitCode:       s.unitCode       ?? "NIU",
-      valorUnitario:  s.valorUnitario  ?? "",
-      precioUnitario: s.precioUnitario ?? "",
-      igvRate:        normalizeIgvRate(s.igvRate ?? 18),
-    };
-  }
-
   let editorItem = $state(createEditableItem());
 
   $effect(() => {
-    if (!isOpen) {
-      editorItem = createEditableItem();
-    } else {
-      editorItem = createEditableItem(itemEditor ?? {});
-    }
+    editorItem = isOpen ? createEditableItem(itemEditor ?? {}) : createEditableItem();
   });
 
-  const itemAmounts = $derived.by(() => {
-    const qty    = parseFloat(editorItem.quantity) || 0;
-    const rate   = editorItem.igvRate / 100;
-    const precio = parseFloat(editorItem.precioUnitario) || 0;
-
-    const total    = qty * precio;
-    const subtotal = total / (1 + rate);
-    const tax      = total - subtotal;
-
-    return {
-      subtotal: subtotal.toFixed(2),
-      tax:      tax.toFixed(2),
-      total:    total.toFixed(2),
-    };
-  });
+  const itemAmounts = $derived.by(() =>
+    calcItemAmounts(editorItem.quantity, editorItem.precioUnitario, editorItem.igvRate)
+  );
 
   const isValid = $derived(
     editorItem.description.trim().length > 0 &&
@@ -73,17 +46,18 @@
   );
 
   function onValorInput(raw: string) {
-    editorItem.valorUnitario = raw;
-    const valor = parseFloat(raw) || 0;
-    const rate  = editorItem.igvRate / 100;
-    editorItem.precioUnitario = valor > 0 ? (valor * (1 + rate)).toFixed(2) : "";
+    editorItem.valorUnitario  = raw;
+    editorItem.precioUnitario = calcPrecioFromValor(raw, editorItem.igvRate);
   }
 
   function onPrecioInput(raw: string) {
     editorItem.precioUnitario = raw;
-    const precio = parseFloat(raw) || 0;
-    const rate   = editorItem.igvRate / 100;
-    editorItem.valorUnitario = precio > 0 ? (precio / (1 + rate)).toFixed(2) : "";
+    editorItem.valorUnitario  = calcValorFromPrecio(raw, editorItem.igvRate);
+  }
+
+  function onRateChange(newRate: number) {
+    editorItem.igvRate        = newRate;
+    editorItem.precioUnitario = calcPrecioOnRateChange(editorItem.valorUnitario, newRate);
   }
 </script>
 
@@ -230,12 +204,7 @@
                   <select
                     class="rounded-lg border border-[color:color-mix(in_oklab,var(--form-color-3)_30%,transparent)] bg-[var(--form-field-bg)] px-2 py-1 text-sm text-[var(--form-text-color)] outline-none focus:border-[var(--form-color-3)]"
                     value={String(editorItem.igvRate)}
-                    onchange={(e) => {
-                      const newRate = Number((e.currentTarget as HTMLSelectElement).value);
-                      editorItem.igvRate = newRate;
-                      const valor = parseFloat(editorItem.valorUnitario) || 0;
-                      editorItem.precioUnitario = valor > 0 ? (valor * (1 + newRate / 100)).toFixed(2) : "";
-                    }}
+                    onchange={(e) => onRateChange(Number((e.currentTarget as HTMLSelectElement).value))}
                   >
                     {#each CATALOGOIGVPercents as opt}
                       <option value={String(opt.value)} selected={opt.value === editorItem.igvRate}>
