@@ -33,7 +33,7 @@
   let { config = {} as InvoiceConfig } = $props();
 
   $effect(() => {
-    if (!config?.personaId || !config?.personaToken) return;
+    
 
     runtimeConfigStore.set({
       personaId: config.personaId,

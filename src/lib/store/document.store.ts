@@ -260,7 +260,7 @@ export function getDocumentFileName(): string {
     const docType    = get(documentTypeStore)
     const documentID = doc['cbc:ID']?._text
 
-    if (!ruc || !docType || !documentID) return ''
+   
 
     return `${ruc}-${docType}-${documentID}`
 }

@@ -44,13 +44,3 @@ export function calcPrecioOnRateChange(valorUnitario: string, newRate: number): 
     const v = parseFloat(valorUnitario) || 0;
     return v > 0 ? (v * (1 + newRate / 100)).toFixed(2) : "";
 }
-export function limitDecimals(value: string, maxDecimals = 10): string {
-    const cleaned = value.replace(/[^\d.]/g, '');
-    const parts = cleaned.split('.');
-    if (parts.length === 1) {
-        return parts[0];
-    }
-    const integerPart = parts[0];
-    const decimalPart = parts.slice(1).join('').slice(0, maxDecimals);
-    return `${integerPart}.${decimalPart}`;
-}

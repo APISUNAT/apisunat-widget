@@ -3,8 +3,9 @@ import { documentStore } from '$lib/store/document.store'
 
 export function setSupplierActions(data: {
   supplier: string
+  tradeName: string
   numberDocument: string
-  codeAdress?: string
+  codeAddress?: string
   address: string
 }) {
   documentStore.update(body => {
@@ -27,12 +28,17 @@ export function setSupplierActions(data: {
               _text: data.numberDocument,
             }
           },
+          ...(data.tradeName.trim() ? {
+            'cac:PartyName': {
+              'cbc:Name': { _text: data.tradeName }
+            }
+          } : {}),
           'cac:PartyLegalEntity': {
             ...current['cac:PartyLegalEntity'],
             'cbc:RegistrationName': { _text: data.supplier },
             'cac:RegistrationAddress': {
               ...current['cac:PartyLegalEntity']?.['cac:RegistrationAddress'],
-              'cbc:AddressTypeCode': { _text: data.codeAdress || '0000' },
+              'cbc:AddressTypeCode': { _text: data.codeAddress || '0000' },
               'cac:AddressLine': {
                 ...current['cac:PartyLegalEntity']?.['cac:RegistrationAddress']?.['cac:AddressLine'],
                 'cbc:Line': { _text: data.address }
@@ -47,20 +53,25 @@ export function setSupplierActions(data: {
 
 export function getSupplierData(): {
   name: string
+  tradeName: string
   ruc: string
+  codeAddress: string
   address: string
 } {
   const doc = get(documentStore)
   const party = doc['cac:AccountingSupplierParty']?.['cac:Party']
 
-  if (!party) return { name: '', ruc: '', address: '' }
+  if (!party) return { tradeName: '', name: '', ruc: '', address: '', codeAddress: '' }
 
   return {
-    name:    party['cac:PartyLegalEntity']?.['cbc:RegistrationName']?._text ?? '',
-    ruc:     party['cac:PartyIdentification']?.['cbc:ID']?._text ?? '',
+    tradeName: party['cac:PartyName']?.['cbc:Name']?._text ?? '',
+    name: party['cac:PartyLegalEntity']?.['cbc:RegistrationName']?._text ?? '',
+    ruc: party['cac:PartyIdentification']?.['cbc:ID']?._text ?? '',
+    codeAddress: party['cac:PartyLegalEntity']?.['cac:RegistrationAddress']?.['cbc:AddressTypeCode']?._text ?? '0000',
     address: party['cac:PartyLegalEntity']?.['cac:RegistrationAddress']?.['cac:AddressLine']?.['cbc:Line']?._text ?? '',
   }
 }
+
 export function isValidRuc(ruc: string): boolean {
   return /^(10|15|17|20)\d{9}$/.test(ruc)
 }

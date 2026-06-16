@@ -1,57 +1,76 @@
 <script lang="ts">
-  import { untrack } from 'svelte';
+  import { untrack } from "svelte";
   import { CATALOGO51 } from "$lib/constants/catalagos";
   import { documentIcon } from "$lib/constants/icons.constants";
   import Input from "$lib/shared/ui/input.svelte";
   import Select from "$lib/shared/ui/select.svelte";
   import { documentStore, documentTypeStore } from "$lib/store/document.store";
-  import { buildHeaderDocumentAction, filterOperationsByDocumentType, loadLastDocumentAction } from "./header-document.component";
+  import {
+    buildHeaderDocumentAction,
+    filterOperationsByDocumentType,
+    loadLastDocumentAction,
+  } from "./header-document.component";
 
-  let series        = $state("");
-  let correlative   = $state("00000000");
-  let documentType  = $state("");
+  let series = $state("");
+  let correlative = $state("00000000");
+  let documentType = $state("");
   let operationType = $state("");
-  let locked        = $state(false);
-  let isReady       = $state(false);
-  let lastType      = $state("");
+  let locked = $state(false);
+  let isReady = $state(false);
+  let lastType = $state("");
 
   let loadToken = 0;
 
   const filteredOperations = $derived(
-    filterOperationsByDocumentType(documentType, CATALOGO51)
+    filterOperationsByDocumentType(documentType, CATALOGO51),
   );
 
   $effect(() => {
-    const doc  = $documentStore;
+    const doc = $documentStore;
     const type = $documentTypeStore;
 
     untrack(() => {
       if (!type) return;
 
       if (type !== lastType) {
-        lastType      = type;
-        isReady       = false;
-        locked        = false;
+        lastType = type;
+        isReady = false;
+        locked = false;
         operationType = "";
-        series        = "";
-        correlative   = "00000000";
-        loadToken++
+        series = "";
+        correlative = "00000000";
+        loadToken++;
       }
 
       if (isReady) return;
 
-      documentType  = type;
+      documentType = type;
       operationType = doc["cbc:InvoiceTypeCode"]?._attributes?.listID ?? "";
-      isReady       = true;
+      isReady = true;
+
+      // Si el JSON externo ya trae cbc:ID con serie, usarla directamente
+      const existingId = doc["cbc:ID"]?._text ?? "";
+      const parts = existingId.split("-");
+
+      if (
+        parts.length === 2 &&
+        parts[0].length === 4 &&
+        parts[1].length === 8
+      ) {
+        series = parts[0];
+        correlative = parts[1];
+        locked = true;
+        return;
+      }
 
       const currentToken = loadToken;
 
-      loadLastDocumentAction().then(result => {
+      loadLastDocumentAction().then((result) => {
         if (loadToken !== currentToken) return;
         if (!result) return;
-        series      = result.series;
+        series = result.series;
         correlative = result.correlative;
-        locked      = true;
+        locked = true;
       });
     });
   });
@@ -68,9 +87,14 @@
     if (!isReady) return;
 
     untrack(() => {
-      documentStore.update(body => ({
+      documentStore.update((body) => ({
         ...body,
-        ...buildHeaderDocumentAction({ series: s, correlative: c, documentType: d, operationType: o })
+        ...buildHeaderDocumentAction({
+          series: s,
+          correlative: c,
+          documentType: d,
+          operationType: o,
+        }),
       }));
     });
   });
@@ -78,7 +102,6 @@
 
 <section class="space-y-3">
   <div class="grid gap-3 sm:grid-cols-3">
-
     <Select
       placeholder="Tipo de operación"
       showLabel={false}
@@ -95,7 +118,11 @@
       disabled={locked}
     />
 
-    <div onfocusout={() => { if (correlative && !locked) correlative = correlative.padStart(8, "0") }}>
+    <div
+      onfocusout={() => {
+        if (correlative && !locked) correlative = correlative.padStart(8, "0");
+      }}
+    >
       <Input
         placeholder="Correlativo"
         onlyNumbers={true}
@@ -106,6 +133,5 @@
         disabled={locked}
       />
     </div>
-
   </div>
 </section>
