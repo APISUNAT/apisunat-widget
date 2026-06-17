@@ -32,7 +32,9 @@ export function setSupplierActions(data: {
             'cac:PartyName': {
               'cbc:Name': { _text: data.tradeName }
             }
-          } : {}),
+          } : {
+            'cac:PartyName': undefined
+          }),
           'cac:PartyLegalEntity': {
             ...current['cac:PartyLegalEntity'],
             'cbc:RegistrationName': { _text: data.supplier },
@@ -44,7 +46,9 @@ export function setSupplierActions(data: {
                   ...current['cac:PartyLegalEntity']?.['cac:RegistrationAddress']?.['cac:AddressLine'],
                   'cbc:Line': { _text: data.address }
                 }
-              } : {}),
+              } : {
+                'cac:AddressLine': undefined
+              }),
             }
           }
         }
@@ -66,11 +70,11 @@ export function getSupplierData(): {
   if (!party) return { tradeName: '', name: '', ruc: '', address: '', codeAddress: '' }
 
   return {
-    tradeName: party['cac:PartyName']?.['cbc:Name']?._text ?? '',
-    name:      party['cac:PartyLegalEntity']?.['cbc:RegistrationName']?._text ?? '',
-    ruc:       party['cac:PartyIdentification']?.['cbc:ID']?._text ?? '',
+    tradeName:   party['cac:PartyName']?.['cbc:Name']?._text ?? '',
+    name:        party['cac:PartyLegalEntity']?.['cbc:RegistrationName']?._text ?? '',
+    ruc:         party['cac:PartyIdentification']?.['cbc:ID']?._text ?? '',
     codeAddress: party['cac:PartyLegalEntity']?.['cac:RegistrationAddress']?.['cbc:AddressTypeCode']?._text ?? '0000',
-    address:   party['cac:PartyLegalEntity']?.['cac:RegistrationAddress']?.['cac:AddressLine']?.['cbc:Line']?._text ?? '',
+    address:     party['cac:PartyLegalEntity']?.['cac:RegistrationAddress']?.['cac:AddressLine']?.['cbc:Line']?._text ?? '',
   }
 }
 

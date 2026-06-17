@@ -4,7 +4,7 @@
   import { documentIcon } from "$lib/constants/icons.constants";
   import Input from "$lib/shared/ui/input.svelte";
   import Select from "$lib/shared/ui/select.svelte";
-  import { documentStore, documentTypeStore } from "$lib/store/document.store";
+  import { documentStore, documentTypeStore, documentLoaded } from "$lib/store/document.store";
   import {
     buildHeaderDocumentAction,
     filterOperationsByDocumentType,
@@ -18,9 +18,9 @@
   let locked = $state(false);
   let isReady = $state(false);
   let lastType = $state("");
+  let lastLoadedTimestamp = 0; // ← rastrear el último evento
 
   let loadToken = 0;
-  // valor por defecto para el tipo de operación, en caso no venga en el JSON externo
   const defaultOperationType = '0101';
   const filteredOperations = $derived(
     filterOperationsByDocumentType(documentType, CATALOGO51),
@@ -29,12 +29,16 @@
   $effect(() => {
     const doc = $documentStore;
     const type = $documentTypeStore;
+    const loaded = $documentLoaded; // ← suscribirse al evento
 
     untrack(() => {
       if (!type) return;
 
-      if (type !== lastType) {
+      const isReset = loaded && loaded.timestamp !== lastLoadedTimestamp;
+
+      if (type !== lastType || isReset) {
         lastType = type;
+        if (loaded) lastLoadedTimestamp = loaded.timestamp;
         isReady = false;
         locked = false;
         operationType = "";
@@ -49,7 +53,6 @@
       operationType = doc["cbc:InvoiceTypeCode"]?._attributes?.listID ?? defaultOperationType;
       isReady = true;
 
-      // Si el JSON externo ya trae cbc:ID con serie, usarla directamente
       const existingId = doc["cbc:ID"]?._text ?? "";
       const parts = existingId.split("-");
 

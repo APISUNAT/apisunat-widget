@@ -81,7 +81,7 @@
     const ca = codeAddress;
     const ready = isReady;
 
-    if (!ready || !r) return;
+    if (!ready) return;
 
     untrack(() => {
       setSupplierActions({

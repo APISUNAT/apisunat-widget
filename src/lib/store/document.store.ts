@@ -208,17 +208,9 @@ export function initDocument(type: documentType) {
 /** Resetea el store luego de emitir el documento */
 export function resetDocument() {
     const type = get(documentTypeStore)
-    const config = get(runtimeConfigStore)
-
     if (!type) return
 
     const template = structuredClone(emitBody[type]) as Record<string, any>
-
-    if (config.serie) {
-        template['cbc:ID'] = {
-            _text: `${config.serie}-`
-        }
-    }
 
     documentTypeStore.set(type)
     documentStore.set(template)
