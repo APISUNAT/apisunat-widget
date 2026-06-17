@@ -28,7 +28,7 @@ export function setSupplierActions(data: {
               _text: data.numberDocument,
             }
           },
-          ...(data.tradeName.trim() ? {
+          ...(data.tradeName.trim().length >= 3 ? {
             'cac:PartyName': {
               'cbc:Name': { _text: data.tradeName }
             }
@@ -39,10 +39,12 @@ export function setSupplierActions(data: {
             'cac:RegistrationAddress': {
               ...current['cac:PartyLegalEntity']?.['cac:RegistrationAddress'],
               'cbc:AddressTypeCode': { _text: data.codeAddress || '0000' },
-              'cac:AddressLine': {
-                ...current['cac:PartyLegalEntity']?.['cac:RegistrationAddress']?.['cac:AddressLine'],
-                'cbc:Line': { _text: data.address }
-              }
+              ...(data.address.trim().length >= 3 ? {
+                'cac:AddressLine': {
+                  ...current['cac:PartyLegalEntity']?.['cac:RegistrationAddress']?.['cac:AddressLine'],
+                  'cbc:Line': { _text: data.address }
+                }
+              } : {}),
             }
           }
         }

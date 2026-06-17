@@ -20,7 +20,8 @@
   let lastType = $state("");
 
   let loadToken = 0;
-
+  // valor por defecto para el tipo de operación, en caso no venga en el JSON externo
+  const defaultOperationType = '0101';
   const filteredOperations = $derived(
     filterOperationsByDocumentType(documentType, CATALOGO51),
   );
@@ -45,7 +46,7 @@
       if (isReady) return;
 
       documentType = type;
-      operationType = doc["cbc:InvoiceTypeCode"]?._attributes?.listID ?? "";
+      operationType = doc["cbc:InvoiceTypeCode"]?._attributes?.listID ?? defaultOperationType;
       isReady = true;
 
       // Si el JSON externo ya trae cbc:ID con serie, usarla directamente

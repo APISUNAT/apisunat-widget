@@ -1,4 +1,5 @@
 import { documentStore } from '$lib/store/document.store'
+
 export type Cuota = {
   id: number
   monto: string
@@ -16,7 +17,7 @@ export function validateCuotas(
   emisionDate: string
 ): Record<number, CuotaError> {
   const errors: Record<number, CuotaError> = {}
-  
+
   cuotas.forEach((cuota, i) => {
     const err: CuotaError = {}
     const suma = cuotas.reduce((s, c) => s + (parseFloat(c.monto) || 0), 0)
@@ -61,21 +62,23 @@ export function setPaymentCreditoActions(total: number, cuotas: Cuota[]) {
     },
   ]
 
-  cuotas.forEach((cuota, i) => {
-    const num = String(i + 1).padStart(3, '0')
-    const entry: Record<string, unknown> = {
-      'cbc:ID': { _text: 'FormaPago' },
-      'cbc:PaymentMeansID': { _text: `Cuota${num}` },
-      'cbc:Amount': {
-        _attributes: { currencyID: 'PEN' },
-        _text: parseFloat(cuota.monto) || 0,
-      },
-    }
-    if (cuota.vencimiento) {
-      entry['cbc:PaymentDueDate'] = { _text: cuota.vencimiento }
-    }
-    terms.push(entry)
-  })
+  cuotas
+    .filter(cuota => parseFloat(cuota.monto) > 0 || cuota.vencimiento)
+    .forEach((cuota, i) => {
+      const num = String(i + 1).padStart(3, '0')
+      const entry: Record<string, unknown> = {
+        'cbc:ID': { _text: 'FormaPago' },
+        'cbc:PaymentMeansID': { _text: `Cuota${num}` },
+        'cbc:Amount': {
+          _attributes: { currencyID: 'PEN' },
+          _text: parseFloat(cuota.monto) || 0,
+        },
+      }
+      if (cuota.vencimiento) {
+        entry['cbc:PaymentDueDate'] = { _text: cuota.vencimiento }
+      }
+      terms.push(entry)
+    })
 
   documentStore.update(body => ({
     ...body,

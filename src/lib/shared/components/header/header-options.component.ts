@@ -1,4 +1,4 @@
-export function getPeruTime() {
+export function getCurrentTime() {
     return new Date().toLocaleTimeString('es-PE', {
         timeZone: 'America/Lima',
         hour12: false,
@@ -11,11 +11,13 @@ export function getPeruTime() {
 export function buildHeaderOptionsAction(data: {
     date: string
     currency: string
-    time: string
+    time?: string
 }) {
     return {
         'cbc:IssueDate': { _text: data.date },
-        'cbc:IssueTime': { _text: data.time },
+        ...(data.time ? {
+            'cbc:IssueTime': { _text: data.time }
+        } : {}),
         'cbc:DocumentCurrencyCode': { _text: data.currency },
     }
 }

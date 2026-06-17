@@ -1,13 +1,13 @@
 <script lang="ts">
   import { get } from "svelte/store";
-  import { untrack } from "svelte";
+  import { onMount, untrack } from "svelte";
   import Input from "$lib/shared/ui/input.svelte";
   import {
     buildingIcon,
     documentIcon,
     locationIcon,
   } from "$lib/constants/icons.constants";
-  import { documentStore } from "$lib/store/document.store";
+  import { documentStore, documentLoaded } from "$lib/store/document.store";
   import { runtimeConfigStore } from "$lib/store/config.store";
   import {
     getSupplierData,
@@ -29,24 +29,16 @@
     return isValidRuc(ruc);
   });
 
-  $effect(() => {
-    void $documentStore;
-    void $runtimeConfigStore;
-
-    untrack(async () => {
-      if (isReady || isFetching) return;
+  onMount(() => {
+    const unsubscribe = documentLoaded.subscribe((event) => {
+      if (!event) return;
 
       const { personaId } = get(runtimeConfigStore);
       if (!personaId) return;
 
       const doc = get(documentStore);
-      if (Object.keys(doc).length === 0) return;
 
-      isFetching = true;
-
-      const hasSupplierInJson = 'cac:AccountingSupplierParty' in doc;
-
-      if (hasSupplierInJson) {
+      if ("cac:AccountingSupplierParty" in doc) {
         const data = getSupplierData();
         tradeName = data.tradeName;
         name = data.name;
@@ -54,26 +46,31 @@
         address = data.address;
         codeAddress = data.codeAddress;
         isReady = true;
-        isFetching = false;
         return;
       }
 
-      try {
-        const supplier = await getSupplierGETAsync();
-        tradeName = supplier.tradeName ?? "";
-        name = supplier.name ?? "";
-        ruc = supplier.RUC ?? "";
-        address = supplier.address ?? "";
-        codeAddress = supplier.isAnnex === true
-          ? supplier.anexData?.codigoSUNAT ?? "0000"
-          : "0000";
-      } catch (e) {
-        console.error("Error al obtener supplier:", e);
-      }
+      if (isFetching) return;
+      isFetching = true;
 
-      isReady = true;
-      isFetching = false;
+      getSupplierGETAsync()
+        .then((supplier) => {
+          tradeName = supplier.tradeName ?? "";
+          name = supplier.name ?? "";
+          ruc = supplier.RUC ?? "";
+          address = supplier.address ?? "";
+          codeAddress =
+            supplier.isAnnex === true
+              ? supplier.anexData?.codigoSUNAT ?? "0000"
+              : "0000";
+        })
+        .catch((e) => console.error("Error al obtener supplier:", e))
+        .finally(() => {
+          isReady = true;
+          isFetching = false;
+        });
     });
+
+    return unsubscribe;
   });
 
   $effect(() => {

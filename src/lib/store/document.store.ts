@@ -184,24 +184,28 @@ function notifyDocumentLoaded(type: documentType) {
 /*
  * Carga un documento existente en el store.
  * Requiere pasar el tipo explícitamente para sincronizar documentTypeStore.
+ * IMPORTANTE: el store se actualiza ANTES de emitir el evento,
+ * para que los componentes suscritos lean los datos ya hidratados.
  */
 export function loadDocument(json: Record<string, any>, type: documentType) {
-    notifyDocumentLoaded(type)
     documentTypeStore.set(type)
     documentStore.set(json)
+    notifyDocumentLoaded(type)
 }
 
 /*
  * Inicializa el store con la plantilla del tipo de documento seleccionado.
+ * IMPORTANTE: el store se actualiza ANTES de emitir el evento.
  */
 export function initDocument(type: documentType) {
     const template = emitBody[type]
     if (!template) throw new Error('Tipo de documento no soportado: ' + type)
-    notifyDocumentLoaded(type)
     documentTypeStore.set(type)
     documentStore.set(structuredClone(template))
+    notifyDocumentLoaded(type)
 }
-/** Resetea el store kuego de emitir el documento */
+
+/** Resetea el store luego de emitir el documento */
 export function resetDocument() {
     const type = get(documentTypeStore)
     const config = get(runtimeConfigStore)
@@ -217,11 +221,12 @@ export function resetDocument() {
     }
 
     documentTypeStore.set(type)
-    notifyDocumentLoaded(type)
     documentStore.set(template)
+    notifyDocumentLoaded(type)
 
     documentResetKey.update(n => n + 1)
 }
+
 /**
  * Toma los datos del store y los estructura según el tipo de comprobante activo,
  * usando `emitBody` como esqueleto para respetar el orden de campos exigido por UBL.
@@ -259,8 +264,6 @@ export function getDocumentFileName(): string {
     const ruc        = doc['cac:AccountingSupplierParty']?.['cac:Party']?.['cac:PartyIdentification']?.['cbc:ID']?._text
     const docType    = get(documentTypeStore)
     const documentID = doc['cbc:ID']?._text
-
-   
 
     return `${ruc}-${docType}-${documentID}`
 }
