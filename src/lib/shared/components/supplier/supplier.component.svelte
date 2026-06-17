@@ -39,11 +39,15 @@
       const { personaId } = get(runtimeConfigStore);
       if (!personaId) return;
 
+      const doc = get(documentStore);
+      if (Object.keys(doc).length === 0) return;
+
       isFetching = true;
 
-      const data = getSupplierData();
+      const hasSupplierInJson = 'cac:AccountingSupplierParty' in doc;
 
-      if (data.name && data.ruc) {
+      if (hasSupplierInJson) {
+        const data = getSupplierData();
         tradeName = data.tradeName;
         name = data.name;
         ruc = data.ruc;
@@ -60,11 +64,9 @@
         name = supplier.name ?? "";
         ruc = supplier.RUC ?? "";
         address = supplier.address ?? "";
-        if(supplier.isAnnex==true){
-          codeAddress = supplier.anexData?.codigoSUNAT ?? "0000";
-        }else{
-          codeAddress = "0000";
-        }
+        codeAddress = supplier.isAnnex === true
+          ? supplier.anexData?.codigoSUNAT ?? "0000"
+          : "0000";
       } catch (e) {
         console.error("Error al obtener supplier:", e);
       }

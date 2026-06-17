@@ -65,10 +65,10 @@ export function getSupplierData(): {
 
   return {
     tradeName: party['cac:PartyName']?.['cbc:Name']?._text ?? '',
-    name: party['cac:PartyLegalEntity']?.['cbc:RegistrationName']?._text ?? '',
-    ruc: party['cac:PartyIdentification']?.['cbc:ID']?._text ?? '',
+    name:      party['cac:PartyLegalEntity']?.['cbc:RegistrationName']?._text ?? '',
+    ruc:       party['cac:PartyIdentification']?.['cbc:ID']?._text ?? '',
     codeAddress: party['cac:PartyLegalEntity']?.['cac:RegistrationAddress']?.['cbc:AddressTypeCode']?._text ?? '0000',
-    address: party['cac:PartyLegalEntity']?.['cac:RegistrationAddress']?.['cac:AddressLine']?.['cbc:Line']?._text ?? '',
+    address:   party['cac:PartyLegalEntity']?.['cac:RegistrationAddress']?.['cac:AddressLine']?.['cbc:Line']?._text ?? '',
   }
 }
 
