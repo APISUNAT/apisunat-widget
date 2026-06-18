@@ -1,10 +1,22 @@
 import { get } from 'svelte/store'
-import { documentStore } from '$lib/store/document.store'
+import { documentStore, documentTypeStore } from '$lib/store/document.store'
 import { numeroALetras } from '$lib/shared/utils/convert.utils'
 import { buildTotalsUBL } from '$lib/shared/components/summary/summary-panel.component'
 
+const LINE_KEY: Record<string, string> = {
+  '07': 'cac:CreditNoteLine',
+  '08': 'cac:DebitNoteLine',
+  '09': 'cac:DespatchLine',
+  '31': 'cac:DespatchLine',
+}
+
 function getCurrency(): string {
   return get(documentStore)['cbc:DocumentCurrencyCode']?._text ?? 'PEN'
+}
+
+function getLineKey(): string {
+  const type = get(documentTypeStore)
+  return LINE_KEY[type ?? ''] ?? 'cac:InvoiceLine'
 }
 
 export function addInvoiceLineActions(data: {
@@ -17,14 +29,15 @@ export function addInvoiceLineActions(data: {
   igvRate: number
   itemCode?: string
 }) {
-  const currency      = getCurrency()
+  const currency = getCurrency()
+  const lineKey  = getLineKey()
   const rate          = data.igvRate / 100
   const totalLinea    = parseFloat((data.quantity * data.precioUnitario).toFixed(2))
   const lineExtension = parseFloat((totalLinea / (1 + rate)).toFixed(2))
   const taxAmount     = parseFloat((totalLinea - lineExtension).toFixed(2))
 
   documentStore.update(body => {
-    const allLines = (body['cac:InvoiceLine'] as any[]) ?? []
+    const allLines = (body[lineKey] as any[]) ?? []
     const existingIndex = allLines.findIndex((l: any) => l['cbc:ID']._text === data.id)
     const existingLine = existingIndex !== -1 ? allLines[existingIndex] : {}
 
@@ -53,7 +66,7 @@ export function addInvoiceLineActions(data: {
             _attributes: { ...existingLine['cac:PricingReference']?.['cac:AlternativeConditionPrice']?.['cbc:PriceAmount']?._attributes, currencyID: currency },
             _text: data.precioUnitario,
           },
-          'cbc:PriceTypeCode': { _text: '01' },//quitar el por defecto
+          'cbc:PriceTypeCode': { _text: '01' },
         }
       },
       'cac:TaxTotal': {
@@ -81,9 +94,9 @@ export function addInvoiceLineActions(data: {
             'cbc:TaxExemptionReasonCode': { _text: '10' },
             'cac:TaxScheme': {
               ...existingLine['cac:TaxTotal']?.['cac:TaxSubtotal']?.[0]?.['cac:TaxCategory']?.['cac:TaxScheme'],
-              'cbc:ID':          { _text: '1000' },//quitar el por defecto
-              'cbc:Name':        { _text: 'IGV' },//quitar el por defecto
-              'cbc:TaxTypeCode': { _text: 'VAT' },//quitar el por defecto
+              'cbc:ID':          { _text: '1000' },
+              'cbc:Name':        { _text: 'IGV' },
+              'cbc:TaxTypeCode': { _text: 'VAT' },
             }
           }
         }]
@@ -116,7 +129,7 @@ export function addInvoiceLineActions(data: {
 
     return {
       ...body,
-      'cac:InvoiceLine': lines,
+      [lineKey]: lines,
       ...ubl,
       'cbc:Note': [
         ...(body['cbc:Note'] ?? []).filter((n: any) => n._attributes?.languageLocaleID !== '1000'),
@@ -128,15 +141,16 @@ export function addInvoiceLineActions(data: {
 
 export function removeInvoiceLineActions(id: number) {
   const currency = getCurrency()
+  const lineKey  = getLineKey()
 
   documentStore.update(body => {
-    const lines = ((body['cac:InvoiceLine'] as any[]) ?? [])
+    const lines = ((body[lineKey] as any[]) ?? [])
       .filter((l: any) => l['cbc:ID']._text !== id)
     const { total, ...ubl } = buildTotalsUBL(lines, currency)
 
     return {
       ...body,
-      'cac:InvoiceLine': lines,
+      [lineKey]: lines,
       ...ubl,
       'cbc:Note': [
         ...(body['cbc:Note'] ?? []).filter((n: any) => n._attributes?.languageLocaleID !== '1000'),
@@ -148,13 +162,14 @@ export function removeInvoiceLineActions(id: number) {
 
 export function clearInvoiceLines() {
   const currency = getCurrency()
+  const lineKey  = getLineKey()
 
   documentStore.update(body => {
     const { total, ...ubl } = buildTotalsUBL([], currency)
 
     return {
       ...body,
-      'cac:InvoiceLine': [],
+      [lineKey]: [],
       ...ubl,
       'cbc:Note': [
         ...(body['cbc:Note'] ?? []).filter((n: any) => n._attributes?.languageLocaleID !== '1000'),
