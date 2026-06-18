@@ -50,51 +50,61 @@ export const CATALOGO02 = [
         value: 'PEN',
         label: 'PEN - (S/) Sol',
         name: 'SOLES',
+        symbol: 'S/',
     },
     {
         value: 'USD',
         label: 'USD - ($) Dólar EEUU',
         name: 'DÓLARES ESTADOUNIDENSES',
+        symbol: '$',
     },
     {
         value: 'EUR',
         label: 'EUR - (€) Euro',
         name: 'EUROS',
+        symbol: '€',
     },
     {
         value: 'ARS',
         label: 'ARS - ($) Peso Argentino',
         name: 'PESOS ARGENTINOS',
+        symbol: '$',
     },
     {
         value: 'BOB',
         label: 'BOB - (Bs) Boliviano',
         name: 'BOLIVIANOS',
+        symbol: 'Bs',
     },
     {
         value: 'BRL',
         label: 'BRL - (R$) Real Brasileño',
         name: 'REALES BRASILEÑOS',
+        symbol: 'R$',
     },
     {
         value: 'CLP',
         label: 'CLP - ($) Peso Chileno',
         name: 'PESOS CHILENOS',
+        symbol: '$',
     },
     {
         value: 'COP',
         label: 'COP - ($) Peso Colombiano',
         name: 'PESOS COLOMBIANOS',
+        symbol: '$',
     },
     {
         value: 'PYG',
         label: 'PYG - (₲) Guaraní',
         name: 'GUARANÍES',
+        symbol: '₲',
     },
     {
         value: 'VES',
         label: 'VES - (Bs.) Bolívar',
         name: 'BOLÍVARES',
+        symbol: 'Bs.',
     },
 ]
 

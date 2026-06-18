@@ -7,6 +7,7 @@
     showLabel = true,
     disabled = false,
     required = false,
+    pastOnly = false,
     onchange,
   } = $props<{
     label?: string;
@@ -14,6 +15,7 @@
     showLabel?: boolean;
     disabled?: boolean;
     required?: boolean;
+    pastOnly?: boolean;
     onchange?: () => void;
   }>();
 
@@ -21,18 +23,21 @@
   let inputRef = $state<HTMLInputElement | null>(null);
 
   function handleInput(e: Event) {
-    const input = e.currentTarget as HTMLInputElement
-    if (input.value < today) {
-      input.value = today
-      value = today
+    const input = e.currentTarget as HTMLInputElement;
+    if (pastOnly && input.value > today) {
+      input.value = today;
+      value = today;
+    } else if (!pastOnly && input.value < today) {
+      input.value = today;
+      value = today;
     } else {
-      value = input.value
+      value = input.value;
     }
-    onchange?.()
+    onchange?.();
   }
 
   const inputClass =
-  "block h-10 w-full rounded-xl border border-[color:color-mix(in_oklab,var(--form-color-3)_30%,transparent)] bg-[var(--form-field-bg)] ps-12 pe-4 text-sm font-medium text-[var(--form-text-color)] outline-none [appearance:textfield] [&::-webkit-calendar-picker-indicator]:hidden";
+    "block h-10 w-full rounded-xl border border-[color:color-mix(in_oklab,var(--form-color-3)_30%,transparent)] bg-[var(--form-field-bg)] ps-12 pe-4 text-sm font-medium text-[var(--form-text-color)] outline-none [appearance:textfield] [&::-webkit-calendar-picker-indicator]:hidden";
 </script>
 
 <div class="grid gap-1.5 text-[13px] text-[var(--form-text-muted)]">
@@ -47,7 +52,8 @@
     <input
       bind:this={inputRef}
       type="date"
-      min={today}
+      min={pastOnly ? undefined : today}
+      max={pastOnly ? today : undefined}
       {value}
       oninput={handleInput}
       autocomplete="off"
@@ -57,7 +63,6 @@
       {required}
       class={inputClass}
     />
-
     <button
       type="button"
       onclick={() => inputRef?.showPicker()}

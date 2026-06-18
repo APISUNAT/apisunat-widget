@@ -9,7 +9,9 @@
     disabled = false,
     required = false,
     maxLength = undefined,
-    onlyNumbers = false
+    onlyNumbers = false,
+    maxDecimals = undefined,
+    oninput = undefined,
   }: {
     label?: string;
     value?: string;
@@ -21,13 +23,29 @@
     required?: boolean;
     maxLength?: number;
     onlyNumbers?: boolean;
+    maxDecimals?: number;
+    oninput?: (e: Event) => void;
   } = $props();
 
   function handleInput(event: Event) {
-    if (!onlyNumbers) return;
-
     const target = event.target as HTMLInputElement;
-    value = target.value.replace(/\D/g, '');
+    let val = target.value;
+
+    if (onlyNumbers) {
+      val = val.replace(/\D/g, '');
+    }
+
+    if (maxDecimals !== undefined) {
+      const parts = val.split('.');
+      if (parts.length > 1) {
+        val = parts[0] + '.' + parts.slice(1).join('').slice(0, maxDecimals);
+      }
+    }
+
+    target.value = val;
+    value = val;
+
+    oninput?.(event);
   }
 
   const inputClass =
@@ -50,7 +68,7 @@
       {disabled}
       {required}
       maxlength={maxLength}
-      inputmode={onlyNumbers ? 'numeric' : undefined}
+      inputmode={onlyNumbers ? 'numeric' : (maxDecimals !== undefined ? 'decimal' : undefined)}
       oninput={handleInput}
       class={inputClass}
     />

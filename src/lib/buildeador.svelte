@@ -12,11 +12,13 @@
   import "./shared/styles/web-component.css";
   import InvoiceForm from "$lib/modules/invoice/page/invoice.page.svelte";
   import ReceiptForm from "$lib/modules/receipt/page/receipt.page.svelte";
+  import NoteForm from "$lib/modules/notes/page/notes.page.svelte";
   import {
     loadDocument,
     initDocument,
     documentStore,
     getDocumentOutput,
+    documentResetKey
   } from "$lib/store/document.store";
   import { get } from 'svelte/store'
   import { sendBillPOSTASYNC } from "$lib/api/emit.api"
@@ -27,17 +29,15 @@
   const FORMS: Record<string, any> = {
     "01": InvoiceForm,
     "03": ReceiptForm,
-    // '04': PurchaseLiquidationForm,
-    // '07': CreditNoteForm,
-    // '08': DebitNoteForm,
-    // '09': SenderShippingGuideForm,
-    // '31': CarrierShippingGuideForm,
+    "07": NoteForm,
+    "08": NoteForm,
+
   };
 
   let { config = {} as InvoiceConfig } = $props();
 
   $effect(() => {
-    if (!config?.personaId || !config?.personaToken) return;
+
 
     runtimeConfigStore.set({
       personaId: config.personaId,
@@ -57,13 +57,21 @@
 
   $effect(() => {
     if (!config?.type) return;
-    tick().then(() => {
+
+    const controller = new AbortController();
+    const { signal } = controller;
+
+    tick().then(async () => {
+      if (signal.aborted) return;
+
       if (config.json) {
         loadDocument(config.json as Record<string, any>, config.type);
       } else {
         initDocument(config.type);
       }
     });
+
+    return () => controller.abort();
   });
 
   $effect(() => {
@@ -73,37 +81,38 @@
     });
   });
 
- export async function emitDocument() {
-  const { personaId, personaToken } = get(runtimeConfigStore)
+  export async function emitDocument() {
+    const { personaId, personaToken } = get(runtimeConfigStore);
 
-  if (!personaId || !personaToken) {
-    const error = new Error("personaId y personaToken son requeridos para emitir el documento");
-    config?.onError?.(error);
-    throw error;
-  }
+    if (!personaId || !personaToken) {
+      const error = new Error("personaId y personaToken son requeridos para emitir el documento");
+      config?.onError?.(error);
+      throw error;
+    }
 
-  try {
-    const result = await sendBillPOSTASYNC();
-    config?.onEmit?.(result);
-    return result;
-  } catch (error) {
-    config?.onError?.(error);
-    throw error;
+    try {
+      const result = await sendBillPOSTASYNC();
+      config?.onEmit?.(result);
+      return result;
+    } catch (error) {
+      config?.onError?.(error);
+      throw error;
+    }
   }
-}
 </script>
 
 <div>
-  <CurrentForm
-    {showHeader}
-    {showSupplier}
-    {showCustomer}
-    {showLines}
-    {showPaymentTerms}
-    {showRetention}
-    onEmitClick={config?.onEmit ? emitDocument : undefined}
-
-  />
+  {#key `${config?.type ?? ""}-${config?.serie ?? ""}-${$documentResetKey}`}
+    <CurrentForm
+      {showHeader}
+      {showSupplier}
+      {showCustomer}
+      {showLines}
+      {showPaymentTerms}
+      {showRetention}
+      onEmitClick={config?.onEmit ? emitDocument : undefined}
+    />
+  {/key}
 </div>
 
 <style>

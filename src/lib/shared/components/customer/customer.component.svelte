@@ -11,16 +11,16 @@
   import Select from "$lib/shared/ui/select.svelte";
   import { documentStore } from "$lib/store/document.store";
   import {
+    fetchCustomerByDocument,
+    setCustomerActions,
+  } from "./customer.component";
+  import {
     getFilteredCatalogo,
-    maxLengthInput,
-    isValidRuc,
     handleNoDocumentSelection,
     isDocumentComplete,
+    isValidRuc,
+    maxLengthInput,
   } from "./customer.utils";
-  import {
-    setCustomerActions,
-    fetchCustomerByDocument,
-  } from "./customer.component";
 
   let typeDocument = $state("");
   let numberDocument = $state("");
@@ -30,103 +30,105 @@
   let phone = $state("");
   let isLoadingCustomer = $state(false);
   let customerError = $state("");
-
   let isReady = $state(false);
   let previousDocumentType = "";
 
   const currentDocumentType = $derived(
     $documentStore["cbc:InvoiceTypeCode"]?._text ?? "",
   );
-
   const filteredCatalogo06 = $derived(
     getFilteredCatalogo(CATALOGO06, currentDocumentType),
   );
   const documentMaxLength = $derived(maxLengthInput(typeDocument));
   const handleNoDocument = $derived(handleNoDocumentSelection(typeDocument));
   const isDocumentValid = $derived.by(() => {
-    if (typeDocument === "6") {
-      if (numberDocument.length < 11) return true;
-      return isValidRuc(numberDocument);
-    }
-    return true;
+    if (typeDocument !== "6" || numberDocument.length < 11) return true;
+    return isValidRuc(numberDocument);
   });
 
+  function getDefaultDocumentType(invoiceType: string): string {
+    if (invoiceType === "03") return "1";
+    if (invoiceType === "01") return "6";
+    return "";
+  }
+
+  function clearCustomerFields() {
+    numberDocument = "";
+    name = "";
+    address = "";
+    email = "";
+    phone = "";
+  }
+
+  // Inicializar desde el store
   $effect(() => {
     const doc = $documentStore;
     if (isReady) return;
+    if (!doc["cac:AccountingSupplierParty"]) return;
 
-    // Esperar a que loadDocument haya corrido — el supplier confirma que el store está listo
-    if (!doc["cac:AccountingCustomerParty"] && !doc["cac:AccountingSupplierParty"]) return;
+    const party = doc["cac:AccountingCustomerParty"]?.["cac:Party"];
 
-    if (!doc["cac:AccountingCustomerParty"]) {
+    if (!party) {
+      typeDocument = getDefaultDocumentType(currentDocumentType);
+      previousDocumentType = currentDocumentType;
       isReady = true;
       return;
     }
 
-    const party = doc["cac:AccountingCustomerParty"]?.["cac:Party"];
-    typeDocument =
-      party?.["cac:PartyIdentification"]?.["cbc:ID"]?._attributes?.schemeID ?? "";
-    numberDocument =
-      party?.["cac:PartyIdentification"]?.["cbc:ID"]?._text ?? "";
-    name =
-      party?.["cac:PartyLegalEntity"]?.["cbc:RegistrationName"]?._text ?? "";
-    address =
-      party?.["cac:PartyLegalEntity"]?.["cac:RegistrationAddress"]?.[
-        "cac:AddressLine"
-      ]?.["cbc:Line"]?._text ?? "";
-    email = party?.["cac:Contact"]?.["cbc:ElectronicMail"]?._text ?? "";
-    phone = party?.["cac:Contact"]?.["cbc:Telephone"]?._text ?? "";
+    typeDocument = party["cac:PartyIdentification"]?.["cbc:ID"]?._attributes?.schemeID ?? "";
+    numberDocument = party["cac:PartyIdentification"]?.["cbc:ID"]?._text ?? "";
+    name = party["cac:PartyLegalEntity"]?.["cbc:RegistrationName"]?._text ?? "";
+    address = party["cac:PartyLegalEntity"]?.["cac:RegistrationAddress"]?.["cac:AddressLine"]?.["cbc:Line"]?._text ?? "";
+    email = party["cac:Contact"]?.["cbc:ElectronicMail"]?._text ?? "";
+    phone = party["cac:Contact"]?.["cbc:Telephone"]?._text ?? "";
     previousDocumentType = currentDocumentType;
     isReady = true;
   });
 
+  // Reaccionar al cambio de tipo de comprobante
   $effect(() => {
+    const current = currentDocumentType;
     const options = filteredCatalogo06;
     const td = typeDocument;
-    const current = currentDocumentType;
     if (!isReady) return;
-    if (current !== previousDocumentType) {
-      previousDocumentType = current;
-      typeDocument = "";
+    if (current === previousDocumentType) {
+      if (options.length > 0 && !options.some((o) => o.value === td)) {
+        typeDocument = "";
+      }
       return;
     }
-    if (options.length > 0 && !options.some((opt) => opt.value === td)) {
-      typeDocument = "";
-    }
+
+    previousDocumentType = current;
+    // Siempre resetear tipo de doc al default al cambiar de comprobante
+    typeDocument = getDefaultDocumentType(current);
+    clearCustomerFields();
   });
 
+  // Sincronizar con el store
   $effect(() => {
     const td = typeDocument.trim();
     const nd = numberDocument.trim();
-    const n = name.trim();
-    const a = address.trim();
-    const e = email.trim();
-    const p = phone.trim();
-    if (!isReady) return;
-    if (!td) return;
+    if (!isReady || !td) return; // sin !nd para que limpie el store cuando campos vacíos
     setCustomerActions({
       typeDocument: td,
       numberDocument: nd,
-      name: n,
-      address: a,
-      email: e,
-      phone: p,
+      name: name.trim(),
+      address: address.trim(),
+      email: email.trim(),
+      phone: phone.trim(),
     });
   });
 
+  // Buscar cliente por documento
   $effect(() => {
     const td = typeDocument;
     const nd = numberDocument;
-    if (!isReady || !isDocumentComplete(td, nd)) {
-      customerError = "";
-      return;
-    }
+    customerError = "";
+    if (!isReady || !isDocumentComplete(td, nd)) return;
 
     isLoadingCustomer = true;
-    customerError = "";
-
     fetchCustomerByDocument(td, nd)
-      .then((data: { name: string; address: string } | null) => {
+      .then((data) => {
         if (data) {
           name = data.name ?? "";
           address = data.address ?? "";
@@ -189,7 +191,6 @@
     bind:value={phone}
     icon={phoneIcon}
   />
-
   {#if customerError}
     <span class="text-xs text-red-500">{customerError}</span>
   {/if}

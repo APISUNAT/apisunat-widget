@@ -89,3 +89,23 @@ export  const getDNIGETAsync = async  (dni: string) => {
 
     return data
 }
+
+//Obtener la información del suplier
+export const getSupplierGETAsync = async () => {
+    const{ personaId} = get(runtimeConfigStore)
+
+    const response = await fetch(
+        API_URL + `personas/${personaId}/getById`,
+        {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        }
+    )
+    const data = await response.json()
+    if (data.error) {
+        throw data.error
+    }
+    return data
+}
