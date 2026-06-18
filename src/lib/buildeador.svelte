@@ -12,6 +12,7 @@
   import "./shared/styles/web-component.css";
   import InvoiceForm from "$lib/modules/invoice/page/invoice.page.svelte";
   import ReceiptForm from "$lib/modules/receipt/page/receipt.page.svelte";
+  import NoteForm from "$lib/modules/notes/page/notes.page.svelte";
   import {
     loadDocument,
     initDocument,
@@ -28,12 +29,15 @@
   const FORMS: Record<string, any> = {
     "01": InvoiceForm,
     "03": ReceiptForm,
+    "07": NoteForm,
+    "08": NoteForm,
+
   };
 
   let { config = {} as InvoiceConfig } = $props();
 
   $effect(() => {
-    
+
 
     runtimeConfigStore.set({
       personaId: config.personaId,

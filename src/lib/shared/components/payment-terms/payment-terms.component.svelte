@@ -6,7 +6,7 @@
   } from "$lib/shared/components/payment-terms/payment-terms.component";
   import type { Cuota } from "$lib/shared/components/payment-terms/payment-terms.component";
   import { documentStore, documentLoaded } from "$lib/store/document.store";
-  import DatePicker from "$lib/shared/ui/date-credit.svelte";
+  import DatePicker from "$lib/shared/ui/date-picker-select.svelte";
   import { onMount } from "svelte";
 
   let { total = 0 }: { total: number } = $props();

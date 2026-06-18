@@ -8,7 +8,7 @@
   } from "$lib/constants/catalagos";
   import Input from "$lib/shared/ui/input.svelte";
   import SelectString from "$lib/shared/ui/select.svelte";
-  import { documentStore } from "$lib/store/document.store";
+  import { documentStore, documentTypeStore } from "$lib/store/document.store";
   import {
     createEditableItem,
     calcItemAmounts,
@@ -61,10 +61,15 @@
     ),
   );
 
+  const isZeroPriceAllowed = $derived(
+    $documentTypeStore === '07' &&
+    $documentStore['cac:DiscrepancyResponse']?.['cbc:ResponseCode']?._text === '03'
+  );
+
   const isValid = $derived(
     editorItem.description.trim().length > 0 &&
-      parseFloat(editorItem.precioUnitario) > 0 &&
-      parseFloat(editorItem.quantity) > 0,
+      parseFloat(editorItem.quantity) > 0 &&
+      (isZeroPriceAllowed || parseFloat(editorItem.precioUnitario) > 0),
   );
 
   function onRateChange(newRate: number) {
