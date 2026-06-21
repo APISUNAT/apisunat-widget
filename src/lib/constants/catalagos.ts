@@ -406,6 +406,26 @@ export const CATALOGO03 = [
         label: 'Yardas Cuadradas'
     },
 ]
+export const CATALOGO05 = [
+  {
+    value: '1000',
+    label: 'Gravada',
+    internationalCode: 'VAT',
+    name: 'IGV'
+  },
+  {
+    value: '9997',
+    label: 'Exonerada',
+    internationalCode: 'VAT',
+    name: 'EXO'
+  },
+  {
+    value: '9996',
+    label: 'Gratuita',
+    internationalCode: 'FRE',
+    name: 'GRA'
+  }
+]
 
 export const catalogo03B = [
     {
@@ -1009,75 +1029,94 @@ export const CATALOGO06 = [
 export const CATALOGO07 = [
     {
         value: '10',
-        label: 'Operación Gravada'
+        label: 'Operación Gravada',
+        codigoTributo: '1000'
     },
     {
         value: '11',
-        label: 'Gravada - Retiro por premio'
+        label: 'Gravada - Retiro por premio',
+        codigoTributo: "9996"
     },
     {
         value: '12',
-        label: 'Gravada - Retiro por donación'
+        label: 'Gravada - Retiro por donación',
+        codigoTributo: "9996"
     },
     {
         value: '13',
-        label: 'Gravada - Retiro'
+        label: 'Gravada - Retiro',
+        codigoTributo: "9996"
     },
     {
         value: '14',
-        label: 'Gravada - Retiro por publicidad'
+        label: 'Gravada - Retiro por publicidad',
+        codigoTributo: "9996"
     },
     {
         value: '15',
-        label: 'Gravada - Bonificaciones'
+        label: 'Gravada - Bonificaciones',
+        codigoTributo: "9996"
     },
     {
         value: '16',
-        label: 'Gravada - Retiro para trabajadores'
+        label: 'Gravada - Retiro para trabajadores',
+        codigoTributo: "9996"
     },
     {
         value: '20',
-        label: 'Operación Exonerada'
+        label: 'Operación Exonerada',
+        codigoTributo: '9997'
     },
     {
         value: '21',
-        label: 'Exonerada - Transferencia gratuita'
+        label: 'Exonerada - Transferencia gratuita',
+        codigoTributo: "9996"
     },
     {
         value: '30',
-        label: 'Operación Inafecta'
+        label: 'Operación Inafecta',
+        codigoTributo: "9998"
     },
     {
         value: '31',
-        label: 'Inafecta - Retiro por bonificación'
+        label: 'Inafecta - Retiro por bonificación',
+        codigoTributo: "9996"
     },
     {
         value: '32',
-        label: 'Inafecta - Retiro'
+        label: 'Inafecta - Retiro',
+        codigoTributo: "9996"
     },
     {
         value: '33',
-        label: 'Inafecta - Retiro para muestras'
+        label: 'Inafecta - Retiro para muestras',
+        codigoTributo: "9996",
     },
     {
         value: '34',
-        label: 'Inafecta - Retiro por convenio'
+        label: 'Inafecta - Retiro por convenio',
+        codigoTributo: "9996"
     },
     {
         value: '35',
-        label: 'Inafecta - Retiro por premio'
+        label: 'Inafecta - Retiro por premio',
+        codigoTributo: "9996"
     },
     {
         value: '36',
-        label: 'Inafecta - Retiro por publicidad'
+        label: 'Inafecta - Retiro por publicidad',
+        codigoTributo: "9996"
     },
     {
         value: '37',
-        label: 'Inafecta - Transferencia gratuita'
+        label: 'Inafecta - Transferencia gratuita',
+        codigoTributo: "9996"
     },
     {
         value: '40',
-        label: 'Exportación'
+        label: 'Exportación',
+        //Tiene dos codigod de tributo
+        codigoTributo: ['9995', '9996']
     }
 ]
 
@@ -2592,7 +2631,7 @@ export const catalogo61 = [
     },
     {
         value: '91',
-        label:'Manifiesto de carga (MC)'
+        label: 'Manifiesto de carga (MC)'
     },
     {
         value: '92',
@@ -2887,8 +2926,8 @@ export const catalogo65 = [
     { value: 'AM', label: 'AMPOLLA' },
     { value: 'AP', label: 'AMPOULE, PROTECTED' },
     { value: 'AT', label: 'ATOMIZER' },
-    { value: 'ATD', label:'ATADOS'},
-    { value: 'BA', label:'BARREL'},
+    { value: 'ATD', label: 'ATADOS' },
+    { value: 'BA', label: 'BARREL' },
     { value: 'BAL', label: 'BALDE' },
     { value: 'BB', label: 'BOBBIN' },
     { value: 'BC', label: 'BOTTLECRATE, BOTTLERACK' },

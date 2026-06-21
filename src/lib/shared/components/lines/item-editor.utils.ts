@@ -13,6 +13,7 @@ export function createEditableItem(source: any = {}) {
         valorUnitario: s.valorUnitario ?? "",
         precioUnitario: s.precioUnitario ?? "",
         igvRate: normalizeIgvRate(s.igvRate ?? 18),
+        taxSchemeValue: s.taxSchemeValue ?? '1000',
     };
 }
 
@@ -31,16 +32,19 @@ export function calcItemAmounts(quantity: string, precioUnitario: string, igvRat
 }
 
 export function calcPrecioFromValor(valor: string, igvRate: number): string {
+    if (valor === "") return "";
     const v = parseFloat(valor) || 0;
-    return v > 0 ? (v * (1 + igvRate / 100)).toFixed(2) : "";
+    return (v * (1 + igvRate / 100)).toFixed(2);
 }
 
 export function calcValorFromPrecio(precio: string, igvRate: number): string {
+    if (precio === "") return "";
     const p = parseFloat(precio) || 0;
-    return p > 0 ? (p / (1 + igvRate / 100)).toFixed(2) : "";
+    return (p / (1 + igvRate / 100)).toFixed(2);
 }
 
 export function calcPrecioOnRateChange(valorUnitario: string, newRate: number): string {
+    if (valorUnitario === "") return "";
     const v = parseFloat(valorUnitario) || 0;
-    return v > 0 ? (v * (1 + newRate / 100)).toFixed(2) : "";
+    return (v * (1 + newRate / 100)).toFixed(2);
 }

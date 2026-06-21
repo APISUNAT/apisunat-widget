@@ -27,10 +27,6 @@
         {required}
         class={selectClass}
     >
-        <option value="">
-            {placeholder || label}
-        </option>
-
         {#each options as option}
             <option value={option.value}>
             {option.label}

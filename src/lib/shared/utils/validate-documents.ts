@@ -54,6 +54,8 @@ export function validateDocument(): ValidationError[] {
     if (!doc[lineKey]?.length)
         errors.push({ field: 'lines', message: 'Agrega al menos un ítem' }
         )
+
+
     // si el metodo de pago es credito validar que tenga cuota
     if (doc['cac:PaymentTerms']?.[0]?.['cbc:PaymentMeansID']?._text === 'Credito') {
         if (!doc['cac:PaymentTerms']?.[1]?.['cbc:PaymentMeansID']?._text?.startsWith('Cuota')) {
@@ -62,13 +64,21 @@ export function validateDocument(): ValidationError[] {
                 message: 'Agrega las cuotas de pago'
             })
         }
-
     }
+    // Para notas de crédito/débito, la descripción de la razón es obligatoria
     if (isNote && isEmpty(doc['cac:DiscrepancyResponse']?.['cbc:Description']?._text)) {
         errors.push({
             field: 'noteDescription',
             message: 'Agrega la razón de la nota crédito/débito'
         })
     }
+    // para notas ver que al menos exista un doc de referencia
+    if(isNote && !doc['cac:BillingReference']){
+        errors.push({
+            field: 'referenceDocument',
+            message: 'Agrega al menos un documento que va modificar'
+        })
+    }
+
     return errors
 }

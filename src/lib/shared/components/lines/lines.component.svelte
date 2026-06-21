@@ -2,113 +2,64 @@
   import {
     addInvoiceLineActions,
     removeInvoiceLineActions,
+    hydrateLines,
+    type EditableItem,
+    type LineItem,
   } from "./lines.component";
   import { documentStore, documentLoaded } from "$lib/store/document.store";
   import ItemEditor from "./item-editor.component.svelte";
   import { CATALOGO02 } from "$lib/constants/catalagos";
-  import { buildTotalsUBL } from "$lib/shared/components/summary/summary-panel.component";
-
-  type EditableItem = {
-    description: string;
-    quantity: string;
-    unitCode: string;
-    valorUnitario: string;
-    precioUnitario: string;
-    igvRate: number;
-    itemCode?: string;
-  };
-
-  type LineItem = EditableItem & { id: number };
+  import { buildTotalsActions } from "$lib/shared/components/summary/summary-panel.component";
 
   let items = $state<LineItem[]>([]);
   let isOpen = $state(false);
   let mode = $state<"create" | "edit">("create");
   let itemEditor = $state<LineItem | null>(null);
   let nextId = $state(1);
-  let lastLoaded: { type: string; timestamp: number } | null = null;  // ← reemplaza hydratedSeq
-  let lastCurrency = '';
+  let lastLoaded: { type: string; timestamp: number } | null = null;
+  let lastCurrency = "";
 
   const symbol = $derived(
-    CATALOGO02.find(c => c.value === ($documentStore['cbc:DocumentCurrencyCode']?._text ?? 'PEN'))?.symbol ?? 'S/'
+    CATALOGO02.find(
+      (c) => c.value === ($documentStore["cbc:DocumentCurrencyCode"]?._text ?? "PEN")
+    )?.symbol ?? "S/"
   );
 
   // Re-hidrata cuando loadDocument/initDocument reemplaza el store.
   $effect(() => {
-    const loaded = $documentLoaded;  // ← antes era $documentLoadSeq
+    const loaded = $documentLoaded;
     const doc = $documentStore;
-    if (!loaded || loaded === lastLoaded) return;  // ← antes comparaba números
+    if (!loaded || loaded === lastLoaded) return;
 
-    const lines = doc["cac:InvoiceLine"];
-    if (lines === undefined) return;
-
-    const arr = Array.isArray(lines) ? lines : [lines];
-
-    items = arr.map((line: any, i: number) => {
-      const igvPercent =
-        line["cac:TaxTotal"]?.["cac:TaxSubtotal"]?.[0]?.["cac:TaxCategory"]?.[
-          "cbc:Percent"
-        ]?._text;
-
-      const igvRate = igvPercent ? parseFloat(String(igvPercent)) : 18;
-
-      const valorUnitario = String(
-        line["cac:Price"]?.["cbc:PriceAmount"]?._text ?? "",
-      );
-
-      const precioRaw =
-        line["cac:PricingReference"]?.["cac:AlternativeConditionPrice"]?.[
-          "cbc:PriceAmount"
-        ]?._text;
-
-      const precioUnitario = precioRaw
-        ? String(precioRaw)
-        : valorUnitario
-          ? (parseFloat(valorUnitario) * (1 + igvRate / 100)).toFixed(2)
-          : "";
-
-      const itemCode =
-        line["cac:Item"]?.["cac:SellersItemIdentification"]?.["cbc:ID"]?._text;
-
-      return {
-        id: i + 1,
-        description: line["cac:Item"]?.["cbc:Description"]?._text ?? "",
-        quantity: String(line["cbc:InvoicedQuantity"]?._text ?? "1"),
-        unitCode: line["cbc:InvoicedQuantity"]?._attributes?.unitCode ?? "NIU",
-        valorUnitario,
-        precioUnitario,
-        igvRate,
-        itemCode,
-      };
-    });
-
+    items = hydrateLines(doc);
     nextId = items.length + 1;
-    lastCurrency = doc['cbc:DocumentCurrencyCode']?._text ?? '';
+    lastCurrency = doc["cbc:DocumentCurrencyCode"]?._text ?? "";
 
     if (items.length > 0) {
       items.forEach((item) => {
         addInvoiceLineActions({
-          id:             item.id,
-          quantity:       parseFloat(item.quantity) || 0,
-          unitCode:       item.unitCode,
-          description:    item.description,
-          valorUnitario:  parseFloat(item.valorUnitario) || 0,
+          id: item.id,
+          quantity: parseFloat(item.quantity) || 0,
+          unitCode: item.unitCode,
+          description: item.description,
+          valorUnitario: parseFloat(item.valorUnitario) || 0,
           precioUnitario: parseFloat(item.precioUnitario) || 0,
-          igvRate:        item.igvRate,
-          itemCode:       item.itemCode,
+          igvRate: item.igvRate,
+          itemCode: item.itemCode,
         });
       });
     } else {
-      const currency = doc['cbc:DocumentCurrencyCode']?._text ?? 'PEN';
-      const { total, ...ubl } = buildTotalsUBL([], currency);
-      documentStore.update(body => ({ ...body, ...ubl }));
+      const currency = doc["cbc:DocumentCurrencyCode"]?._text ?? "PEN";
+      const { total, ...ubl } = buildTotalsActions([], currency);
+      documentStore.update((body) => ({ ...body, ...ubl }));
     }
 
-    lastLoaded = loaded;  // ← antes era hydratedSeq = seq
+    lastLoaded = loaded;
   });
 
   // Re-sincroniza currencyID cuando cambia la moneda tras la hidratación.
   $effect(() => {
-    const currency = $documentStore['cbc:DocumentCurrencyCode']?._text;
+    const currency = $documentStore["cbc:DocumentCurrencyCode"]?._text;
     const loaded = $documentLoaded;
     if (!currency || loaded !== lastLoaded || currency === lastCurrency) return;
 
@@ -116,19 +67,17 @@
 
     items.forEach((item) => {
       addInvoiceLineActions({
-        id:             item.id,
-        quantity:       parseFloat(item.quantity) || 0,
-        unitCode:       item.unitCode,
-        description:    item.description,
-        valorUnitario:  parseFloat(item.valorUnitario) || 0,
+        id: item.id,
+        quantity: parseFloat(item.quantity) || 0,
+        unitCode: item.unitCode,
+        description: item.description,
+        valorUnitario: parseFloat(item.valorUnitario) || 0,
         precioUnitario: parseFloat(item.precioUnitario) || 0,
-        igvRate:        item.igvRate,
-        itemCode:       item.itemCode,
+        igvRate: item.igvRate,
+        itemCode: item.itemCode,
       });
     });
   });
-
-
 
   function lineTotal(item: LineItem): string {
     const qty = parseFloat(item.quantity) || 0;
@@ -143,7 +92,7 @@
         const precio = parseFloat(item.precioUnitario) || 0;
         return sum + qty * precio;
       }, 0)
-      .toFixed(2),
+      .toFixed(2)
   );
 
   function openCreate() {
@@ -197,16 +146,10 @@
   }
 </script>
 
-<div
-  class="overflow-hidden rounded-[1.15rem] border border-[color:color-mix(in_oklab,var(--form-color-3)_22%,transparent)] bg-[var(--form-panel-bg)]"
->
+<div class="overflow-hidden rounded-[1.15rem] border border-[color:color-mix(in_oklab,var(--form-color-3)_22%,transparent)] bg-[var(--form-panel-bg)]">
   <!-- Header -->
-  <div
-    class="flex items-center justify-between gap-3 border-b border-[color:color-mix(in_oklab,var(--form-color-3)_16%,transparent)] px-5 py-3"
-  >
-    <p
-      class="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--form-text-soft)]"
-    >
+  <div class="flex items-center justify-between gap-3 border-b border-[color:color-mix(in_oklab,var(--form-color-3)_16%,transparent)] px-5 py-3">
+    <p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--form-text-soft)]">
       Detalle
     </p>
     <button
@@ -214,15 +157,7 @@
       onclick={openCreate}
       type="button"
     >
-      <svg
-        class="size-3.5 shrink-0"
-        fill="none"
-        stroke="currentColor"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        stroke-width="2.5"
-        viewBox="0 0 24 24"
-      >
+      <svg class="size-3.5 shrink-0" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewBox="0 0 24 24">
         <path d="M12 5v14" /><path d="M5 12h14" />
       </svg>
       Añadir ítem
@@ -231,9 +166,7 @@
 
   {#if items.length}
     <!-- Column headers -->
-    <div
-      class="grid grid-cols-[1fr_80px_110px_110px_72px] gap-2 border-b border-[color:color-mix(in_oklab,var(--form-color-3)_12%,transparent)] px-5 py-2"
-    >
+    <div class="grid grid-cols-[1fr_80px_110px_110px_72px] gap-2 border-b border-[color:color-mix(in_oklab,var(--form-color-3)_12%,transparent)] px-5 py-2">
       <span class="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--form-text-soft)]">Descripción</span>
       <span class="text-right text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--form-text-soft)]">Cant.</span>
       <span class="text-right text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--form-text-soft)]">V. unitario</span>
@@ -305,10 +238,4 @@
   {/if}
 </div>
 
-<ItemEditor
-  {isOpen}
-  {itemEditor}
-  {mode}
-  on:close={handleClose}
-  on:save={handleSave}
-/>
+<ItemEditor {isOpen} {itemEditor} {mode} on:close={handleClose} on:save={handleSave} />
