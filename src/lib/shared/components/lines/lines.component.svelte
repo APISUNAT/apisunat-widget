@@ -187,8 +187,8 @@
             </div>
           </div>
           <div class="text-right text-[13px] tabular-nums text-[var(--form-text-color)]">{item.quantity}</div>
-          <div class="text-right text-[13px] tabular-nums text-[var(--form-text-soft)]">{symbol} {parseFloat(item.valorUnitario).toFixed(2)}</div>
-          <div class="text-right text-[13px] font-semibold tabular-nums text-[var(--form-text-color)]">{symbol} {lineTotal(item)}</div>
+          <div class="text-right text-[13px] tabular-nums text-[var(--form-text-soft)]">{symbol} {parseFloat(item.valorUnitario).toFixed(3)}</div>
+          <div class="text-right text-[13px] font-semibold tabular-nums text-[var(--form-text-color)]">{symbol} {parseFloat(lineTotal(item)).toFixed(3)}</div>
           <div class="flex items-center justify-end gap-1">
             <button
               aria-label="Editar ítem"

@@ -30,21 +30,20 @@ export function calcItemAmounts(quantity: string, precioUnitario: string, igvRat
         total: total.toFixed(2),
     };
 }
-
 export function calcPrecioFromValor(valor: string, igvRate: number): string {
     if (valor === "") return "";
     const v = parseFloat(valor) || 0;
-    return (v * (1 + igvRate / 100)).toFixed(2);
+    return parseFloat((v * (1 + igvRate / 100)).toFixed(10)).toString();
 }
 
 export function calcValorFromPrecio(precio: string, igvRate: number): string {
     if (precio === "") return "";
     const p = parseFloat(precio) || 0;
-    return (p / (1 + igvRate / 100)).toFixed(2);
+    return parseFloat((p / (1 + igvRate / 100)).toFixed(10)).toString();
 }
 
 export function calcPrecioOnRateChange(valorUnitario: string, newRate: number): string {
     if (valorUnitario === "") return "";
     const v = parseFloat(valorUnitario) || 0;
-    return (v * (1 + newRate / 100)).toFixed(2);
+    return parseFloat((v * (1 + newRate / 100)).toFixed(10)).toString();
 }
