@@ -4,6 +4,7 @@
   import {
     CATALOGO02,
     CATALOGO03,
+    CATALOGO05,
     CATALOGOIGVPercents,
   } from "$lib/constants/catalagos";
   import Input from "$lib/shared/ui/input.svelte";
@@ -148,6 +149,7 @@
               label="Cantidad"
               bind:value={editorItem.quantity}
               icon={quantityIcon}
+              onlyNumbers={true}
               maxDecimals={10}
             />
 
@@ -180,6 +182,7 @@
                   bind:value={editorItem.valorUnitario}
                   maxDecimals={10}
                   icon={symbol}
+                  onlyNumbers={true}
                   oninput={() => (lastEdited = "valor")}
                 />
               </div>
@@ -195,6 +198,7 @@
                   bind:value={editorItem.precioUnitario}
                   maxDecimals={10}
                   icon={symbol}
+                  onlyNumbers={true}
                   oninput={() => (lastEdited = "precio")}
                 />
               </div>
@@ -205,6 +209,28 @@
               class="rounded-[1rem] border border-[color:color-mix(in_oklab,var(--form-color-3)_24%,transparent)] bg-[var(--form-panel-bg)] px-4 py-4"
             >
               <div class="space-y-2.5">
+
+                <!-- Tipo de operación -->
+                <div class="flex items-center justify-between gap-4">
+                  <span class="text-sm text-[var(--form-text-soft)]">Tipo op.</span>
+                  <div class="flex gap-1">
+                    {#each CATALOGO05 as cat}
+                      <button
+                        type="button"
+                        disabled={cat.value !== '1000'}
+                        onclick={() => { editorItem.taxSchemeValue = cat.value }}
+                        class="rounded-md px-2 py-1 text-xs font-medium border transition
+                          {editorItem.taxSchemeValue === cat.value
+                            ? 'border-[var(--form-color-3)] bg-[var(--form-color-3)] text-white'
+                            : 'border-[color:color-mix(in_oklab,var(--form-color-3)_30%,transparent)] bg-transparent text-[var(--form-text-soft)]'}
+                          disabled:opacity-35 disabled:cursor-not-allowed"
+                      >
+                        {cat.label}
+                      </button>
+                    {/each}
+                  </div>
+                </div>
+
                 <div class="flex items-center justify-between gap-4">
                   <span class="text-sm text-[var(--form-text-soft)]">Tasa IGV</span>
                   <select

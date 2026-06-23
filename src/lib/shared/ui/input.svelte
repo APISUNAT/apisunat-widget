@@ -32,7 +32,20 @@
     let val = target.value;
 
     if (onlyNumbers) {
-      val = val.replace(/\D/g, '');
+      // Si se permiten decimales (maxDecimals definido), conservamos el
+      // punto además de los dígitos. Si no, solo dígitos (comportamiento
+      // original, para campos como correlativos o cantidades enteras).
+      val = maxDecimals !== undefined
+        ? val.replace(/[^\d.]/g, '')
+        : val.replace(/\D/g, '');
+
+      // Evita más de un punto decimal (ej. "1.2.3" -> "1.23").
+      if (maxDecimals !== undefined) {
+        const firstDot = val.indexOf('.');
+        if (firstDot !== -1) {
+          val = val.slice(0, firstDot + 1) + val.slice(firstDot + 1).replace(/\./g, '');
+        }
+      }
     }
 
     if (maxDecimals !== undefined) {
@@ -68,7 +81,7 @@
       {disabled}
       {required}
       maxlength={maxLength}
-      inputmode={onlyNumbers ? 'numeric' : (maxDecimals !== undefined ? 'decimal' : undefined)}
+      inputmode={onlyNumbers ? (maxDecimals !== undefined ? 'decimal' : 'numeric') : (maxDecimals !== undefined ? 'decimal' : undefined)}
       oninput={handleInput}
       class={inputClass}
     />

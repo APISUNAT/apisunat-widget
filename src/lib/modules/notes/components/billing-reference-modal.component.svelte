@@ -121,7 +121,7 @@
             </div>
 
             <DateInput
-            label="Fecha de emisión"
+            label="Fecha de emisión (Opcional)"
             bind:value={form.issueDate}
             showLabel={true}
             pastOnly={true}
