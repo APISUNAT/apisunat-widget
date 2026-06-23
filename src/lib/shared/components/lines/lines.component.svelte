@@ -10,6 +10,7 @@
   import ItemEditor from "./item-editor.component.svelte";
   import { CATALOGO02 } from "$lib/constants/catalagos";
   import { buildTotalsActions } from "$lib/shared/components/summary/summary-panel.component";
+  import { netBaseAllowanceChargeAmount } from "$lib/shared/components/charge-discount/charge-discount.component";
 
   let items = $state<LineItem[]>([]);
   let isOpen = $state(false);
@@ -25,6 +26,44 @@
     )?.symbol ?? "S/"
   );
 
+  /** Arma el payload que espera addInvoiceLineActions a partir de un LineItem/EditableItem. */
+  function toLinePayload(id: number, data: EditableItem) {
+    return {
+      id,
+      quantity: parseFloat(data.quantity) || 0,
+      unitCode: data.unitCode,
+      description: data.description,
+      valorUnitario: parseFloat(data.valorUnitario) || 0,
+      precioUnitario: parseFloat(data.precioUnitario) || 0,
+      igvRate: data.igvRate,
+      itemCode: data.itemCode,
+      allowanceCharges: data.allowanceCharges,
+    };
+  }
+
+  /**
+   * Op. gravada + IGV + total de la línea, ajustados con el neto de
+   * cargos/descuentos que afectan la base (códigos 00/47). Misma fórmula
+   * que calcLineTaxAmounts en lines.component.ts, para que la tabla
+   * muestre lo mismo que se persiste en el XML.
+   */
+  function lineAmounts(item: LineItem) {
+    const qty = parseFloat(item.quantity) || 0;
+    const precio = parseFloat(item.precioUnitario) || 0;
+    const rate = item.igvRate / 100;
+    const baseNet = netBaseAllowanceChargeAmount(item.allowanceCharges ?? []);
+
+    const totalSinAjuste = qty * precio;
+    const subtotalBruto = totalSinAjuste / (1 + rate);
+
+    const subtotal = subtotalBruto + baseNet;
+    const tax = subtotal * rate;
+    const total = subtotal + tax;
+    const precioAjustado = qty ? total / qty : precio;
+
+    return { subtotal, tax, total, precioAjustado };
+  }
+
   // Re-hidrata cuando loadDocument/initDocument reemplaza el store.
   $effect(() => {
     const loaded = $documentLoaded;
@@ -37,16 +76,7 @@
 
     if (items.length > 0) {
       items.forEach((item) => {
-        addInvoiceLineActions({
-          id: item.id,
-          quantity: parseFloat(item.quantity) || 0,
-          unitCode: item.unitCode,
-          description: item.description,
-          valorUnitario: parseFloat(item.valorUnitario) || 0,
-          precioUnitario: parseFloat(item.precioUnitario) || 0,
-          igvRate: item.igvRate,
-          itemCode: item.itemCode,
-        });
+        addInvoiceLineActions(toLinePayload(item.id, item));
       });
     } else {
       const currency = doc["cbc:DocumentCurrencyCode"]?._text ?? "PEN";
@@ -66,33 +96,12 @@
     lastCurrency = currency;
 
     items.forEach((item) => {
-      addInvoiceLineActions({
-        id: item.id,
-        quantity: parseFloat(item.quantity) || 0,
-        unitCode: item.unitCode,
-        description: item.description,
-        valorUnitario: parseFloat(item.valorUnitario) || 0,
-        precioUnitario: parseFloat(item.precioUnitario) || 0,
-        igvRate: item.igvRate,
-        itemCode: item.itemCode,
-      });
+      addInvoiceLineActions(toLinePayload(item.id, item));
     });
   });
 
-  function lineTotal(item: LineItem): string {
-    const qty = parseFloat(item.quantity) || 0;
-    const precio = parseFloat(item.precioUnitario) || 0;
-    return (qty * precio).toFixed(2);
-  }
-
   const grandTotal = $derived(
-    items
-      .reduce((sum, item) => {
-        const qty = parseFloat(item.quantity) || 0;
-        const precio = parseFloat(item.precioUnitario) || 0;
-        return sum + qty * precio;
-      }, 0)
-      .toFixed(2)
+    items.reduce((sum, item) => sum + lineAmounts(item).total, 0).toFixed(2)
   );
 
   function openCreate() {
@@ -116,26 +125,19 @@
     const data = event.detail;
     const id = mode === "edit" && itemEditor ? itemEditor.id : nextId++;
 
-    const qty = parseFloat(data.quantity) || 0;
-    const valorUnitario = parseFloat(data.valorUnitario) || 0;
-    const precioUnitario = parseFloat(data.precioUnitario) || 0;
+    const newLineItem: LineItem = { ...data, id };
 
-    if (mode === "create") {
-      items = [...items, { ...data, id }];
-    } else {
-      items = items.map((i) => (i.id === id ? { ...data, id } : i));
-    }
+    items =
+      mode === "create"
+        ? [...items, newLineItem]
+        : items.map((i) => (i.id === id ? newLineItem : i));
 
-    addInvoiceLineActions({
-      id,
-      quantity: qty,
-      unitCode: data.unitCode,
-      description: data.description,
-      valorUnitario,
-      precioUnitario,
-      igvRate: data.igvRate,
-      itemCode: data.itemCode ?? itemEditor?.itemCode,
-    });
+    addInvoiceLineActions(
+      toLinePayload(id, {
+        ...data,
+        itemCode: data.itemCode ?? itemEditor?.itemCode,
+      }),
+    );
 
     handleClose();
   }
@@ -176,6 +178,7 @@
 
     <ul class="divide-y divide-[color:color-mix(in_oklab,var(--form-color-3)_12%,transparent)]">
       {#each items as item, i (item.id)}
+        {@const amounts = lineAmounts(item)}
         <li class="grid grid-cols-[1fr_80px_110px_110px_72px] items-center gap-2 px-5 py-3 transition hover:bg-[color:color-mix(in_oklab,var(--form-color-3)_5%,transparent)]">
           <div class="min-w-0">
             <div class="flex items-center gap-2">
@@ -187,8 +190,8 @@
             </div>
           </div>
           <div class="text-right text-[13px] tabular-nums text-[var(--form-text-color)]">{item.quantity}</div>
-          <div class="text-right text-[13px] tabular-nums text-[var(--form-text-soft)]">{symbol} {parseFloat(item.valorUnitario).toFixed(3)}</div>
-          <div class="text-right text-[13px] font-semibold tabular-nums text-[var(--form-text-color)]">{symbol} {parseFloat(lineTotal(item)).toFixed(3)}</div>
+          <div class="text-right text-[13px] tabular-nums text-[var(--form-text-soft)]">{symbol} {amounts.precioAjustado.toFixed(3)}</div>
+          <div class="text-right text-[13px] font-semibold tabular-nums text-[var(--form-text-color)]">{symbol} {amounts.total.toFixed(3)}</div>
           <div class="flex items-center justify-end gap-1">
             <button
               aria-label="Editar ítem"
