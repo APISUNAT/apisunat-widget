@@ -93,14 +93,43 @@
     }
   }
 
+  function resolveCreditoTotal(): number {
+    const fromProp = Number(total);
+    if (Number.isFinite(fromProp) && fromProp > 0) return fromProp;
+
+    const payable = Number(
+      $documentStore["cac:LegalMonetaryTotal"]?.["cbc:PayableAmount"]?._text ?? 0,
+    );
+    if (Number.isFinite(payable) && payable > 0) return payable;
+
+    const terms = $documentStore["cac:PaymentTerms"];
+    const credito = Array.isArray(terms)
+      ? terms.find((t: any) => t["cbc:PaymentMeansID"]?._text === "Credito")
+      : null;
+    const existing = Number(credito?.["cbc:Amount"]?._text ?? 0);
+    return Number.isFinite(existing) && existing > 0 ? existing : 0;
+  }
+
   function syncCuotas() {
     setPaymentCreditoActions(
-      total,
+      resolveCreditoTotal(),
       cuotas.map((c) => ({ ...c })),
       montoDetraccion,
       currency
     );
   }
+
+  // Si el total llega después de hidratar (race con loadDocument), re-sincroniza Credito.
+  $effect(() => {
+    const nextTotal = Number(total);
+    if (metodo !== "Credito" || !Number.isFinite(nextTotal) || nextTotal <= 0) return;
+    setPaymentCreditoActions(
+      nextTotal,
+      cuotas.map((c) => ({ ...c })),
+      montoDetraccion,
+      currency
+    );
+  });
 
   function addCuota() {
     cuotas = [...cuotas, { id: nextId++, monto: "", vencimiento: "" }];

@@ -1,6 +1,5 @@
 <script lang="ts">
-  import { get } from "svelte/store";
-  import { onMount, untrack } from "svelte";
+  import { untrack } from "svelte";
   import Input from "$lib/shared/ui/input.svelte";
   import {
     buildingIcon,
@@ -22,6 +21,8 @@
   let address = $state("");
   let codeAddress = $state("0000");
   let isReady = $state(false);
+  let lastLoadedTimestamp = 0;
+  let hydrateToken = 0;
   let isFetching = false;
 
   const isRucValid = $derived.by(() => {
@@ -29,48 +30,79 @@
     return isValidRuc(ruc);
   });
 
-  onMount(() => {
-    const unsubscribe = documentLoaded.subscribe((event) => {
-      if (!event) return;
+  function hasSupplierData(data: ReturnType<typeof getSupplierData>) {
+    return Boolean(data.ruc.trim() || data.name.trim());
+  }
 
-      const { personaId } = get(runtimeConfigStore);
-      if (!personaId) return;
+  function applySupplierFields(data: {
+    tradeName?: string;
+    name?: string;
+    ruc?: string;
+    address?: string;
+    codeAddress?: string;
+  }) {
+    tradeName = data.tradeName ?? "";
+    name = data.name ?? "";
+    ruc = data.ruc ?? "";
+    address = data.address ?? "";
+    codeAddress = data.codeAddress || "0000";
+  }
 
-      const doc = get(documentStore);
+  // Re-hidratar en cada loadDocument/initDocument/resetDocument.
+  // El store es singleton: al cambiar factura→boleta el host hace loadDocument
+  // sin emisor, y un check `"key" in doc` trataba `null` de la plantilla como
+  // "ya cargado", dejando la UI con valores viejos y el store vacío.
+  $effect(() => {
+    const loaded = $documentLoaded;
+    const doc = $documentStore;
+    const { personaId } = $runtimeConfigStore;
 
-      if ("cac:AccountingSupplierParty" in doc) {
-        const data = getSupplierData();
-        tradeName = data.tradeName;
-        name = data.name;
-        ruc = data.ruc;
-        address = data.address;
-        codeAddress = data.codeAddress;
-        isReady = true;
-        return;
-      }
+    if (!loaded || !personaId) return;
 
-      if (isFetching) return;
-      isFetching = true;
+    if (loaded.timestamp !== lastLoadedTimestamp) {
+      lastLoadedTimestamp = loaded.timestamp;
+      isReady = false;
+      isFetching = false;
+      hydrateToken += 1;
+    }
 
-      getSupplierGETAsync()
-        .then((supplier) => {
-          tradeName = supplier.tradeName ?? "";
-          name = supplier.name ?? "";
-          ruc = supplier.RUC ?? "";
-          address = supplier.address ?? "";
-          codeAddress =
+    if (isReady) return;
+
+    // Leer doc para que el effect dependa del store post-loadDocument.
+    void doc;
+
+    const data = getSupplierData();
+    if (hasSupplierData(data)) {
+      applySupplierFields(data);
+      isReady = true;
+      return;
+    }
+
+    if (isFetching) return;
+
+    const token = hydrateToken;
+    isFetching = true;
+
+    getSupplierGETAsync()
+      .then((supplier) => {
+        if (token !== hydrateToken) return;
+        applySupplierFields({
+          tradeName: supplier.tradeName ?? "",
+          name: supplier.name ?? "",
+          ruc: supplier.RUC ?? "",
+          address: supplier.address ?? "",
+          codeAddress:
             supplier.isAnnex === true
               ? supplier.anexData?.codigoSUNAT ?? "0000"
-              : "0000";
-        })
-        .catch((e) => console.error("Error al obtener supplier:", e))
-        .finally(() => {
-          isReady = true;
-          isFetching = false;
+              : "0000",
         });
-    });
-
-    return unsubscribe;
+      })
+      .catch((e) => console.error("Error al obtener supplier:", e))
+      .finally(() => {
+        if (token !== hydrateToken) return;
+        isReady = true;
+        isFetching = false;
+      });
   });
 
   $effect(() => {

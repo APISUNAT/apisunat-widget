@@ -17,6 +17,7 @@
     showHeader = true,
     showSupplier = true,
     showRetention = true,
+    showPaymentTerms = true,
     onEmitClick = undefined as (() => Promise<any>) | undefined,
   } = $props();
 
@@ -85,7 +86,9 @@
               <Detraccion total={$documentStore['cac:LegalMonetaryTotal']?.['cbc:PayableAmount']?._text ?? 0} />
             {/if}
 
-            <PaymentTerms total={$documentStore['cac:LegalMonetaryTotal']?.['cbc:PayableAmount']?._text ?? 0} />
+            {#if showPaymentTerms}
+              <PaymentTerms total={$documentStore['cac:LegalMonetaryTotal']?.['cbc:PayableAmount']?._text ?? 0} />
+            {/if}
           </div>
         </div>
       </section>

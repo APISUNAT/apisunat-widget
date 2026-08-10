@@ -8,7 +8,7 @@ export interface InvoiceComponents {
 }
 
 export interface InvoiceConfig {
-  type: '01' | '03' | '04' | '09' | '31' //Campo obligatorio
+  type: '01' | '03' | '04' | '07' | '08' | '09' | '31' //Campo obligatorio
   personaId: string //Campo obligatorio
   personaToken: string  //Campo obligatorio
   serie? : string

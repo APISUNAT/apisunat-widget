@@ -9,7 +9,7 @@
   } from "$lib/constants/icons.constants";
   import Input from "$lib/shared/ui/input.svelte";
   import Select from "$lib/shared/ui/select.svelte";
-  import { documentStore } from "$lib/store/document.store";
+  import { documentLoaded, documentStore } from "$lib/store/document.store";
   import {
     fetchCustomerByDocument,
     setCustomerActions,
@@ -32,6 +32,8 @@
   let customerError = $state("");
   let isReady = $state(false);
   let previousDocumentType = "";
+  let lastLoadedTimestamp = 0;
+  let hydrateToken = 0;
 
   const currentDocumentType = $derived(
     $documentStore["cbc:InvoiceTypeCode"]?._text ?? "",
@@ -60,16 +62,16 @@
     phone = "";
   }
 
-  // Inicializar desde el store
-  $effect(() => {
-    const doc = $documentStore;
-    if (isReady) return;
-    if (!doc["cac:AccountingSupplierParty"]) return;
-
+  function hydrateFromStore(doc: Record<string, any>) {
     const party = doc["cac:AccountingCustomerParty"]?.["cac:Party"];
 
     if (!party) {
       typeDocument = getDefaultDocumentType(currentDocumentType);
+      numberDocument = "";
+      name = "";
+      address = "";
+      email = "";
+      phone = "";
       previousDocumentType = currentDocumentType;
       isReady = true;
       return;
@@ -83,9 +85,29 @@
     phone = party["cac:Contact"]?.["cbc:Telephone"]?._text ?? "";
     previousDocumentType = currentDocumentType;
     isReady = true;
+  }
+
+  // Re-hidratar en cada loadDocument/initDocument/resetDocument.
+  // El store es singleton global: sin esto, un remount puede leer estado viejo
+  // (p. ej. plantilla vacía tras emitir NC) y nunca actualizar el cliente.
+  $effect(() => {
+    const loaded = $documentLoaded;
+    const doc = $documentStore;
+
+    if (!loaded) return;
+
+    if (loaded.timestamp !== lastLoadedTimestamp) {
+      lastLoadedTimestamp = loaded.timestamp;
+      isReady = false;
+      hydrateToken += 1;
+    }
+
+    if (isReady) return;
+
+    hydrateFromStore(doc);
   });
 
-  // Reaccionar al cambio de tipo de comprobante
+  // Reaccionar al cambio de tipo de comprobante dentro del mismo documento
   $effect(() => {
     const current = currentDocumentType;
     const options = filteredCatalogo06;
@@ -98,8 +120,18 @@
       return;
     }
 
+    const previous = previousDocumentType;
     previousDocumentType = current;
-    // Siempre resetear tipo de doc al default al cambiar de comprobante
+
+    // Primera sincronización del tipo (header escribe InvoiceTypeCode
+    // después de hidratar): conservar nombre/documento precargados.
+    if (!previous) {
+      if (!typeDocument) {
+        typeDocument = getDefaultDocumentType(current);
+      }
+      return;
+    }
+
     typeDocument = getDefaultDocumentType(current);
     clearCustomerFields();
   });
@@ -108,7 +140,7 @@
   $effect(() => {
     const td = typeDocument.trim();
     const nd = numberDocument.trim();
-    if (!isReady || !td) return; // sin !nd para que limpie el store cuando campos vacíos
+    if (!isReady || !td) return;
     setCustomerActions({
       typeDocument: td,
       numberDocument: nd,
@@ -119,24 +151,31 @@
     });
   });
 
-  // Buscar cliente por documento
+  // Buscar cliente por documento (no pisar datos precargados si la API falla)
   $effect(() => {
     const td = typeDocument;
     const nd = numberDocument;
+    const token = hydrateToken;
     customerError = "";
     if (!isReady || !isDocumentComplete(td, nd)) return;
 
+    const hadPrefill = Boolean(name.trim());
     isLoadingCustomer = true;
     fetchCustomerByDocument(td, nd)
       .then((data) => {
+        if (token !== hydrateToken) return;
         if (data) {
-          name = data.name ?? "";
-          address = data.address ?? "";
-        } else {
+          name = data.name ?? name;
+          address = data.address ?? address;
+        } else if (!hadPrefill) {
           customerError = "No se encontraron datos para este documento.";
         }
       })
-      .finally(() => (isLoadingCustomer = false));
+      .finally(() => {
+        if (token === hydrateToken) {
+          isLoadingCustomer = false;
+        }
+      });
   });
 </script>
 
