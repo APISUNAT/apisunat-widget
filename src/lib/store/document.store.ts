@@ -236,12 +236,17 @@ export function getDocumentOutput(): Record<string, any> {
             return [key, fixedKeys.includes(key) ? (template as any)[key] : doc[key]]
         })
     )
-
+    const email = output['cac:AccountingCustomerParty']
+        ?.['cac:Party']
+        ?.['cac:Contact']
+        ?.['cbc:ElectronicMail']
+        ?.['_text']
     return {
         personaId:    config.personaId,
         personaToken: config.personaToken,
         fileName:     getDocumentFileName(),
-        documentBody: output
+        documentBody: output,
+        customerEmail: email,
     }
 }
 
