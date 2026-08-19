@@ -203,7 +203,7 @@
   />
   {#if typeDocument === "6" && numberDocument && !isDocumentValid}
     <span class="text-xs text-red-500">
-      El RUC debe comenzar con 10, 15, 17 o 20 y tener 11 dígitos.
+      El RUC debe comenzar con 10, 15, 16, 17 o 20 y tener 11 dígitos.
     </span>
   {/if}
 </div>

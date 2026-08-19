@@ -26,7 +26,7 @@ export function maxLengthInput(typeDocument: string): number {
 }
 
 export function isValidRuc(ruc: string): boolean {
-  return /^(10|15|17|20)\d{9}$/.test(ruc)
+	return /^(10|15|16|17|20)\d{9}$/.test(ruc)
 }
 
 export function handleNoDocumentSelection(typeDocument: string): boolean {
