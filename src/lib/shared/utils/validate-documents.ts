@@ -65,6 +65,41 @@ export function validateDocument(): ValidationError[] {
             })
         }
     }
+
+    // El disparador real de "operación sujeta a detracción" es el tipo de
+    // operación (catálogo 51, código 1001) — NO la existencia de PaymentTerms.
+    // Ambos deben estar sincronizados: si el tipo de operación es 1001,
+    // exigimos que también exista el bien/servicio, el % y el monto en
+    // PaymentTerms, y la cuenta + método de pago completos en PaymentMeans.
+    const isOperacionDetraccion = doc['cbc:InvoiceTypeCode']?._attributes?.listID === '1001'
+
+    if (isOperacionDetraccion) {
+        const detraccionTerm = doc['cac:PaymentTerms']?.find(
+            (t: any) => t['cbc:ID']?._text === 'Detraccion'
+        )
+        const detraccionMean = doc['cac:PaymentMeans']?.find(
+            (m: any) => m['cbc:ID']?._text === 'Detraccion'
+        )
+        const metodoPago = detraccionMean?.['cbc:PaymentMeansCode']?._text
+        const cuenta = detraccionMean?.['cac:PayeeFinancialAccount']?.['cbc:ID']?._text
+        const tipoBien = detraccionTerm?.['cbc:PaymentMeansID']?._text
+        const monto = detraccionTerm?.['cbc:Amount']?._text
+
+        if (isEmpty(tipoBien) || !monto) {
+            errors.push({
+                field: 'detraccion',
+                message: 'Selecciona el bien/servicio y el monto de la detracción'
+            })
+        }
+
+        if (isEmpty(metodoPago) || isEmpty(cuenta)) {
+            errors.push({
+                field: 'detraccion',
+                message: 'Completa la cuenta y el método de pago de la detracción'
+            })
+        }
+    }
+
     // Para notas de crédito/débito, la descripción de la razón es obligatoria
     if (isNote && isEmpty(doc['cac:DiscrepancyResponse']?.['cbc:Description']?._text)) {
         errors.push({

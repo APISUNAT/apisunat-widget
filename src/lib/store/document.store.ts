@@ -21,6 +21,7 @@ export const emitBody = {
         'cac:AllowanceCharge': [],
         'cac:LegalMonetaryTotal': null,
         'cac:PaymentTerms': [],
+        'cac:PaymentMeans': [],
         'cac:InvoiceLine': [],
     },
     '03': {
@@ -40,6 +41,8 @@ export const emitBody = {
         'cac:PrepaidPayment': [],
         'cac:LegalMonetaryTotal': null,
         'cac:AllowanceCharge': [],
+        'cac:PaymentTerms': [],
+        'cac:PaymentMeans': [],
         'cac:InvoiceLine': []
     },
     '04': {

@@ -9,7 +9,9 @@
   import Retention from "$lib/modules/invoice/components/retention.component.svelte";
   import EmitButton from '$lib/shared/components/emit/emit-button.component.svelte'
   import SummaryPanel from '$lib/shared/components/summary/summary-panel.component.svelte'
+  import Detraccion from "$lib/shared/components/detraccion/detraccion.component.svelte";
   import { documentStore } from "$lib/store/document.store";
+  import { setDetraccionNoteAutomatic, removeDetraccionNoteAutomatic } from "$lib/shared/components/notes/notes.component";
 
   let {
     showHeader = true,
@@ -20,6 +22,20 @@
 
   const sectionLabel =
     "text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--form-text-soft)]";
+
+  // Verificar si la operación es sujeta a detracción (códigos que empiezan con "10")
+  const isDetraccionOperation = $derived(
+    ($documentStore["cbc:InvoiceTypeCode"]?._attributes?.listID ?? '').startsWith('10')
+  );
+
+  // Agregar o quitar nota de detracción automáticamente
+  $effect(() => {
+    if (isDetraccionOperation) {
+      setDetraccionNoteAutomatic()
+    } else {
+      removeDetraccionNoteAutomatic()
+    }
+  });
 </script>
 
 <section
@@ -63,6 +79,10 @@
 
             {#if showRetention}
               <Retention />
+            {/if}
+
+            {#if isDetraccionOperation}
+              <Detraccion total={$documentStore['cac:LegalMonetaryTotal']?.['cbc:PayableAmount']?._text ?? 0} />
             {/if}
 
             <PaymentTerms total={$documentStore['cac:LegalMonetaryTotal']?.['cbc:PayableAmount']?._text ?? 0} />
