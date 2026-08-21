@@ -85,10 +85,10 @@ export function validateDocument(): ValidationError[] {
         const tipoBien = detraccionTerm?.['cbc:PaymentMeansID']?._text
         const monto = detraccionTerm?.['cbc:Amount']?._text
 
-        if (isEmpty(tipoBien) || !monto) {
+        if (isEmpty(tipoBien) && !monto) {
             errors.push({
                 field: 'detraccion',
-                message: 'Selecciona el bien/servicio y el monto de la detracción'
+                message: 'Selecciona el bien/servicio o ingresa el monto de la detracción'
             })
         }
 

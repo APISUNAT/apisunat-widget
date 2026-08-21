@@ -5,6 +5,7 @@
     validateCuotas,
   } from "$lib/shared/components/payment-terms/payment-terms.component";
   import type { Cuota } from "$lib/shared/components/payment-terms/payment-terms.component";
+  import { getDetraccionFromDocument } from "$lib/shared/components/detraccion/detraccion.component";
   import { documentStore, documentLoaded } from "$lib/store/document.store";
   import DatePicker from "$lib/shared/ui/date-picker-select.svelte";
   import { onMount } from "svelte";
@@ -19,18 +20,29 @@
 
   const emisionDate = $derived($documentStore["cbc:IssueDate"]?._text ?? "");
 
+  const currency = $derived($documentStore["cbc:DocumentCurrencyCode"]?._text ?? "PEN");
+
+  const montoDetraccion = $derived(
+    getDetraccionFromDocument($documentStore)?.monto ?? 0
+  );
+
+  // Si la moneda no es PEN, no se resta la detracción: el crédito se valida contra el total tal cual
+  const totalFinanciable = $derived(
+    Number((currency === "PEN" ? total - montoDetraccion : total).toFixed(2))
+  );
+
   const errors = $derived(
-    metodo === "Credito" ? validateCuotas(cuotas, total, emisionDate) : {}
+    metodo === "Credito"
+      ? validateCuotas(cuotas, total, emisionDate, montoDetraccion, currency)
+      : {}
   );
 
   const sumaCuotas = $derived(
     cuotas.reduce((s, c) => s + (parseFloat(c.monto) || 0), 0)
   );
 
-  const montoExcede = $derived(sumaCuotas > total + 0.01);
-  const montoNoCubre = $derived(
-    sumaCuotas > 0 && Math.abs(sumaCuotas - total) > 0.01 && !montoExcede
-  );
+  const montoExcede = $derived(sumaCuotas > totalFinanciable + 0.01);
+
 
   function hidratarDesdeDocumento() {
     const terms = $documentStore["cac:PaymentTerms"];
@@ -82,7 +94,12 @@
   }
 
   function syncCuotas() {
-    setPaymentCreditoActions(total, cuotas.map((c) => ({ ...c })));
+    setPaymentCreditoActions(
+      total,
+      cuotas.map((c) => ({ ...c })),
+      montoDetraccion,
+      currency
+    );
   }
 
   function addCuota() {
@@ -140,6 +157,15 @@
     </div>
   {:else}
     <div class="px-5 py-4 space-y-3">
+      {#if montoDetraccion > 0  && currency === 'PEN'}
+        <div class="flex items-center gap-2 rounded-xl border border-[color:color-mix(in_oklab,var(--form-color-3)_20%,transparent)] bg-[color:color-mix(in_oklab,var(--form-color-3)_8%,transparent)] px-3 py-2 text-[12px] text-[var(--form-text-soft)]">
+          <svg class="size-3.5 shrink-0" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10" /><line x1="12" x2="12" y1="16" y2="12" /><line x1="12" x2="12.01" y1="8" y2="8" />
+          </svg>
+          Detracción: S/ {montoDetraccion.toFixed(2)} — total financiable: S/ {totalFinanciable.toFixed(2)}
+        </div>
+      {/if}
+
       {#each cuotas as cuota, i (cuota.id)}
         {@const err = errors[cuota.id]}
         <div class="grid grid-cols-[1fr_1fr_28px] items-start gap-2">
@@ -157,7 +183,7 @@
                 value={cuota.monto}
                 oninput={(e) => updateCuota(cuota.id, "monto", (e.currentTarget as HTMLInputElement).value)}
               />
-              <span class="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-2.5 text-[11px] font-medium text-[var(--form-text-soft)]">S/</span>
+              <span class="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-2.5 text-[11px] font-medium text-[var(--form-text-soft)]"></span>
             </div>
           </div>
 
@@ -211,14 +237,7 @@
           <svg class="size-3.5 shrink-0" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24">
             <circle cx="12" cy="12" r="10" /><line x1="12" x2="12" y1="8" y2="12" /><line x1="12" x2="12.01" y1="16" y2="16" />
           </svg>
-          La suma de cuotas (S/ {sumaCuotas.toFixed(2)}) excede el total (S/ {total.toFixed(2)}).
-        </div>
-      {:else if montoNoCubre}
-        <div class="flex items-center gap-2 rounded-xl border border-amber-400/30 bg-amber-50/60 px-3 py-2 text-[12px] text-amber-700 dark:bg-amber-900/20 dark:text-amber-400">
-          <svg class="size-3.5 shrink-0" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24">
-            <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" x2="12" y1="9" y2="13" /><line x1="12" x2="12.01" y1="17" y2="17" />
-          </svg>
-          La suma de cuotas (S/ {sumaCuotas.toFixed(2)}) no coincide con el total (S/ {total.toFixed(2)}).
+          La suma de cuotas ({sumaCuotas.toFixed(2)}) excede el total financiable ({totalFinanciable.toFixed(2)}).
         </div>
       {/if}
     </div>

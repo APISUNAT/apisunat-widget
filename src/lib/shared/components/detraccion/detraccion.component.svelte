@@ -23,12 +23,15 @@
   let isReady = $state(false)
 
   // Evita que la hidratación se repita en cada cambio del store
-  // (solo debe correr una vez por documento cargado)
   let hasHydrated = false
 
   // Flags para evitar loops en cálculos
   let updatingFromPorcentaje = false
   let updatingFromMonto = false
+
+  // Moneda del documento: solo se acopla porcentaje↔monto cuando es PEN
+  const currency = $derived($documentStore?.['cbc:DocumentCurrencyCode']?._text ?? 'PEN')
+  const isPen = $derived(currency === 'PEN')
 
   // Obtener el bien seleccionado con su porcentaje predefinido
   const bienSeleccionado = $derived(
@@ -41,7 +44,6 @@
 
     untrack(() => {
       if (!loaded) {
-        // El documento se descargó/cambió: permite re-hidratar la próxima vez que cargue
         hasHydrated = false
         return
       }
@@ -64,15 +66,17 @@
     })
   })
 
-  // Auto-completar porcentaje cuando se selecciona un bien que tiene porcentaje definido
+  // Auto-completar porcentaje cuando se selecciona un bien con porcentaje predefinido.
+  // El monto solo se calcula automáticamente si la moneda es PEN.
   $effect(() => {
     const bien = bienSeleccionado
+    const pen = isPen
 
     untrack(() => {
       if (bien && bien.percent !== null && bien.percent !== undefined) {
         porcentaje = String(bien.percent)
-        // Calcular monto basado en el porcentaje
-        if (total > 0) {
+
+        if (pen && total > 0) {
           const nuevoMonto = calcularMontoPorPorcentaje(bien.percent, total)
           monto = String(nuevoMonto)
         }
@@ -80,10 +84,12 @@
     })
   })
 
-  // Calcular monto cuando cambia el porcentaje
+  // Calcular monto cuando cambia el porcentaje (solo si la moneda es PEN)
   $effect(() => {
     const p = parseFloat(porcentaje)
+    const pen = isPen
 
+    if (!pen) return
     if (updatingFromMonto) return
 
     untrack(() => {
@@ -96,10 +102,12 @@
     })
   })
 
-  // Calcular porcentaje cuando cambia el monto
+  // Calcular porcentaje cuando cambia el monto (solo si la moneda es PEN)
   $effect(() => {
     const m = parseFloat(monto)
+    const pen = isPen
 
+    if (!pen) return
     if (updatingFromPorcentaje) return
 
     untrack(() => {

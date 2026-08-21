@@ -26,8 +26,8 @@ export function setDetraccionActions(data: DetraccionData) {
     )
 
     // Agregar nueva detracción
-    if (data.tipoBien && data.porcentaje > 0 && data.monto > 0) {
-      const currency = newBody['cbc:DocumentCurrencyCode']?._text ?? 'PEN'
+    if (data.tipoBien && (data.porcentaje > 0 || data.monto > 0)) {
+      const currency =  'PEN'
 
       filteredTerms.push({
         'cbc:ID': { _text: 'Detraccion' },
