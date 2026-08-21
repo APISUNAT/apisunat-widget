@@ -43,7 +43,7 @@
 
 <!-- Toast -->
 {#if errors.length > 0}
-  <div class="fixed top-6 right-6 z-50 flex flex-col gap-2">
+  <div class="fixed bottom-6 left-6 z-50 flex flex-col gap-2">
     {#each errors as error}
       <div
         class="flex items-center gap-3 rounded-[1.15rem] border border-[color:color-mix(in_oklab,var(--form-color-3)_30%,transparent)] bg-[var(--form-panel-bg)] px-4 py-3 shadow-lg"
