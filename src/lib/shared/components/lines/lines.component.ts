@@ -9,11 +9,7 @@ import {
   type EditableAllowanceCharge,
 } from '$lib/shared/components/charge-discount/charge-discount.component'
 
-// Cada tipo de documento UBL usa un nombre distinto para la línea y para la
-// cantidad de línea. Factura/Boleta -> InvoiceLine/InvoicedQuantity,
-// Nota de Crédito -> CreditNoteLine/CreditedQuantity,
-// Nota de Débito -> DebitNoteLine/DebitedQuantity,
-// Guía de Remisión -> DespatchLine/DeliveredQuantity.
+// Mapeo de línea/cantidad por tipo de documento UBL (factura, NC, ND, guía)
 const LINE_KEY: Record<string, string> = {
   '07': 'cac:CreditNoteLine',
   '08': 'cac:DebitNoteLine',
@@ -58,10 +54,7 @@ export function getQuantityKey(): string {
   return QUANTITY_KEY[type ?? ''] ?? 'cbc:InvoicedQuantity'
 }
 
-/**
- * Quita del body cualquier llave de líneas que no sea la activa.
- * Evita que queden líneas "fantasma" de un tipo de documento anterior.
- */
+// Quita llaves de líneas de otros tipos de documento (evita líneas fantasma)
 function stripOtherLineKeys(body: Record<string, any>, activeKey: string) {
   const clean = { ...body }
   for (const key of ALL_LINE_KEYS) {
@@ -70,10 +63,7 @@ function stripOtherLineKeys(body: Record<string, any>, activeKey: string) {
   return clean
 }
 
-/**
- * Dentro de cada línea, quita cualquier llave de cantidad que no sea la activa
- * (por si la línea viene de hidratar un documento de otro tipo).
- */
+// Quita llaves de cantidad de otros tipos de documento dentro de una línea
 function stripOtherQuantityKeys(line: Record<string, any>, activeKey: string) {
   const clean = { ...line }
   for (const key of ALL_QUANTITY_KEYS) {
@@ -82,11 +72,11 @@ function stripOtherQuantityKeys(line: Record<string, any>, activeKey: string) {
   return clean
 }
 
-/** Reemplaza la nota en letras (idioma 1000) por el total actual. */
-function withUpdatedNoteInWords(notes: any[] | undefined, total: number) {
+// Reemplaza la nota en letras (idioma 1000) por el total actual
+function withUpdatedNoteInWords(notes: any[] | undefined, total: number, currency: string) {
   return [
     ...(notes ?? []).filter((note) => note._attributes?.languageLocaleID !== '1000'),
-    { _text: numeroALetras(total), _attributes: { languageLocaleID: '1000' } },
+    { _text: numeroALetras(total, currency), _attributes: { languageLocaleID: '1000' } },
   ]
 }
 
@@ -126,12 +116,8 @@ export function hydrateLines(doc: any): LineItem[] {
   })
 }
 
-/**
- * Calcula los montos UBL de una línea (base, IGV, total) a partir del
- * precio unitario con IGV y la cantidad, ajustando la base imponible con
- * el neto de cargos/descuentos que la afectan (códigos 00/47).
- */
-function calcLineTaxAmounts(quantity: number, precioUnitario: number, igvRate: number, baseNet: number) {
+// Op. gravada + IGV de una línea, ajustando la base con el neto de cargos/descuentos (códigos 00/47)
+export function calcLineTaxAmounts(quantity: number, precioUnitario: number, igvRate: number, baseNet: number) {
   const rate = igvRate / 100
   const totalSinAjuste = parseFloat((quantity * precioUnitario).toFixed(2))
   const subtotalBruto = totalSinAjuste / (1 + rate)
@@ -166,9 +152,8 @@ export function addInvoiceLineActions(data: {
   )
   const allowanceChargeNodes = buildAllowanceChargeList(data.allowanceCharges ?? [], currency)
 
-  // Precio unitario ajustado (con IGV) que refleja el cargo/descuento que
-  // afecta la base imponible. cac:Price más abajo sigue usando
-  // data.valorUnitario (el precio inicial, sin ajustar).
+  // Precio con IGV ajustado por el cargo/descuento que afecta la base.
+  // cac:Price sigue usando data.valorUnitario (precio inicial, sin ajustar).
   const precioUnitarioAjustado = data.quantity
     ? parseFloat(((lineExtensionAmount + taxAmount) / data.quantity).toFixed(10))
     : data.precioUnitario
@@ -183,9 +168,7 @@ export function addInvoiceLineActions(data: {
     const resolvedItemCode =
       data.itemCode ?? existingLine['cac:Item']?.['cac:SellersItemIdentification']?.['cbc:ID']?._text
 
-    // Resto de propiedades de la línea que no se recalculan aquí (p.ej.
-    // notas o extensiones propias del tipo de documento). Se excluyen las
-    // que se reconstruyen explícitamente abajo para fijar su orden en el XML.
+    // Resto de la línea no recalculado aquí; se excluyen las llaves reconstruidas abajo para fijar su orden en el XML
     const {
       'cbc:ID': _id,
       [qtyKey]: _qty,
@@ -299,10 +282,11 @@ export function addInvoiceLineActions(data: {
       ...body,
       [lineKey]: lines,
       ...ubl,
-      'cbc:Note': withUpdatedNoteInWords(body['cbc:Note'], total),
+      'cbc:Note': withUpdatedNoteInWords(body['cbc:Note'], total,currency),
     }
   })
 }
+
 export function removeInvoiceLineActions(id: number) {
   const currency = getCurrency()
   const lineKey = getLineKey()
@@ -316,7 +300,7 @@ export function removeInvoiceLineActions(id: number) {
       ...body,
       [lineKey]: lines,
       ...ubl,
-      'cbc:Note': withUpdatedNoteInWords(body['cbc:Note'], total),
+      'cbc:Note': withUpdatedNoteInWords(body['cbc:Note'], total,currency),
     }
   })
 }
@@ -333,7 +317,7 @@ export function clearInvoiceLines() {
       ...body,
       [lineKey]: [],
       ...ubl,
-      'cbc:Note': withUpdatedNoteInWords(body['cbc:Note'], total),
+      'cbc:Note': withUpdatedNoteInWords(body['cbc:Note'], total,currency),
     }
   })
 }

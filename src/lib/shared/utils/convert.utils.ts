@@ -1,3 +1,5 @@
+import { CATALOGO02 } from '$lib/constants/catalagos' // ajusta la ruta según dónde lo tengas
+
 const UNIDADES = ['', 'UN', 'DOS', 'TRES', 'CUATRO', 'CINCO', 'SEIS', 'SIETE', 'OCHO', 'NUEVE']
 const DECENAS  = ['', 'DIEZ', 'VEINTE', 'TREINTA', 'CUARENTA', 'CINCUENTA', 'SESENTA', 'SETENTA', 'OCHENTA', 'NOVENTA']
 const ESPECIALES: Record<number, string> = {
@@ -37,9 +39,10 @@ function enterosALetras(n: number): string {
   return centenasALetras(n)
 }
 
-export function numeroALetras(monto: number): string {
+export function numeroALetras(monto: number,currency: string): string {
   const entero   = Math.floor(monto)
   const decimales = Math.round((monto - entero) * 100)
   const letras   = enterosALetras(entero)
-  return `${letras} CON ${String(decimales).padStart(2, '0')}/100 SOLES`
+  const nombreMoneda = CATALOGO02.find(c => c.value === currency)?.name ?? 'SOLES'
+  return `${letras} CON ${String(decimales).padStart(2, '0')}/100 ${nombreMoneda}`
 }
