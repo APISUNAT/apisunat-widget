@@ -1,7 +1,6 @@
 <script lang="ts">
   import {
     getCreditoAmountFromTerms,
-    getCuotaMinDate,
     resolveFinanciableCap,
     setPaymentContadoActions,
     setPaymentCreditoActions,
@@ -196,7 +195,7 @@
             <div class="mb-1 text-[11px] text-[var(--form-text-soft)]">Vencimiento</div>
             <DatePicker
               bind:value={cuotas[i].vencimiento}
-              min={getCuotaMinDate(cuotas, i, emisionDate)}
+              invalid={Boolean(err?.vencimiento)}
               showLabel={false}
               onchange={() => {
                 cuotas = [...cuotas];
@@ -204,11 +203,19 @@
               }}
             />
             {#if err?.vencimiento}
-              <p class="mt-1 flex items-center gap-1 text-[11px] text-red-500">
-                <svg class="size-3 shrink-0" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24">
+              <p class="mt-1 flex items-start gap-1 text-[11px] leading-snug text-red-500">
+                <svg class="mt-0.5 size-3 shrink-0" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24">
                   <circle cx="12" cy="12" r="10" /><line x1="12" x2="12" y1="8" y2="12" /><line x1="12" x2="12.01" y1="16" y2="16" />
                 </svg>
-                {err.vencimiento}
+                <span>{err.vencimiento}</span>
+              </p>
+            {:else if emisionDate && i === 0}
+              <p class="mt-1 text-[11px] text-[var(--form-text-soft)]">
+                Desde emisión ({emisionDate.split("-").reverse().join("/")})
+              </p>
+            {:else if i > 0 && cuotas[i - 1]?.vencimiento}
+              <p class="mt-1 text-[11px] text-[var(--form-text-soft)]">
+                Después de cuota {i} ({cuotas[i - 1].vencimiento.split("-").reverse().join("/")})
               </p>
             {/if}
           </div>

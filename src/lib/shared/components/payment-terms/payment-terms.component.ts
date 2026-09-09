@@ -81,6 +81,13 @@ export function getCuotaMinDate(cuotas: Cuota[], index: number, emisionDate: str
   return emisionDate
 }
 
+/** ISO `YYYY-MM-DD` → `DD/MM/YYYY` para mensajes de UI. */
+export function formatDateUi(isoDate: string): string {
+  const [year, month, day] = isoDate.split('-')
+  if (!year || !month || !day) return isoDate
+  return `${day}/${month}/${year}`
+}
+
 export function validateCuotas(
   cuotas: Cuota[],
   total: number,
@@ -106,11 +113,18 @@ export function validateCuotas(
     }
 
     if (cuota.vencimiento) {
+      const previous = i > 0 ? cuotas[i - 1]?.vencimiento : ''
+      const minDate = getCuotaMinDate(cuotas, i, emisionDate)
+
       if (i === 0 && emisionDate && cuota.vencimiento < emisionDate) {
-        err.vencimiento = 'No puede ser anterior a la fecha de emisión'
-      }
-      if (i > 0 && cuotas[i - 1].vencimiento && cuota.vencimiento <= cuotas[i - 1].vencimiento) {
-        err.vencimiento = `Debe ser posterior a la cuota ${i}`
+        err.vencimiento = `No puede ser anterior a la emisión (${formatDateUi(emisionDate)})`
+      } else if (previous && cuota.vencimiento <= previous) {
+        err.vencimiento = `Debe ser posterior a la cuota ${i} (${formatDateUi(previous)})`
+      } else if (minDate && cuota.vencimiento < minDate) {
+        err.vencimiento =
+          i === 0
+            ? `No puede ser anterior a la emisión (${formatDateUi(minDate)})`
+            : `Debe ser desde ${formatDateUi(minDate)} (día siguiente a la cuota ${i})`
       }
     }
 
