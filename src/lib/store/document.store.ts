@@ -1,5 +1,6 @@
 import { writable, get } from 'svelte/store'
 import { runtimeConfigStore } from './config.store'
+import { isDetraccionDocument, withDetraccionLegend, withNoteInWords } from '$lib/shared/utils/convert.utils'
 export const documentResetKey = writable(0)
 export const emitBody = {
     '01': {
@@ -222,6 +223,27 @@ export function resetDocument() {
     documentResetKey.update(n => n + 1)
 }
 
+/** Deriva las leyendas 2006 (detracción) y 1000 (importe en letras); no modifica el store. */
+function applyNoteInWords(output: Record<string, any>): Record<string, any> {
+    const notes = withDetraccionLegend(output['cbc:Note'], isDetraccionDocument(output))
+    const lmt = output['cac:LegalMonetaryTotal'] ?? output['cac:RequestedMonetaryTotal']
+    const payable = lmt?.['cbc:PayableAmount']?._text
+    if (payable === undefined || payable === null || payable === '') {
+        return { ...output, 'cbc:Note': notes }
+    }
+
+    const currency = output['cbc:DocumentCurrencyCode']?._text ?? 'PEN'
+    const total = parseFloat(String(payable))
+    if (Number.isNaN(total)) {
+        return { ...output, 'cbc:Note': notes }
+    }
+
+    return {
+        ...output,
+        'cbc:Note': withNoteInWords(notes, total, currency),
+    }
+}
+
 /**
  * Toma los datos del store y los estructura según el tipo de comprobante activo,
  * usando `emitBody` como esqueleto para respetar el orden de campos exigido por UBL.
@@ -233,12 +255,12 @@ export function getDocumentOutput(): Record<string, any> {
     if (!type || !emitBody[type]) return {}
 
     const template = emitBody[type]
-    const output = Object.fromEntries(
+    const output = applyNoteInWords(Object.fromEntries(
         Object.keys(template).map((key) => {
             const fixedKeys = ['cbc:UBLVersionID', 'cbc:CustomizationID']
             return [key, fixedKeys.includes(key) ? (template as any)[key] : doc[key]]
         })
-    )
+    ))
     const email = output['cac:AccountingCustomerParty']
         ?.['cac:Party']
         ?.['cac:Contact']

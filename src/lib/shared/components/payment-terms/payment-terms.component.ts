@@ -11,15 +11,91 @@ export type CuotaError = {
   vencimiento?: string
 }
 
+export function getCreditoAmountFromTerms(terms: unknown): number {
+  if (!Array.isArray(terms)) return 0
+  const credito = terms.find((t: any) => t?.['cbc:PaymentMeansID']?._text === 'Credito')
+  const amount = Number(credito?.['cbc:Amount']?._text ?? 0)
+  return Number.isFinite(amount) && amount > 0 ? amount : 0
+}
+
+export function sumCuotaAmounts(cuotas: Cuota[]): number {
+  return cuotas
+    .filter((cuota) => parseFloat(cuota.monto) > 0 || cuota.vencimiento)
+    .reduce((suma, cuota) => suma + (parseFloat(cuota.monto) || 0), 0)
+}
+
+/**
+ * Tope a financiar: en PEN es total − detracción. En otra moneda la detracción
+ * está en soles y no se puede restar del total; se usa el Credito que ya
+ * entregó el host (neto pendiente).
+ */
+export function resolveFinanciableCap(
+  total: number,
+  montoDetraccion: number = 0,
+  currency: string = 'PEN',
+  existingCreditoAmount: number = 0,
+): number {
+  if (currency === 'PEN') {
+    return Number((total - montoDetraccion).toFixed(2))
+  }
+  if (Number.isFinite(existingCreditoAmount) && existingCreditoAmount > 0) {
+    return Number(existingCreditoAmount.toFixed(2))
+  }
+  return Number(Number(total).toFixed(2))
+}
+
+/**
+ * Monto del nodo Credito. SUNAT exige que coincida con la suma de cuotas;
+ * no se copia el PayableAmount (total bruto) cuando hay detracción en USD.
+ */
+export function resolveCreditoAmount(
+  total: number,
+  cuotas: Cuota[],
+  montoDetraccion: number = 0,
+  currency: string = 'PEN',
+  existingCreditoAmount: number = 0,
+): number {
+  const sumaCuotas = sumCuotaAmounts(cuotas)
+  if (sumaCuotas > 0) {
+    return Number(sumaCuotas.toFixed(2))
+  }
+  return resolveFinanciableCap(total, montoDetraccion, currency, existingCreditoAmount)
+}
+
+export function addCalendarDays(isoDate: string, days: number): string {
+  const [year, month, day] = isoDate.split('-').map(Number)
+  if (!year || !month || !day) return isoDate
+
+  const date = new Date(year, month - 1, day + days)
+  const yyyy = date.getFullYear()
+  const mm = String(date.getMonth() + 1).padStart(2, '0')
+  const dd = String(date.getDate()).padStart(2, '0')
+  return `${yyyy}-${mm}-${dd}`
+}
+
+export function getCuotaMinDate(cuotas: Cuota[], index: number, emisionDate: string): string {
+  if (index > 0) {
+    const previous = cuotas[index - 1]?.vencimiento
+    if (previous) return addCalendarDays(previous, 1)
+  }
+  return emisionDate
+}
+
 export function validateCuotas(
   cuotas: Cuota[],
   total: number,
   emisionDate: string,
   montoDetraccion: number = 0,
-  currency: string = 'PEN'
+  currency: string = 'PEN',
+  existingCreditoAmount: number = 0,
 ): Record<number, CuotaError> {
   const errors: Record<number, CuotaError> = {}
-  const totalFinanciable = currency === 'PEN' ? total - montoDetraccion : total
+  const totalFinanciable = resolveFinanciableCap(
+    total,
+    montoDetraccion,
+    currency,
+    existingCreditoAmount,
+  )
 
   cuotas.forEach((cuota, i) => {
     const err: CuotaError = {}
@@ -30,8 +106,8 @@ export function validateCuotas(
     }
 
     if (cuota.vencimiento) {
-      if (i === 0 && emisionDate && cuota.vencimiento <= emisionDate) {
-        err.vencimiento = 'Debe ser posterior a la fecha de emisión'
+      if (i === 0 && emisionDate && cuota.vencimiento < emisionDate) {
+        err.vencimiento = 'No puede ser anterior a la fecha de emisión'
       }
       if (i > 0 && cuotas[i - 1].vencimiento && cuota.vencimiento <= cuotas[i - 1].vencimiento) {
         err.vencimiento = `Debe ser posterior a la cuota ${i}`
@@ -74,17 +150,22 @@ export function setPaymentCreditoActions(
   total: number,
   cuotas: Cuota[],
   montoDetraccion: number = 0,
-  currency: string = 'PEN'
+  currency: string = 'PEN',
+  existingCreditoAmount: number = 0,
 ) {
-  const totalFinanciable = Number(
-    (currency === 'PEN' ? total - montoDetraccion : total).toFixed(2)
+  const creditoAmount = resolveCreditoAmount(
+    total,
+    cuotas,
+    montoDetraccion,
+    currency,
+    existingCreditoAmount,
   )
 
   const formaPagoTerms: object[] = [
     {
       'cbc:ID': { _text: 'FormaPago' },
       'cbc:PaymentMeansID': { _text: 'Credito' },
-      'cbc:Amount': { _attributes: { currencyID: currency }, _text: totalFinanciable },
+      'cbc:Amount': { _attributes: { currencyID: currency }, _text: creditoAmount },
     },
   ]
 

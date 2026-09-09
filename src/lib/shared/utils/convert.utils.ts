@@ -24,25 +24,78 @@ function centenasALetras(n: number): string {
   return [centena, decena, unidad].filter(Boolean).join(' Y ').trim()
 }
 
-function enterosALetras(n: number): string {
-  if (n === 0) return 'CERO'
-  if (n === 1000000) return 'UN MILLON'
-  if (n > 1000000) return String(n) // fuera de rango
-
-  if (n >= 1000) {
-    const miles = Math.floor(n / 1000)
-    const resto = n % 1000
-    const prefijo = miles === 1 ? 'MIL' : `${centenasALetras(miles)} MIL`
-    return resto === 0 ? prefijo : `${prefijo} ${centenasALetras(resto)}`
-  }
-
-  return centenasALetras(n)
+function seccionALetras(n: number, divisor: number, singular: string, plural: string): string {
+  const cientos = Math.floor(n / divisor)
+  if (cientos === 0) return ''
+  if (cientos === 1) return singular
+  return `${centenasALetras(cientos)} ${plural}`
 }
 
-export function numeroALetras(monto: number,currency: string): string {
-  const entero   = Math.floor(monto)
+function milesALetras(n: number): string {
+  const resto = n % 1000
+  const strMiles = seccionALetras(n, 1000, 'UN MIL', 'MIL')
+  const strCentenas = centenasALetras(resto)
+  if (!strMiles) return strCentenas
+  return strCentenas ? `${strMiles} ${strCentenas}` : strMiles
+}
+
+function millonesALetras(n: number): string {
+  const resto = n % 1000000
+  const strMillones = seccionALetras(n, 1000000, 'UN MILLON', 'MILLONES')
+  const strMiles = milesALetras(resto)
+  if (!strMillones) return strMiles
+  return strMiles ? `${strMillones} ${strMiles}` : strMillones
+}
+
+function enterosALetras(n: number): string {
+  if (n === 0) return 'CERO'
+  return millonesALetras(n)
+}
+
+export function numeroALetras(monto: number, currency: string): string {
+  const entero = Math.floor(monto)
   const decimales = Math.round((monto - entero) * 100)
-  const letras   = enterosALetras(entero)
+  const letras = enterosALetras(entero)
   const nombreMoneda = CATALOGO02.find(c => c.value === currency)?.name ?? 'SOLES'
   return `${letras} CON ${String(decimales).padStart(2, '0')}/100 ${nombreMoneda}`
+}
+
+export const DETRACCION_NOTE_CODE = '2006'
+export const DETRACCION_NOTE_TEXT = 'OPERACIÓN SUJETA A DETRACCIÓN'
+
+export function isDetraccionDocument(doc: Record<string, any> | null | undefined) {
+  const listID = String(doc?.['cbc:InvoiceTypeCode']?._attributes?.listID ?? '')
+  if (listID.startsWith('10')) return true
+
+  const terms = doc?.['cac:PaymentTerms']
+  return Array.isArray(terms) && terms.some((term: any) => term?.['cbc:ID']?._text === 'Detraccion')
+}
+
+/** Agrega o quita la leyenda SUNAT 2006 sin tocar el resto de notas. */
+export function withDetraccionLegend(notes: any[] | undefined, include: boolean) {
+  const current = notes ?? []
+  const without2006 = current.filter(
+    (note) => note._attributes?.languageLocaleID !== DETRACCION_NOTE_CODE,
+  )
+
+  if (!include) return without2006
+  if (current.some((note) => note._attributes?.languageLocaleID === DETRACCION_NOTE_CODE)) {
+    return current
+  }
+
+  return [
+    {
+      _attributes: { languageLocaleID: DETRACCION_NOTE_CODE },
+      _text: DETRACCION_NOTE_TEXT,
+    },
+    ...without2006,
+  ]
+}
+
+/** Reemplaza la nota SUNAT 1000 (importe en letras) preservando el resto de notas. */
+export function withNoteInWords(notes: any[] | undefined, total: number, currency: string) {
+  return [
+    ...(notes ?? []).filter((note) => note._attributes?.languageLocaleID !== '1000'),
+    { _text: numeroALetras(total, currency), _attributes: { languageLocaleID: '1000' } },
+  ]
 }

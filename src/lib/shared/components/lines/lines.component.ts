@@ -1,6 +1,5 @@
 import { get } from 'svelte/store'
 import { documentStore, documentTypeStore } from '$lib/store/document.store'
-import { numeroALetras } from '$lib/shared/utils/convert.utils'
 import { buildTotalsActions } from '$lib/shared/components/summary/summary-panel.component'
 import {
   buildAllowanceChargeList,
@@ -70,14 +69,6 @@ function stripOtherQuantityKeys(line: Record<string, any>, activeKey: string) {
     if (key !== activeKey) delete clean[key]
   }
   return clean
-}
-
-// Reemplaza la nota en letras (idioma 1000) por el total actual
-function withUpdatedNoteInWords(notes: any[] | undefined, total: number, currency: string) {
-  return [
-    ...(notes ?? []).filter((note) => note._attributes?.languageLocaleID !== '1000'),
-    { _text: numeroALetras(total, currency), _attributes: { languageLocaleID: '1000' } },
-  ]
 }
 
 export function hydrateLines(doc: any): LineItem[] {
@@ -276,13 +267,12 @@ export function addInvoiceLineActions(data: {
         ? allLines.map((line: any, i: number) => (i === existingIndex ? mergedLine : line))
         : [...allLines, mergedLine]
 
-    const { total, ...ubl } = buildTotalsActions(lines, currency)
+    const ubl = buildTotalsActions(lines, currency)
 
     return {
       ...body,
       [lineKey]: lines,
       ...ubl,
-      'cbc:Note': withUpdatedNoteInWords(body['cbc:Note'], total,currency),
     }
   })
 }
@@ -294,13 +284,12 @@ export function removeInvoiceLineActions(id: number) {
   documentStore.update((rawBody) => {
     const body = stripOtherLineKeys(rawBody, lineKey)
     const lines = ((body[lineKey] as any[]) ?? []).filter((line: any) => line['cbc:ID']._text !== id)
-    const { total, ...ubl } = buildTotalsActions(lines, currency)
+    const ubl = buildTotalsActions(lines, currency)
 
     return {
       ...body,
       [lineKey]: lines,
       ...ubl,
-      'cbc:Note': withUpdatedNoteInWords(body['cbc:Note'], total,currency),
     }
   })
 }
@@ -311,13 +300,12 @@ export function clearInvoiceLines() {
 
   documentStore.update((rawBody) => {
     const body = stripOtherLineKeys(rawBody, lineKey)
-    const { total, ...ubl } = buildTotalsActions([], currency)
+    const ubl = buildTotalsActions([], currency)
 
     return {
       ...body,
       [lineKey]: [],
       ...ubl,
-      'cbc:Note': withUpdatedNoteInWords(body['cbc:Note'], total,currency),
     }
   })
 }

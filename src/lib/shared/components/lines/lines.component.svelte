@@ -80,7 +80,7 @@
       });
     } else {
       const currency = doc["cbc:DocumentCurrencyCode"]?._text ?? "PEN";
-      const { total, ...ubl } = buildTotalsActions([], currency);
+      const ubl = buildTotalsActions([], currency);
       documentStore.update((body) => ({ ...body, ...ubl }));
     }
 

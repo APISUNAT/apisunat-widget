@@ -1,4 +1,5 @@
 import { documentStore } from '$lib/store/document.store'
+import { withDetraccionLegend } from '$lib/shared/utils/convert.utils'
 import { derived } from 'svelte/store'
 
 export const savedNotes = derived(documentStore, ($doc) =>
@@ -35,37 +36,16 @@ export function removeNoteActions(index: number) {
   }))
 }
 
-const DETRACCION_NOTE_CODE = '2006'
-const DETRACCION_NOTE_TEXT = 'OPERACIÓN SUJETA A DETRACCIÓN'
-
 export function setDetraccionNoteAutomatic() {
-  documentStore.update((body) => {
-    const notes = body['cbc:Note'] ?? []
-    // Verificar si ya existe la nota de detracción
-    const alreadyExists = notes.some(
-      (n: any) => n._attributes?.languageLocaleID === DETRACCION_NOTE_CODE
-    )
-
-    if (alreadyExists) return body
-
-    return {
-      ...body,
-      'cbc:Note': [
-        ...notes,
-        {
-          _attributes: { languageLocaleID: DETRACCION_NOTE_CODE },
-          _text: DETRACCION_NOTE_TEXT,
-        },
-      ],
-    }
-  })
+  documentStore.update((body) => ({
+    ...body,
+    'cbc:Note': withDetraccionLegend(body['cbc:Note'], true),
+  }))
 }
 
 export function removeDetraccionNoteAutomatic() {
   documentStore.update((body) => ({
     ...body,
-    'cbc:Note': (body['cbc:Note'] ?? []).filter(
-      (n: any) => n._attributes?.languageLocaleID !== DETRACCION_NOTE_CODE
-    ),
+    'cbc:Note': withDetraccionLegend(body['cbc:Note'], false),
   }))
 }

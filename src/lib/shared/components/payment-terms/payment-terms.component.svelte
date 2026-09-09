@@ -1,5 +1,8 @@
 <script lang="ts">
   import {
+    getCreditoAmountFromTerms,
+    getCuotaMinDate,
+    resolveFinanciableCap,
     setPaymentContadoActions,
     setPaymentCreditoActions,
     validateCuotas,
@@ -17,6 +20,8 @@
   let metodo = $state<MetodoPago>("Contado");
   let cuotas = $state<Cuota[]>([{ id: 1, monto: "", vencimiento: "" }]);
   let nextId = $state(2);
+  // Neto de crédito que entregó el host. No se pisa con el PayableAmount.
+  let hostCreditoAmount = $state(0);
 
   const emisionDate = $derived($documentStore["cbc:IssueDate"]?._text ?? "");
 
@@ -26,14 +31,13 @@
     getDetraccionFromDocument($documentStore)?.monto ?? 0
   );
 
-  // Si la moneda no es PEN, no se resta la detracción: el crédito se valida contra el total tal cual
   const totalFinanciable = $derived(
-    Number((currency === "PEN" ? total - montoDetraccion : total).toFixed(2))
+    resolveFinanciableCap(total, montoDetraccion, currency, hostCreditoAmount)
   );
 
   const errors = $derived(
     metodo === "Credito"
-      ? validateCuotas(cuotas, total, emisionDate, montoDetraccion, currency)
+      ? validateCuotas(cuotas, total, emisionDate, montoDetraccion, currency, hostCreditoAmount)
       : {}
   );
 
@@ -55,11 +59,12 @@
       metodo = "Contado";
       cuotas = [{ id: 1, monto: "", vencimiento: "" }];
       nextId = 2;
-      setPaymentContadoActions();
+      hostCreditoAmount = 0;
       return;
     }
 
     metodo = "Credito";
+    hostCreditoAmount = getCreditoAmountFromTerms(terms);
     const cuotasTerms = terms.filter((t: any) =>
       /^Cuota\d{3}$/.test(t["cbc:PaymentMeansID"]?._text ?? "")
     );
@@ -72,8 +77,7 @@
       }));
       nextId = cuotas.length + 1;
     }
-
-    syncCuotas();
+    // No syncCuotas(): respetar FormaPago/Credito/Cuotas del documento precargado.
   }
 
   onMount(() => {
@@ -93,43 +97,15 @@
     }
   }
 
-  function resolveCreditoTotal(): number {
-    const fromProp = Number(total);
-    if (Number.isFinite(fromProp) && fromProp > 0) return fromProp;
-
-    const payable = Number(
-      $documentStore["cac:LegalMonetaryTotal"]?.["cbc:PayableAmount"]?._text ?? 0,
-    );
-    if (Number.isFinite(payable) && payable > 0) return payable;
-
-    const terms = $documentStore["cac:PaymentTerms"];
-    const credito = Array.isArray(terms)
-      ? terms.find((t: any) => t["cbc:PaymentMeansID"]?._text === "Credito")
-      : null;
-    const existing = Number(credito?.["cbc:Amount"]?._text ?? 0);
-    return Number.isFinite(existing) && existing > 0 ? existing : 0;
-  }
-
   function syncCuotas() {
     setPaymentCreditoActions(
-      resolveCreditoTotal(),
+      Number(total) || 0,
       cuotas.map((c) => ({ ...c })),
       montoDetraccion,
-      currency
+      currency,
+      hostCreditoAmount,
     );
   }
-
-  // Si el total llega después de hidratar (race con loadDocument), re-sincroniza Credito.
-  $effect(() => {
-    const nextTotal = Number(total);
-    if (metodo !== "Credito" || !Number.isFinite(nextTotal) || nextTotal <= 0) return;
-    setPaymentCreditoActions(
-      nextTotal,
-      cuotas.map((c) => ({ ...c })),
-      montoDetraccion,
-      currency
-    );
-  });
 
   function addCuota() {
     cuotas = [...cuotas, { id: nextId++, monto: "", vencimiento: "" }];
@@ -220,6 +196,7 @@
             <div class="mb-1 text-[11px] text-[var(--form-text-soft)]">Vencimiento</div>
             <DatePicker
               bind:value={cuotas[i].vencimiento}
+              min={getCuotaMinDate(cuotas, i, emisionDate)}
               showLabel={false}
               onchange={() => {
                 cuotas = [...cuotas];

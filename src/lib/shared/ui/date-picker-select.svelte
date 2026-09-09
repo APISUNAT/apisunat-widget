@@ -8,6 +8,8 @@
     disabled = false,
     required = false,
     pastOnly = false,
+    min = "",
+    max = "",
     onchange,
   } = $props<{
     label?: string;
@@ -16,23 +18,28 @@
     disabled?: boolean;
     required?: boolean;
     pastOnly?: boolean;
+    min?: string;
+    max?: string;
     onchange?: () => void;
   }>();
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/Lima" });
+  const resolvedMin = $derived(pastOnly ? undefined : min || undefined);
+  const resolvedMax = $derived(pastOnly ? today : max || undefined);
   let inputRef = $state<HTMLInputElement | null>(null);
 
   function handleInput(e: Event) {
     const input = e.currentTarget as HTMLInputElement;
-    if (pastOnly && input.value > today) {
-      input.value = today;
-      value = today;
-    } else if (!pastOnly && input.value < today) {
-      input.value = today;
-      value = today;
-    } else {
-      value = input.value;
+    let next = input.value;
+
+    if (resolvedMax && next > resolvedMax) {
+      next = resolvedMax;
+    } else if (resolvedMin && next && next < resolvedMin) {
+      next = resolvedMin;
     }
+
+    input.value = next;
+    value = next;
     onchange?.();
   }
 
@@ -52,8 +59,8 @@
     <input
       bind:this={inputRef}
       type="date"
-      min={pastOnly ? undefined : today}
-      max={pastOnly ? today : undefined}
+      min={resolvedMin}
+      max={resolvedMax}
       {value}
       oninput={handleInput}
       autocomplete="off"
