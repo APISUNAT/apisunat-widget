@@ -74,8 +74,12 @@
     const data = getSupplierData();
     if (hasSupplierData(data)) {
       applySupplierFields(data);
-      isReady = true;
-      return;
+      // Host a veces manda RUC/razón sin dirección. Sin fetch, el campo
+      // queda vacío aunque personas/getById sí la tenga.
+      if (data.address.trim().length >= 3) {
+        isReady = true;
+        return;
+      }
     }
 
     if (isFetching) return;
@@ -86,15 +90,20 @@
     getSupplierGETAsync()
       .then((supplier) => {
         if (token !== hydrateToken) return;
+        const current = getSupplierData();
+        const apiCode =
+          supplier.isAnnex === true
+            ? supplier.anexData?.codigoSUNAT ?? "0000"
+            : "0000";
         applySupplierFields({
-          tradeName: supplier.tradeName ?? "",
-          name: supplier.name ?? "",
-          ruc: supplier.RUC ?? "",
-          address: supplier.address ?? "",
+          tradeName: current.tradeName || supplier.tradeName || "",
+          name: current.name || supplier.name || "",
+          ruc: current.ruc || supplier.RUC || "",
+          address: current.address || supplier.address || "",
           codeAddress:
-            supplier.isAnnex === true
-              ? supplier.anexData?.codigoSUNAT ?? "0000"
-              : "0000",
+            current.codeAddress && current.codeAddress !== "0000"
+              ? current.codeAddress
+              : apiCode,
         });
       })
       .catch((e) => console.error("Error al obtener supplier:", e))
