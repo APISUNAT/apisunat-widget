@@ -15,12 +15,12 @@
     calcItemAmounts,
     calcPrecioFromValor,
     calcValorFromPrecio,
-    calcPrecioOnRateChange,
   } from "./item-editor.utils";
   import ChargeDiscountList from "$lib/shared/components/charge-discount/charge-discount.component.svelte";
   import {
     createEditableAllowanceCharge,
     netBaseAllowanceChargeAmount,
+    netNoBaseAllowanceChargeAmount,
     type EditableAllowanceCharge,
   } from "$lib/shared/components/charge-discount/charge-discount.component";
   import type { LineItem, EditableItem } from "./lines.component";
@@ -29,8 +29,11 @@
     isOpen = false,
     itemEditor = null,
     mode = "create",
-  }: { isOpen?: boolean; itemEditor?: LineItem | null; mode?: "create" | "edit" } =
-    $props();
+  }: {
+    isOpen?: boolean;
+    itemEditor?: LineItem | null;
+    mode?: "create" | "edit";
+  } = $props();
 
   const dispatch = createEventDispatcher();
 
@@ -54,12 +57,17 @@
   // Solo este lado impacta op. gravada / IGV / total mostrados aquí.
   const baseNet = $derived(netBaseAllowanceChargeAmount(allowanceCharges));
 
+  // Neto de cargos/descuentos que no afectan la base imponible (códigos 01/48).
+  // Se suma directamente al total, aunque no toque el IGV.
+  const noBaseNet = $derived(netNoBaseAllowanceChargeAmount(allowanceCharges));
+
   const itemAmounts = $derived.by(() =>
     calcItemAmounts(
       editorItem.quantity,
       editorItem.precioUnitario,
       editorItem.igvRate,
       baseNet,
+      noBaseNet,
     ),
   );
 
@@ -99,17 +107,17 @@
     );
   });
 
-  $effect(() => {
-    if (lastEdited !== "precio") return;
-    editorItem.valorUnitario = calcValorFromPrecio(
-      editorItem.precioUnitario,
-      editorItem.igvRate,
-    );
-  });
+    $effect(() => {
+        if (lastEdited !== "precio") return;
+        editorItem.valorUnitario = calcValorFromPrecio(
+            editorItem.precioUnitario,
+            editorItem.igvRate,
+        );
+    });
 
   function onRateChange(newRate: number) {
     editorItem.igvRate = newRate;
-    editorItem.precioUnitario = calcPrecioOnRateChange(
+    editorItem.precioUnitario = calcPrecioFromValor(
       editorItem.valorUnitario,
       newRate,
     );

@@ -130,15 +130,15 @@ export function netAllowanceChargeAmount(items: EditableAllowanceCharge[]): numb
 }
 
 /**
- * Suma neta SOLO de los cargos/descuentos que afectan la base imponible
- * (códigos 00/47, campo `base` de cada fila). Este es el único monto que
- * debe sumarse/restarse a la op. gravada antes de calcular el IGV de la
- * línea, ya que el lado `noBase` por definición no toca la base del IGV.
+ * Suma neta SOLO de los cargos/descuentos que afectan la base imponible (códigos 00/47, campo `base` de cada fila).
  */
 export function netBaseAllowanceChargeAmount(items: EditableAllowanceCharge[]): number {
   return items.reduce((sum, item) => sum + signedAmount(item.base), 0)
 }
-
+/** Suma neta SOLO del lado que no afecta la base (códigos 01/48). Se suma igual al total, aunque no toque el IGV. */
+export function netNoBaseAllowanceChargeAmount(items: EditableAllowanceCharge[]): number {
+  return items.reduce((sum, item) => sum + signedAmount(item.noBase), 0)
+}
 /** Monto con signo: positivo si es cargo, negativo si es descuento. */
 function signedAmount(side: AllowanceChargeSide): number {
   const amount = parseFloat(side.amount) || 0

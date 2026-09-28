@@ -1,4 +1,3 @@
-/** Campos propios del formulario de edición de ítem (sin id ni allowanceCharges). */
 export type ItemFormFields = {
   description: string
   quantity: string
@@ -15,10 +14,7 @@ export type ItemAmounts = {
   total: string
 }
 
-/**
- * Normaliza la tasa de IGV a porcentaje entero (18, no 0.18).
- * Acepta documentos viejos que pudieran haber guardado la tasa como fracción.
- */
+// Normaliza la tasa de IGV a entero (18, no 0.18)
 export function normalizeIgvRate(raw: any): number {
   const rate = Number(raw)
   if (isNaN(rate)) return 18
@@ -37,30 +33,22 @@ export function createEditableItem(source: Partial<ItemFormFields> = {}): ItemFo
   }
 }
 
-/**
- * Calcula op. gravada, IGV y total de la línea a partir del precio unitario
- * (con IGV) y la cantidad, ajustando la base imponible con el neto de
- * cargos/descuentos que la afectan (`baseNet`, códigos 00/47 del catálogo 53).
- *
- * El lado "no afecta la base" (códigos 01/48) NO entra aquí: por definición
- * no modifica la op. gravada ni el IGV de la línea.
- */
+// baseNet ajusta la op. gravada/IGV (códigos 00/47); noBaseNet se suma directo al total (códigos 01/48)
 export function calcItemAmounts(
   quantity: string,
   precioUnitario: string,
   igvRate: number,
   baseNet: number = 0,
+  noBaseNet: number = 0,
 ): ItemAmounts {
   const qty = parseFloat(quantity) || 0
   const precio = parseFloat(precioUnitario) || 0
   const rate = igvRate / 100
 
-  const totalSinAjuste = qty * precio
-  const subtotalBruto = totalSinAjuste / (1 + rate)
-
+  const subtotalBruto = (qty * precio) / (1 + rate)
   const subtotal = subtotalBruto + baseNet
   const tax = subtotal * rate
-  const total = subtotal + tax
+  const total = subtotal + tax + noBaseNet
 
   return {
     subtotal: subtotal.toFixed(2),
@@ -81,11 +69,7 @@ export function calcValorFromPrecio(precio: string, igvRate: number): string {
   return toCleanString(precioNum / (1 + igvRate / 100))
 }
 
-export function calcPrecioOnRateChange(valorUnitario: string, newRate: number): string {
-  return calcPrecioFromValor(valorUnitario, newRate)
-}
-
-/** Redondea a 10 decimales y quita ceros de cola (evita "10.5000000000"). */
+// Redondea a 10 decimales y quita ceros de cola
 function toCleanString(value: number): string {
   return parseFloat(value.toFixed(10)).toString()
 }

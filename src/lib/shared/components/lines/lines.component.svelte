@@ -3,12 +3,13 @@
     addInvoiceLineActions,
     removeInvoiceLineActions,
     hydrateLines,
+    calcLineTaxAmounts,
     type EditableItem,
     type LineItem,
   } from "./lines.component";
   import { documentStore, documentLoaded } from "$lib/store/document.store";
   import ItemEditor from "./item-editor.component.svelte";
-  import { CATALOGO02 } from "$lib/constants/catalagos";
+  import { CATALOGO02, CATALOGO03 } from "$lib/constants/catalagos";
   import { buildTotalsActions } from "$lib/shared/components/summary/summary-panel.component";
   import { netBaseAllowanceChargeAmount } from "$lib/shared/components/charge-discount/charge-discount.component";
 
@@ -26,7 +27,7 @@
     )?.symbol ?? "S/"
   );
 
-  /** Arma el payload que espera addInvoiceLineActions a partir de un LineItem/EditableItem. */
+  // Arma el payload que espera addInvoiceLineActions a partir de un LineItem/EditableItem
   function toLinePayload(id: number, data: EditableItem) {
     return {
       id,
@@ -41,30 +42,20 @@
     };
   }
 
-  /**
-   * Op. gravada + IGV + total de la línea, ajustados con el neto de
-   * cargos/descuentos que afectan la base (códigos 00/47). Misma fórmula
-   * que calcLineTaxAmounts en lines.component.ts, para que la tabla
-   * muestre lo mismo que se persiste en el XML.
-   */
+  // Monto a mostrar en la tabla: mismo cálculo que se persiste en el XML
   function lineAmounts(item: LineItem) {
     const qty = parseFloat(item.quantity) || 0;
     const precio = parseFloat(item.precioUnitario) || 0;
-    const rate = item.igvRate / 100;
     const baseNet = netBaseAllowanceChargeAmount(item.allowanceCharges ?? []);
 
-    const totalSinAjuste = qty * precio;
-    const subtotalBruto = totalSinAjuste / (1 + rate);
-
-    const subtotal = subtotalBruto + baseNet;
-    const tax = subtotal * rate;
-    const total = subtotal + tax;
+    const { lineExtensionAmount, taxAmount } = calcLineTaxAmounts(qty, precio, item.igvRate, baseNet);
+    const total = lineExtensionAmount + taxAmount;
     const precioAjustado = qty ? total / qty : precio;
 
-    return { subtotal, tax, total, precioAjustado };
+    return { subtotal: lineExtensionAmount, tax: taxAmount, total, precioAjustado };
   }
 
-  // Re-hidrata cuando loadDocument/initDocument reemplaza el store.
+  // Re-hidrata cuando loadDocument/initDocument reemplaza el store
   $effect(() => {
     const loaded = $documentLoaded;
     const doc = $documentStore;
@@ -87,7 +78,7 @@
     lastLoaded = loaded;
   });
 
-  // Re-sincroniza currencyID cuando cambia la moneda tras la hidratación.
+  // Re-sincroniza currencyID cuando cambia la moneda tras la hidratación
   $effect(() => {
     const currency = $documentStore["cbc:DocumentCurrencyCode"]?._text;
     const loaded = $documentLoaded;
@@ -146,6 +137,12 @@
     items = items.filter((i) => i.id !== id);
     removeInvoiceLineActions(id);
   }
+
+  // Muestra el label en lugar del código de unidad
+  function getUnitLabel(unitCode: string) {
+    const unit = CATALOGO03.find((u) => u.value === unitCode);
+    return unit ? unit.label : unitCode;
+  }
 </script>
 
 <div class="overflow-hidden rounded-[1.15rem] border border-[color:color-mix(in_oklab,var(--form-color-3)_22%,transparent)] bg-[var(--form-panel-bg)]">
@@ -186,7 +183,7 @@
               <span class="truncate text-[13px] font-medium text-[var(--form-text-color)]">{item.description}</span>
             </div>
             <div class="mt-0.5 ps-7 text-[11px] text-[var(--form-text-soft)]">
-              {item.unitCode || "NIU"}
+              {getUnitLabel(item.unitCode)}
             </div>
           </div>
           <div class="text-right text-[13px] tabular-nums text-[var(--form-text-color)]">{item.quantity}</div>
