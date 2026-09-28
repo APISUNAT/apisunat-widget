@@ -10,7 +10,7 @@
   import ItemEditor from "./item-editor.component.svelte";
   import { CATALOGO02 } from "$lib/constants/catalagos";
   import { buildTotalsActions } from "$lib/shared/components/summary/summary-panel.component";
-  import { netBaseAllowanceChargeAmount } from "$lib/shared/components/charge-discount/charge-discount.component";
+  import { convertDecimalToInt, convertIntToDecimal, roundToTwoDecimals } from "$lib/shared/utils/convertnumber.utils";
 
   let items = $state<LineItem[]>([]);
   let isOpen = $state(false);
@@ -37,31 +37,30 @@
       precioUnitario: parseFloat(data.precioUnitario) || 0,
       igvRate: data.igvRate,
       itemCode: data.itemCode,
-      allowanceCharges: data.allowanceCharges,
     };
   }
 
-  /**
-   * Op. gravada + IGV + total de la línea, ajustados con el neto de
-   * cargos/descuentos que afectan la base (códigos 00/47). Misma fórmula
-   * que calcLineTaxAmounts en lines.component.ts, para que la tabla
-   * muestre lo mismo que se persiste en el XML.
-   */
   function lineAmounts(item: LineItem) {
     const qty = parseFloat(item.quantity) || 0;
     const precio = parseFloat(item.precioUnitario) || 0;
     const rate = item.igvRate / 100;
-    const baseNet = netBaseAllowanceChargeAmount(item.allowanceCharges ?? []);
 
-    const totalSinAjuste = qty * precio;
-    const subtotalBruto = totalSinAjuste / (1 + rate);
+    // Escalar a enteros
+    const qtyInt = convertDecimalToInt(qty);
+    const precioInt = convertDecimalToInt(precio);
+    const rateInt = convertDecimalToInt(rate);
 
-    const subtotal = subtotalBruto + baseNet;
-    const tax = subtotal * rate;
-    const total = subtotal + tax;
-    const precioAjustado = qty ? total / qty : precio;
+    // Operaciones con enteros
+    const subtotalInt = (qtyInt * precioInt) / (100000 + rateInt);
+    const taxInt = (subtotalInt * rateInt) / 100000;
+    const totalInt = subtotalInt + taxInt;
 
-    return { subtotal, tax, total, precioAjustado };
+    // Desescalar
+    const subtotal = convertIntToDecimal(subtotalInt);
+    const tax = convertIntToDecimal(taxInt);
+    const total = convertIntToDecimal(totalInt);
+
+    return { subtotal, tax, total, precioAjustado: precio };
   }
 
   // Re-hidrata cuando loadDocument/initDocument reemplaza el store.
@@ -95,9 +94,11 @@
 
     lastCurrency = currency;
 
-    items.forEach((item) => {
-      addInvoiceLineActions(toLinePayload(item.id, item));
-    });
+    if (items.length > 0) {
+      items.forEach((item) => {
+        addInvoiceLineActions(toLinePayload(item.id, item));
+      });
+    }
   });
 
   const grandTotal = $derived(
@@ -190,7 +191,7 @@
             </div>
           </div>
           <div class="text-right text-[13px] tabular-nums text-[var(--form-text-color)]">{item.quantity}</div>
-          <div class="text-right text-[13px] tabular-nums text-[var(--form-text-soft)]">{symbol} {amounts.precioAjustado.toFixed(3)}</div>
+          <div class="text-right text-[13px] tabular-nums text-[var(--form-text-soft)]">{symbol} {parseFloat(item.precioUnitario).toFixed(3)}</div>
           <div class="text-right text-[13px] font-semibold tabular-nums text-[var(--form-text-color)]">{symbol} {amounts.total.toFixed(3)}</div>
           <div class="flex items-center justify-end gap-1">
             <button

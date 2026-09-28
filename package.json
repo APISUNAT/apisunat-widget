@@ -1,30 +1,30 @@
 {
-	"name": "invoice-sunat",
-	"version": "0.0.1",
-	"scripts": {
-		"dev": "vite dev",
-		"build": "vite build --mode element",
-		"preview": "vite preview",
-		"prepare": "svelte-kit sync || echo ''",
-		"check": "svelte-kit sync && svelte-check --tsconfig ./jsconfig.json",
-		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./jsconfig.json --watch"
-	},
-	"files": [
-		"dist",
-		"!dist/**/*.test.*",
-		"!dist/**/*.spec.*"
-	],
-	"sideEffects": [
-		"**/*.css"
-	],
+	"name": "@kami_lml/apisunat-widget",
+	"version": "0.1.0",
+	"description": "Widget de facturación electrónica SUNAT (custom element Svelte)",
+	"license": "MIT",
+	"type": "module",
+	"main": "./dist/sunat-invoice.js",
 	"module": "./dist/sunat-invoice.js",
 	"style": "./dist/assets/invoice-sunat.css",
-	"type": "module",
+	"sideEffects": true,
+	"files": [
+		"dist"
+	],
 	"exports": {
 		".": {
 			"default": "./dist/sunat-invoice.js"
 		},
 		"./styles.css": "./dist/assets/invoice-sunat.css"
+	},
+	"scripts": {
+		"dev": "vite dev",
+		"build": "vite build --mode element",
+		"prepublishOnly": "npm run build && publint",
+		"preview": "vite preview",
+		"prepare": "svelte-kit sync || echo ''",
+		"check": "svelte-kit sync && svelte-check --tsconfig ./jsconfig.json",
+		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./jsconfig.json --watch"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-auto": "^7.0.1",
@@ -33,7 +33,9 @@
 		"@tailwindcss/forms": "^0.5.11",
 		"@tailwindcss/postcss": "^4.2.4",
 		"autoprefixer": "^10.5.0",
+		"flatpickr": "^4.6.13",
 		"postcss": "^8.5.10",
+		"preline": "^4.1.3",
 		"publint": "^0.3.18",
 		"svelte": "^5.55.2",
 		"svelte-check": "^4.4.6",
@@ -42,10 +44,11 @@
 		"vite": "^8.0.7"
 	},
 	"keywords": [
-		"svelte"
-	],
-	"dependencies": {
-		"flatpickr": "^4.6.13",
-		"preline": "^4.1.3"
-	}
+		"svelte",
+		"sunat",
+		"facturacion",
+		"peru",
+		"custom-element",
+		"widget"
+	]
 }

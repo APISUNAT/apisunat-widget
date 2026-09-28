@@ -1,12 +1,7 @@
 import { get } from 'svelte/store'
 import { documentStore, documentTypeStore } from '$lib/store/document.store'
 import { buildTotalsActions } from '$lib/shared/components/summary/summary-panel.component'
-import {
-  buildAllowanceChargeList,
-  hydrateAllowanceCharges,
-  netBaseAllowanceChargeAmount,
-  type EditableAllowanceCharge,
-} from '$lib/shared/components/charge-discount/charge-discount.component'
+import { convertDecimalToInt, convertIntToDecimal, roundToTwoDecimals } from '$lib/shared/utils/convertnumber.utils'
 
 // Mapeo de línea/cantidad por tipo de documento UBL (factura, NC, ND, guía)
 const LINE_KEY: Record<string, string> = {
@@ -34,7 +29,6 @@ export type EditableItem = {
   precioUnitario: string
   igvRate: number
   itemCode?: string
-  allowanceCharges: EditableAllowanceCharge[]
 }
 
 export type LineItem = EditableItem & { id: number }
@@ -102,19 +96,25 @@ export function hydrateLines(doc: any): LineItem[] {
       precioUnitario,
       igvRate,
       itemCode,
-      allowanceCharges: hydrateAllowanceCharges(line),
     }
   })
 }
 
-// Op. gravada + IGV de una línea, ajustando la base con el neto de cargos/descuentos (códigos 00/47)
-export function calcLineTaxAmounts(quantity: number, precioUnitario: number, igvRate: number, baseNet: number) {
+export function calcLineTaxAmounts(quantity: number, precioUnitario: number, igvRate: number) {
   const rate = igvRate / 100
-  const totalSinAjuste = parseFloat((quantity * precioUnitario).toFixed(2))
-  const subtotalBruto = totalSinAjuste / (1 + rate)
 
-  const lineExtensionAmount = parseFloat((subtotalBruto + baseNet).toFixed(2))
-  const taxAmount = parseFloat((lineExtensionAmount * rate).toFixed(2))
+  // Escalar a enteros
+  const qtyInt = convertDecimalToInt(quantity)
+  const precioInt = convertDecimalToInt(precioUnitario)
+  const rateInt = convertDecimalToInt(rate)
+
+  // Operaciones con enteros
+  const subtotalInt = (qtyInt * precioInt) / (100000 + rateInt)
+  const taxInt = (subtotalInt * rateInt) / 100000
+
+  // Desescalar y redondear
+  const lineExtensionAmount = roundToTwoDecimals(convertIntToDecimal(subtotalInt), 2)
+  const taxAmount = roundToTwoDecimals(convertIntToDecimal(taxInt), 2)
 
   return { lineExtensionAmount, taxAmount }
 }
@@ -128,26 +128,16 @@ export function addInvoiceLineActions(data: {
   precioUnitario: number
   igvRate: number
   itemCode?: string
-  allowanceCharges?: EditableAllowanceCharge[]
 }) {
   const currency = getCurrency()
   const lineKey = getLineKey()
   const qtyKey = getQuantityKey()
 
-  const baseNet = netBaseAllowanceChargeAmount(data.allowanceCharges ?? [])
   const { lineExtensionAmount, taxAmount } = calcLineTaxAmounts(
     data.quantity,
     data.precioUnitario,
     data.igvRate,
-    baseNet,
   )
-  const allowanceChargeNodes = buildAllowanceChargeList(data.allowanceCharges ?? [], currency)
-
-  // Precio con IGV ajustado por el cargo/descuento que afecta la base.
-  // cac:Price sigue usando data.valorUnitario (precio inicial, sin ajustar).
-  const precioUnitarioAjustado = data.quantity
-    ? parseFloat(((lineExtensionAmount + taxAmount) / data.quantity).toFixed(10))
-    : data.precioUnitario
 
   documentStore.update((rawBody) => {
     const body = stripOtherLineKeys(rawBody, lineKey)
@@ -165,7 +155,6 @@ export function addInvoiceLineActions(data: {
       [qtyKey]: _qty,
       'cbc:LineExtensionAmount': _lineExtension,
       'cac:PricingReference': _pricingRef,
-      'cac:AllowanceCharge': _allowanceCharge,
       'cac:TaxTotal': _taxTotal,
       'cac:Item': _item,
       'cac:Price': _price,
@@ -196,12 +185,11 @@ export function addInvoiceLineActions(data: {
                 ?._attributes,
               currencyID: currency,
             },
-            _text: precioUnitarioAjustado,
+            _text: data.precioUnitario,
           },
           'cbc:PriceTypeCode': { _text: '01' },
         },
       },
-      ...(allowanceChargeNodes ? { 'cac:AllowanceCharge': allowanceChargeNodes } : {}),
       'cac:TaxTotal': {
         ...existingLine['cac:TaxTotal'],
         'cbc:TaxAmount': {

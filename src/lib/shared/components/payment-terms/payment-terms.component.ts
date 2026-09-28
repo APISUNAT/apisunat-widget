@@ -149,6 +149,7 @@ export function setPaymentContadoActions() {
 
     return {
       ...body,
+      'cbc:DueDate': null,
       'cac:PaymentTerms': [
         ...preservados,
         {
@@ -183,6 +184,9 @@ export function setPaymentCreditoActions(
     },
   ]
 
+  // Encontrar la última fecha de vencimiento para el DueDate del documento
+  let ultimaFechaVencimiento: string | null = null
+
   cuotas
     .filter((cuota) => parseFloat(cuota.monto) > 0 || cuota.vencimiento)
     .forEach((cuota, i) => {
@@ -197,6 +201,8 @@ export function setPaymentCreditoActions(
       }
       if (cuota.vencimiento) {
         entry['cbc:PaymentDueDate'] = { _text: cuota.vencimiento }
+        // Actualizar última fecha (las cuotas ya están ordenadas)
+        ultimaFechaVencimiento = cuota.vencimiento
       }
       formaPagoTerms.push(entry)
     })
@@ -206,6 +212,7 @@ export function setPaymentCreditoActions(
 
     return {
       ...body,
+      'cbc:DueDate': ultimaFechaVencimiento ? { _text: ultimaFechaVencimiento } : null,
       'cac:PaymentTerms': [...preservados, ...formaPagoTerms],
     }
   })

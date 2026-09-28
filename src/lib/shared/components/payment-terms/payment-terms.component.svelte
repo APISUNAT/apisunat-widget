@@ -54,29 +54,37 @@
       Array.isArray(terms) &&
       terms.some((t: any) => t["cbc:PaymentMeansID"]?._text === "Credito");
 
-    if (!tieneCredito) {
-      metodo = "Contado";
-      cuotas = [{ id: 1, monto: "", vencimiento: "" }];
-      nextId = 2;
-      hostCreditoAmount = 0;
+    const tieneContado =
+      Array.isArray(terms) &&
+      terms.some((t: any) => t["cbc:PaymentMeansID"]?._text === "Contado");
+
+    if (tieneCredito) {
+      metodo = "Credito";
+      hostCreditoAmount = getCreditoAmountFromTerms(terms);
+      const cuotasTerms = terms.filter((t: any) =>
+        /^Cuota\d{3}$/.test(t["cbc:PaymentMeansID"]?._text ?? "")
+      );
+
+      if (cuotasTerms.length > 0) {
+        cuotas = cuotasTerms.map((t: any, i: number) => ({
+          id: i + 1,
+          monto: String(t["cbc:Amount"]?._text ?? ""),
+          vencimiento: t["cbc:PaymentDueDate"]?._text ?? "",
+        }));
+        nextId = cuotas.length + 1;
+      }
       return;
     }
 
-    metodo = "Credito";
-    hostCreditoAmount = getCreditoAmountFromTerms(terms);
-    const cuotasTerms = terms.filter((t: any) =>
-      /^Cuota\d{3}$/.test(t["cbc:PaymentMeansID"]?._text ?? "")
-    );
-
-    if (cuotasTerms.length > 0) {
-      cuotas = cuotasTerms.map((t: any, i: number) => ({
-        id: i + 1,
-        monto: String(t["cbc:Amount"]?._text ?? ""),
-        vencimiento: t["cbc:PaymentDueDate"]?._text ?? "",
-      }));
-      nextId = cuotas.length + 1;
+    // Si no tiene ni Crédito ni Contado, es un documento nuevo: establecer Contado
+    if (!tieneContado) {
+      setPaymentContadoActions();
     }
-    // No syncCuotas(): respetar FormaPago/Credito/Cuotas del documento precargado.
+
+    metodo = "Contado";
+    cuotas = [{ id: 1, monto: "", vencimiento: "" }];
+    nextId = 2;
+    hostCreditoAmount = 0;
   }
 
   onMount(() => {

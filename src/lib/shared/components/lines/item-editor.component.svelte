@@ -17,12 +17,6 @@
     calcValorFromPrecio,
     calcPrecioOnRateChange,
   } from "./item-editor.utils";
-  import ChargeDiscountList from "$lib/shared/components/charge-discount/charge-discount.component.svelte";
-  import {
-    createEditableAllowanceCharge,
-    netBaseAllowanceChargeAmount,
-    type EditableAllowanceCharge,
-  } from "$lib/shared/components/charge-discount/charge-discount.component";
   import type { LineItem, EditableItem } from "./lines.component";
 
   let {
@@ -35,9 +29,6 @@
   const dispatch = createEventDispatcher();
 
   let editorItem = $state(createEditableItem());
-  let allowanceCharges = $state<EditableAllowanceCharge[]>([
-    createEditableAllowanceCharge(),
-  ]);
   let lastEdited = $state<"valor" | "precio" | null>(null);
 
   const fieldLabelClass = "font-medium";
@@ -50,16 +41,11 @@
     )?.symbol ?? "S/",
   );
 
-  // Neto de cargos/descuentos que afectan la base imponible (códigos 00/47).
-  // Solo este lado impacta op. gravada / IGV / total mostrados aquí.
-  const baseNet = $derived(netBaseAllowanceChargeAmount(allowanceCharges));
-
   const itemAmounts = $derived.by(() =>
     calcItemAmounts(
       editorItem.quantity,
       editorItem.precioUnitario,
       editorItem.igvRate,
-      baseNet,
     ),
   );
 
@@ -81,12 +67,6 @@
     editorItem = isOpen
       ? createEditableItem(itemEditor ?? {})
       : createEditableItem();
-
-    const existing = isOpen ? itemEditor?.allowanceCharges : undefined;
-    allowanceCharges =
-      existing && existing.length
-        ? existing
-        : [createEditableAllowanceCharge()];
 
     lastEdited = null;
   });
@@ -119,7 +99,6 @@
     const payload: EditableItem = {
       ...editorItem,
       itemCode: itemEditor?.itemCode,
-      allowanceCharges,
     };
     dispatch("save", payload);
   }
@@ -285,13 +264,6 @@
                       </button>
                     {/each}
                   </div>
-                </div>
-
-                <!-- Cargos / descuentos -->
-                <div
-                  class="border-t border-[color:color-mix(in_oklab,var(--form-color-3)_20%,transparent)] pt-2.5"
-                >
-                  <ChargeDiscountList bind:value={allowanceCharges} {symbol} />
                 </div>
 
                 <div class="flex items-center justify-between gap-4">

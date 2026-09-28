@@ -1,4 +1,6 @@
 /** Campos propios del formulario de edición de ítem (sin id ni allowanceCharges). */
+import { convertDecimalToInt, convertIntToDecimal, roundToTwoDecimals } from '$lib/shared/utils/convertnumber.utils'
+
 export type ItemFormFields = {
   description: string
   quantity: string
@@ -37,30 +39,29 @@ export function createEditableItem(source: Partial<ItemFormFields> = {}): ItemFo
   }
 }
 
-/**
- * Calcula op. gravada, IGV y total de la línea a partir del precio unitario
- * (con IGV) y la cantidad, ajustando la base imponible con el neto de
- * cargos/descuentos que la afectan (`baseNet`, códigos 00/47 del catálogo 53).
- *
- * El lado "no afecta la base" (códigos 01/48) NO entra aquí: por definición
- * no modifica la op. gravada ni el IGV de la línea.
- */
 export function calcItemAmounts(
   quantity: string,
   precioUnitario: string,
   igvRate: number,
-  baseNet: number = 0,
 ): ItemAmounts {
   const qty = parseFloat(quantity) || 0
   const precio = parseFloat(precioUnitario) || 0
   const rate = igvRate / 100
 
-  const totalSinAjuste = qty * precio
-  const subtotalBruto = totalSinAjuste / (1 + rate)
+  // Escalar a enteros (×100000)
+  const qtyInt = convertDecimalToInt(qty)
+  const precioInt = convertDecimalToInt(precio)
+  const rateInt = convertDecimalToInt(rate)
 
-  const subtotal = subtotalBruto + baseNet
-  const tax = subtotal * rate
-  const total = subtotal + tax
+  // Operaciones con enteros
+  const subtotalInt = (qtyInt * precioInt) / (100000 + rateInt)
+  const taxInt = (subtotalInt * rateInt) / 100000
+  const totalInt = subtotalInt + taxInt
+
+  // Desescalar y redondear
+  const subtotal = roundToTwoDecimals(convertIntToDecimal(subtotalInt), 2)
+  const tax = roundToTwoDecimals(convertIntToDecimal(taxInt), 2)
+  const total = roundToTwoDecimals(convertIntToDecimal(totalInt), 2)
 
   return {
     subtotal: subtotal.toFixed(2),
@@ -72,13 +73,33 @@ export function calcItemAmounts(
 export function calcPrecioFromValor(valor: string, igvRate: number): string {
   if (valor === '') return ''
   const valorNum = parseFloat(valor) || 0
-  return toCleanString(valorNum * (1 + igvRate / 100))
+  const rate = igvRate / 100
+
+  // Escalar a enteros
+  const valorInt = convertDecimalToInt(valorNum)
+  const rateInt = convertDecimalToInt(rate)
+
+  // Operación con enteros: precio = valor × (1 + rate)
+  const precioInt = (valorInt * (100000 + rateInt)) / 100000
+
+  // Desescalar y limpiar
+  return toCleanString(convertIntToDecimal(precioInt))
 }
 
 export function calcValorFromPrecio(precio: string, igvRate: number): string {
   if (precio === '') return ''
   const precioNum = parseFloat(precio) || 0
-  return toCleanString(precioNum / (1 + igvRate / 100))
+  const rate = igvRate / 100
+
+  // Escalar a enteros
+  const precioInt = convertDecimalToInt(precioNum)
+  const rateInt = convertDecimalToInt(rate)
+
+  // Operación con enteros: valor = precio / (1 + rate)
+  const valorInt = (precioInt * 100000) / (100000 + rateInt)
+
+  // Desescalar y limpiar
+  return toCleanString(convertIntToDecimal(valorInt))
 }
 
 export function calcPrecioOnRateChange(valorUnitario: string, newRate: number): string {

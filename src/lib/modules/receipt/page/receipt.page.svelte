@@ -6,7 +6,6 @@
   import Lines from "$lib/shared/components/lines/lines.component.svelte";
   import DocumentReference from "$lib/shared/components/document-reference/document-reference.component.svelte";
   import NotesPanel from "$lib/shared/components/notes/notes-panel.component.svelte";
-  import PaymentTerms from "$lib/shared/components/payment-terms/payment-terms.component.svelte";
   import EmitButton from "$lib/shared/components/emit/emit-button.component.svelte";
   import SummaryPanel from '$lib/shared/components/summary/summary-panel.component.svelte';
   import Detraccion from "$lib/shared/components/detraccion/detraccion.component.svelte";
@@ -83,8 +82,6 @@
             {#if isDetraccionOperation}
               <Detraccion total={$documentStore['cac:LegalMonetaryTotal']?.['cbc:PayableAmount']?._text ?? 0} />
             {/if}
-
-            <PaymentTerms total={$documentStore['cac:LegalMonetaryTotal']?.['cbc:PayableAmount']?._text ?? 0} />
           </div>
         </div>
       </section>
