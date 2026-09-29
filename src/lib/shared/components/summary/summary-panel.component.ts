@@ -21,10 +21,6 @@ export function buildTotalsActions(lines: any[], currency: string) {
     const isRequestedTotal = monetaryTotalKey === 'cac:RequestedMonetaryTotal'
 
     return {
-        total,
-        // Si la llave activa es RequestedMonetaryTotal, nos asegurarnos de no
-        // dejar un LegalMonetaryTotal "fantasma" de un tipo de documento
-        // anterior, y viceversa.
         'cac:LegalMonetaryTotal': undefined,
         'cac:RequestedMonetaryTotal': undefined,
         'cac:TaxTotal': {

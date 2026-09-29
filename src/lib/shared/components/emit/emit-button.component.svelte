@@ -3,7 +3,14 @@
     validateDocument,
     type ValidationError,
   } from "$lib/shared/utils/validate-documents";
-  import { resetDocument } from "$lib/store/document.store";
+  import { resetDocument, documentTypeStore } from "$lib/store/document.store";
+  import {CATALOGO01} from "$lib/constants/catalagos"
+
+  function getDocumentTypeLabel(): string{
+    return(
+        CATALOGO01.find(item => item.value === $documentTypeStore)?.label ?? ''
+    )
+  }
 
   let { onEmitClick = undefined as (() => Promise<any>) | undefined } =
     $props();
@@ -43,7 +50,7 @@
 
 <!-- Toast -->
 {#if errors.length > 0}
-  <div class="fixed top-6 right-6 z-50 flex flex-col gap-2">
+  <div class="fixed bottom-6 left-6 z-50 flex flex-col gap-2">
     {#each errors as error}
       <div
         class="flex items-center gap-3 rounded-[1.15rem] border border-[color:color-mix(in_oklab,var(--form-color-3)_30%,transparent)] bg-[var(--form-panel-bg)] px-4 py-3 shadow-lg"
@@ -56,9 +63,14 @@
 {/if}
 <!-- Botón -->
 <button
-  onclick={handleEmitASYNC}
+  type="button"
+  onclick={(event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    handleEmitASYNC();
+  }}
   disabled={emitting}
   class="flex items-center justify-center gap-2 rounded-[1.15rem] border border-dashed border-[color:color-mix(in_oklab,var(--form-color-3)_35%,transparent)] px-4 py-3 text-[13px] font-medium text-[var(--form-text-soft)] transition hover:border-[color:color-mix(in_oklab,var(--form-color-3)_55%,transparent)] hover:text-[var(--form-text-color)] disabled:opacity-40 disabled:cursor-not-allowed"
 >
-  {emitting ? "Emitiendo..." : "Emitir comprobante"}
+  {emitting ? "Emitiendo..." : `Emitir ${getDocumentTypeLabel()}`}
 </button>

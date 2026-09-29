@@ -9,17 +9,40 @@
   import Retention from "$lib/modules/invoice/components/retention.component.svelte";
   import EmitButton from '$lib/shared/components/emit/emit-button.component.svelte'
   import SummaryPanel from '$lib/shared/components/summary/summary-panel.component.svelte'
+  import Detraccion from "$lib/shared/components/detraccion/detraccion.component.svelte";
   import { documentStore } from "$lib/store/document.store";
+  import { setDetraccionNoteAutomatic, removeDetraccionNoteAutomatic } from "$lib/shared/components/notes/notes.component";
 
   let {
     showHeader = true,
     showSupplier = true,
+    showCustomer = true,
+    showCustomerRuc = true,
+    showCustomerName = true,
+    showCustomerAddress = true,
+    showCustomerEmail = true,
+    showCustomerPhone = true,
     showRetention = true,
+    showPaymentTerms = true,
     onEmitClick = undefined as (() => Promise<any>) | undefined,
   } = $props();
 
   const sectionLabel =
     "text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--form-text-soft)]";
+
+  // Verificar si la operación es sujeta a detracción (códigos que empiezan con "10")
+  const isDetraccionOperation = $derived(
+    ($documentStore["cbc:InvoiceTypeCode"]?._attributes?.listID ?? '').startsWith('10')
+  );
+
+  // Agregar o quitar nota de detracción automáticamente
+  $effect(() => {
+    if (isDetraccionOperation) {
+      setDetraccionNoteAutomatic()
+    } else {
+      removeDetraccionNoteAutomatic()
+    }
+  });
 </script>
 
 <section
@@ -46,10 +69,18 @@
         </section>
       {/if}
 
-      <section class="space-y-3 pt-1">
-        <p class={sectionLabel}>Cliente</p>
-        <Customer />
-      </section>
+      {#if showCustomer}
+        <section class="space-y-3 pt-1">
+          <p class={sectionLabel}>Cliente</p>
+          <Customer
+            {showCustomerRuc}
+            {showCustomerName}
+            {showCustomerAddress}
+            {showCustomerEmail}
+            {showCustomerPhone}
+          />
+        </section>
+      {/if}
 
       <section class="space-y-3 pt-1">
         <p class={sectionLabel}>Ítems</p>
@@ -65,7 +96,13 @@
               <Retention />
             {/if}
 
-            <PaymentTerms total={$documentStore['cac:LegalMonetaryTotal']?.['cbc:PayableAmount']?._text ?? 0} />
+            {#if isDetraccionOperation}
+              <Detraccion total={$documentStore['cac:LegalMonetaryTotal']?.['cbc:PayableAmount']?._text ?? 0} />
+            {/if}
+
+            {#if showPaymentTerms}
+              <PaymentTerms total={$documentStore['cac:LegalMonetaryTotal']?.['cbc:PayableAmount']?._text ?? 0} />
+            {/if}
           </div>
         </div>
       </section>

@@ -1,8 +1,9 @@
 import { get } from 'svelte/store'
 import { documentStore, documentTypeStore } from '$lib/store/document.store'
-import { numeroALetras } from '$lib/shared/utils/convert.utils'
 import { buildTotalsActions } from '$lib/shared/components/summary/summary-panel.component'
+import { convertDecimalToInt, convertIntToDecimal, roundToTwoDecimals } from '$lib/shared/utils/convertnumber.utils'
 
+// Mapeo de línea/cantidad por tipo de documento UBL (factura, NC, ND, guía)
 const LINE_KEY: Record<string, string> = {
   '07': 'cac:CreditNoteLine',
   '08': 'cac:DebitNoteLine',
@@ -10,9 +11,6 @@ const LINE_KEY: Record<string, string> = {
   '31': 'cac:DespatchLine',
 }
 
-// Cada tipo de documento UBL usa un nombre distinto para la cantidad de línea.
-// Factura/Boleta -> InvoicedQuantity, Nota de Crédito -> CreditedQuantity,
-// Nota de Débito -> DebitedQuantity, Guía de Remisión -> DeliveredQuantity.
 const QUANTITY_KEY: Record<string, string> = {
   '07': 'cbc:CreditedQuantity',
   '08': 'cbc:DebitedQuantity',
@@ -49,10 +47,7 @@ export function getQuantityKey(): string {
   return QUANTITY_KEY[type ?? ''] ?? 'cbc:InvoicedQuantity'
 }
 
-/**
- * Quita del body cualquier llave de líneas que no sea la activa.
- * Evita que queden líneas "fantasma" de un tipo de documento anterior.
- */
+// Quita llaves de líneas de otros tipos de documento (evita líneas fantasma)
 function stripOtherLineKeys(body: Record<string, any>, activeKey: string) {
   const clean = { ...body }
   for (const key of ALL_LINE_KEYS) {
@@ -61,10 +56,7 @@ function stripOtherLineKeys(body: Record<string, any>, activeKey: string) {
   return clean
 }
 
-/**
- * Dentro de cada línea, quita cualquier llave de cantidad que no sea la activa
- * (por si la línea viene de hidratar un documento de otro tipo).
- */
+// Quita llaves de cantidad de otros tipos de documento dentro de una línea
 function stripOtherQuantityKeys(line: Record<string, any>, activeKey: string) {
   const clean = { ...line }
   for (const key of ALL_QUANTITY_KEYS) {
@@ -81,23 +73,19 @@ export function hydrateLines(doc: any): LineItem[] {
   const arr = Array.isArray(lines) ? lines : [lines]
 
   return arr.map((line: any, i: number): LineItem => {
-    const igvPercent =
-      line['cac:TaxTotal']?.['cac:TaxSubtotal']?.[0]?.['cac:TaxCategory']?.['cbc:Percent']?._text
+    const igvPercent = line['cac:TaxTotal']?.['cac:TaxSubtotal']?.[0]?.['cac:TaxCategory']?.['cbc:Percent']?._text
     const igvRate = igvPercent ? parseFloat(String(igvPercent)) : 18
 
     const valorUnitario = String(line['cac:Price']?.['cbc:PriceAmount']?._text ?? '')
 
-    const precioRaw =
-      line['cac:PricingReference']?.['cac:AlternativeConditionPrice']?.['cbc:PriceAmount']?._text
-
+    const precioRaw = line['cac:PricingReference']?.['cac:AlternativeConditionPrice']?.['cbc:PriceAmount']?._text
     const precioUnitario = precioRaw
       ? String(precioRaw)
       : valorUnitario
         ? (parseFloat(valorUnitario) * (1 + igvRate / 100)).toFixed(2)
         : ''
 
-    const itemCode =
-      line['cac:Item']?.['cac:SellersItemIdentification']?.['cbc:ID']?._text
+    const itemCode = line['cac:Item']?.['cac:SellersItemIdentification']?.['cbc:ID']?._text
 
     return {
       id: i + 1,
@@ -112,6 +100,25 @@ export function hydrateLines(doc: any): LineItem[] {
   })
 }
 
+export function calcLineTaxAmounts(quantity: number, precioUnitario: number, igvRate: number) {
+  const rate = igvRate / 100
+
+  // Escalar a enteros
+  const qtyInt = convertDecimalToInt(quantity)
+  const precioInt = convertDecimalToInt(precioUnitario)
+  const rateInt = convertDecimalToInt(rate)
+
+  // Operaciones con enteros
+  const subtotalInt = (qtyInt * precioInt) / (100000 + rateInt)
+  const taxInt = (subtotalInt * rateInt) / 100000
+
+  // Desescalar y redondear
+  const lineExtensionAmount = roundToTwoDecimals(convertIntToDecimal(subtotalInt), 2)
+  const taxAmount = roundToTwoDecimals(convertIntToDecimal(taxInt), 2)
+
+  return { lineExtensionAmount, taxAmount }
+}
+
 export function addInvoiceLineActions(data: {
   id: number
   quantity: number
@@ -123,25 +130,39 @@ export function addInvoiceLineActions(data: {
   itemCode?: string
 }) {
   const currency = getCurrency()
-  const lineKey  = getLineKey()
-  const qtyKey   = getQuantityKey()
-  const rate          = data.igvRate / 100
-  const totalLinea    = parseFloat((data.quantity * data.precioUnitario).toFixed(2))
-  const lineExtension = parseFloat((totalLinea / (1 + rate)).toFixed(2))
-  const taxAmount     = parseFloat((totalLinea - lineExtension).toFixed(2))
+  const lineKey = getLineKey()
+  const qtyKey = getQuantityKey()
 
-  documentStore.update(rawBody => {
+  const { lineExtensionAmount, taxAmount } = calcLineTaxAmounts(
+    data.quantity,
+    data.precioUnitario,
+    data.igvRate,
+  )
+
+  documentStore.update((rawBody) => {
     const body = stripOtherLineKeys(rawBody, lineKey)
     const allLines = (body[lineKey] as any[]) ?? []
     const existingIndex = allLines.findIndex((l: any) => l['cbc:ID']._text === data.id)
     const existingLineRaw = existingIndex !== -1 ? allLines[existingIndex] : {}
     const existingLine = stripOtherQuantityKeys(existingLineRaw, qtyKey)
 
-    const resolvedItemCode = data.itemCode
-      ?? existingLine['cac:Item']?.['cac:SellersItemIdentification']?.['cbc:ID']?._text
+    const resolvedItemCode =
+      data.itemCode ?? existingLine['cac:Item']?.['cac:SellersItemIdentification']?.['cbc:ID']?._text
+
+    // Resto de la línea no recalculado aquí; se excluyen las llaves reconstruidas abajo para fijar su orden en el XML
+    const {
+      'cbc:ID': _id,
+      [qtyKey]: _qty,
+      'cbc:LineExtensionAmount': _lineExtension,
+      'cac:PricingReference': _pricingRef,
+      'cac:TaxTotal': _taxTotal,
+      'cac:Item': _item,
+      'cac:Price': _price,
+      ...restOfLine
+    } = existingLine
 
     const mergedLine = {
-      ...existingLine,
+      ...restOfLine,
       'cbc:ID': { _text: data.id },
       [qtyKey]: {
         ...existingLine[qtyKey],
@@ -151,7 +172,7 @@ export function addInvoiceLineActions(data: {
       'cbc:LineExtensionAmount': {
         ...existingLine['cbc:LineExtensionAmount'],
         _attributes: { ...existingLine['cbc:LineExtensionAmount']?._attributes, currencyID: currency },
-        _text: lineExtension,
+        _text: lineExtensionAmount,
       },
       'cac:PricingReference': {
         ...existingLine['cac:PricingReference'],
@@ -159,11 +180,15 @@ export function addInvoiceLineActions(data: {
           ...existingLine['cac:PricingReference']?.['cac:AlternativeConditionPrice'],
           'cbc:PriceAmount': {
             ...existingLine['cac:PricingReference']?.['cac:AlternativeConditionPrice']?.['cbc:PriceAmount'],
-            _attributes: { ...existingLine['cac:PricingReference']?.['cac:AlternativeConditionPrice']?.['cbc:PriceAmount']?._attributes, currencyID: currency },
+            _attributes: {
+              ...existingLine['cac:PricingReference']?.['cac:AlternativeConditionPrice']?.['cbc:PriceAmount']
+                ?._attributes,
+              currencyID: currency,
+            },
             _text: data.precioUnitario,
           },
           'cbc:PriceTypeCode': { _text: '01' },
-        }
+        },
       },
       'cac:TaxTotal': {
         ...existingLine['cac:TaxTotal'],
@@ -172,30 +197,38 @@ export function addInvoiceLineActions(data: {
           _attributes: { ...existingLine['cac:TaxTotal']?.['cbc:TaxAmount']?._attributes, currencyID: currency },
           _text: taxAmount,
         },
-        'cac:TaxSubtotal': [{
-          ...existingLine['cac:TaxTotal']?.['cac:TaxSubtotal']?.[0],
-          'cbc:TaxableAmount': {
-            ...existingLine['cac:TaxTotal']?.['cac:TaxSubtotal']?.[0]?.['cbc:TaxableAmount'],
-            _attributes: { ...existingLine['cac:TaxTotal']?.['cac:TaxSubtotal']?.[0]?.['cbc:TaxableAmount']?._attributes, currencyID: currency },
-            _text: lineExtension,
+        'cac:TaxSubtotal': [
+          {
+            ...existingLine['cac:TaxTotal']?.['cac:TaxSubtotal']?.[0],
+            'cbc:TaxableAmount': {
+              ...existingLine['cac:TaxTotal']?.['cac:TaxSubtotal']?.[0]?.['cbc:TaxableAmount'],
+              _attributes: {
+                ...existingLine['cac:TaxTotal']?.['cac:TaxSubtotal']?.[0]?.['cbc:TaxableAmount']?._attributes,
+                currencyID: currency,
+              },
+              _text: lineExtensionAmount,
+            },
+            'cbc:TaxAmount': {
+              ...existingLine['cac:TaxTotal']?.['cac:TaxSubtotal']?.[0]?.['cbc:TaxAmount'],
+              _attributes: {
+                ...existingLine['cac:TaxTotal']?.['cac:TaxSubtotal']?.[0]?.['cbc:TaxAmount']?._attributes,
+                currencyID: currency,
+              },
+              _text: taxAmount,
+            },
+            'cac:TaxCategory': {
+              ...existingLine['cac:TaxTotal']?.['cac:TaxSubtotal']?.[0]?.['cac:TaxCategory'],
+              'cbc:Percent': { _text: data.igvRate },
+              'cbc:TaxExemptionReasonCode': { _text: '10' },
+              'cac:TaxScheme': {
+                ...existingLine['cac:TaxTotal']?.['cac:TaxSubtotal']?.[0]?.['cac:TaxCategory']?.['cac:TaxScheme'],
+                'cbc:ID': { _text: '1000' },
+                'cbc:Name': { _text: 'IGV' },
+                'cbc:TaxTypeCode': { _text: 'VAT' },
+              },
+            },
           },
-          'cbc:TaxAmount': {
-            ...existingLine['cac:TaxTotal']?.['cac:TaxSubtotal']?.[0]?.['cbc:TaxAmount'],
-            _attributes: { ...existingLine['cac:TaxTotal']?.['cac:TaxSubtotal']?.[0]?.['cbc:TaxAmount']?._attributes, currencyID: currency },
-            _text: taxAmount,
-          },
-          'cac:TaxCategory': {
-            ...existingLine['cac:TaxTotal']?.['cac:TaxSubtotal']?.[0]?.['cac:TaxCategory'],
-            'cbc:Percent':                { _text: data.igvRate },
-            'cbc:TaxExemptionReasonCode': { _text: '10' },
-            'cac:TaxScheme': {
-              ...existingLine['cac:TaxTotal']?.['cac:TaxSubtotal']?.[0]?.['cac:TaxCategory']?.['cac:TaxScheme'],
-              'cbc:ID':          { _text: '1000' },
-              'cbc:Name':        { _text: 'IGV' },
-              'cbc:TaxTypeCode': { _text: 'VAT' },
-            }
-          }
-        }]
+        ],
       },
       'cac:Item': {
         ...existingLine['cac:Item'],
@@ -203,9 +236,9 @@ export function addInvoiceLineActions(data: {
         ...(resolvedItemCode && {
           'cac:SellersItemIdentification': {
             ...existingLine['cac:Item']?.['cac:SellersItemIdentification'],
-            'cbc:ID': { _text: resolvedItemCode }
-          }
-        })
+            'cbc:ID': { _text: resolvedItemCode },
+          },
+        }),
       },
       'cac:Price': {
         ...existingLine['cac:Price'],
@@ -213,66 +246,54 @@ export function addInvoiceLineActions(data: {
           ...existingLine['cac:Price']?.['cbc:PriceAmount'],
           _attributes: { ...existingLine['cac:Price']?.['cbc:PriceAmount']?._attributes, currencyID: currency },
           _text: data.valorUnitario,
-        }
+        },
       },
     }
 
-    const lines = existingIndex !== -1
-      ? allLines.map((l: any, i: number) => i === existingIndex ? mergedLine : l)
-      : [...allLines, mergedLine]
+    const lines =
+      existingIndex !== -1
+        ? allLines.map((line: any, i: number) => (i === existingIndex ? mergedLine : line))
+        : [...allLines, mergedLine]
 
-    const { total, ...ubl } = buildTotalsActions(lines, currency)
+    const ubl = buildTotalsActions(lines, currency)
 
     return {
       ...body,
       [lineKey]: lines,
       ...ubl,
-      'cbc:Note': [
-        ...(body['cbc:Note'] ?? []).filter((n: any) => n._attributes?.languageLocaleID !== '1000'),
-        { _text: numeroALetras(total), _attributes: { languageLocaleID: '1000' } }
-      ]
     }
   })
 }
 
 export function removeInvoiceLineActions(id: number) {
   const currency = getCurrency()
-  const lineKey  = getLineKey()
+  const lineKey = getLineKey()
 
-  documentStore.update(rawBody => {
+  documentStore.update((rawBody) => {
     const body = stripOtherLineKeys(rawBody, lineKey)
-    const lines = ((body[lineKey] as any[]) ?? [])
-      .filter((l: any) => l['cbc:ID']._text !== id)
-    const { total, ...ubl } = buildTotalsActions(lines, currency)
+    const lines = ((body[lineKey] as any[]) ?? []).filter((line: any) => line['cbc:ID']._text !== id)
+    const ubl = buildTotalsActions(lines, currency)
 
     return {
       ...body,
       [lineKey]: lines,
       ...ubl,
-      'cbc:Note': [
-        ...(body['cbc:Note'] ?? []).filter((n: any) => n._attributes?.languageLocaleID !== '1000'),
-        { _text: numeroALetras(total), _attributes: { languageLocaleID: '1000' } }
-      ]
     }
   })
 }
 
 export function clearInvoiceLines() {
   const currency = getCurrency()
-  const lineKey  = getLineKey()
+  const lineKey = getLineKey()
 
-  documentStore.update(rawBody => {
+  documentStore.update((rawBody) => {
     const body = stripOtherLineKeys(rawBody, lineKey)
-    const { total, ...ubl } = buildTotalsActions([], currency)
+    const ubl = buildTotalsActions([], currency)
 
     return {
       ...body,
       [lineKey]: [],
       ...ubl,
-      'cbc:Note': [
-        ...(body['cbc:Note'] ?? []).filter((n: any) => n._attributes?.languageLocaleID !== '1000'),
-        { _text: numeroALetras(total), _attributes: { languageLocaleID: '1000' } }
-      ]
     }
   })
 }

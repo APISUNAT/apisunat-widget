@@ -79,7 +79,7 @@ export function getSupplierData(): {
 }
 
 export function isValidRuc(ruc: string): boolean {
-  return /^(10|15|17|20)\d{9}$/.test(ruc)
+  return /^(10|15|16|17|20)\d{9}$/.test(ruc)
 }
 
 export function isRucComplete(ruc: string): boolean {

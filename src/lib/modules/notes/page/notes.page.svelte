@@ -15,6 +15,12 @@
   let {
     showHeader = true,
     showSupplier = true,
+    showCustomer = true,
+    showCustomerRuc = true,
+    showCustomerName = true,
+    showCustomerAddress = true,
+    showCustomerEmail = true,
+    showCustomerPhone = true,
     showRetention = true,
     onEmitClick = undefined as (() => Promise<any>) | undefined,
   } = $props();
@@ -47,10 +53,18 @@
         </section>
       {/if}
 
-      <section class="space-y-3 pt-1">
-        <p class={sectionLabel}>Cliente</p>
-        <Customer />
-      </section>
+      {#if showCustomer}
+        <section class="space-y-3 pt-1">
+          <p class={sectionLabel}>Cliente</p>
+          <Customer
+            {showCustomerRuc}
+            {showCustomerName}
+            {showCustomerAddress}
+            {showCustomerEmail}
+            {showCustomerPhone}
+          />
+        </section>
+      {/if}
 
       <section class="space-y-3 pt-1">
         <p class={sectionLabel}>Ítems</p>

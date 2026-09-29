@@ -55,6 +55,8 @@
       }
     }
 
+    // Sincroniza el DOM con el valor ya filtrado para que el navegador
+    // no muestre por un instante el carácter rechazado.
     target.value = val;
     value = val;
 
@@ -75,13 +77,13 @@
 
   <div class="relative">
     <input
-      bind:value
+      {value}
       {type}
       placeholder={placeholder || label}
       {disabled}
       {required}
       maxlength={maxLength}
-      inputmode={onlyNumbers ? (maxDecimals !== undefined ? 'decimal' : 'numeric') : (maxDecimals !== undefined ? 'decimal' : undefined)}
+      inputmode={onlyNumbers ? (maxDecimals !== undefined ? 'decimal' : 'numeric') : undefined}
       oninput={handleInput}
       class={inputClass}
     />

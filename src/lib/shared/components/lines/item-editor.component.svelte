@@ -17,10 +17,21 @@
     calcValorFromPrecio,
     calcPrecioOnRateChange,
   } from "./item-editor.utils";
+  import type { LineItem, EditableItem } from "./lines.component";
 
-  let { isOpen = false, itemEditor = null, mode = "create" } = $props();
+  let {
+    isOpen = false,
+    itemEditor = null,
+    mode = "create",
+  }: { isOpen?: boolean; itemEditor?: LineItem | null; mode?: "create" | "edit" } =
+    $props();
 
   const dispatch = createEventDispatcher();
+
+  let editorItem = $state(createEditableItem());
+  let lastEdited = $state<"valor" | "precio" | null>(null);
+
+  const fieldLabelClass = "font-medium";
 
   const symbol = $derived(
     CATALOGO02.find(
@@ -30,30 +41,6 @@
     )?.symbol ?? "S/",
   );
 
-  const fieldLabelClass = "font-medium";
-
-  let editorItem = $state(createEditableItem());
-  let lastEdited = $state<"valor" | "precio" | null>(null);
-
-  $effect(() => {
-    editorItem = isOpen
-      ? createEditableItem(itemEditor ?? {})
-      : createEditableItem();
-    lastEdited = null;
-  });
-
-  $effect(() => {
-    const val = editorItem.valorUnitario;
-    if (lastEdited !== "valor") return;
-    editorItem.precioUnitario = calcPrecioFromValor(val, editorItem.igvRate);
-  });
-
-  $effect(() => {
-    const precio = editorItem.precioUnitario;
-    if (lastEdited !== "precio") return;
-    editorItem.valorUnitario = calcValorFromPrecio(precio, editorItem.igvRate);
-  });
-
   const itemAmounts = $derived.by(() =>
     calcItemAmounts(
       editorItem.quantity,
@@ -62,9 +49,12 @@
     ),
   );
 
+  // Nota de crédito (07) con motivo "Anulación de la operación" (03)
+  // permite precio unitario en 0.
   const isZeroPriceAllowed = $derived(
-    $documentTypeStore === '07' &&
-    $documentStore['cac:DiscrepancyResponse']?.['cbc:ResponseCode']?._text === '03'
+    $documentTypeStore === "07" &&
+      $documentStore["cac:DiscrepancyResponse"]?.["cbc:ResponseCode"]?._text ===
+        "03",
   );
 
   const isValid = $derived(
@@ -73,12 +63,48 @@
       (isZeroPriceAllowed || parseFloat(editorItem.precioUnitario) > 0),
   );
 
+  $effect(() => {
+    editorItem = isOpen
+      ? createEditableItem(itemEditor ?? {})
+      : createEditableItem();
+
+    lastEdited = null;
+  });
+
+  $effect(() => {
+    if (lastEdited !== "valor") return;
+    editorItem.precioUnitario = calcPrecioFromValor(
+      editorItem.valorUnitario,
+      editorItem.igvRate,
+    );
+  });
+
+  $effect(() => {
+    if (lastEdited !== "precio") return;
+    editorItem.valorUnitario = calcValorFromPrecio(
+      editorItem.precioUnitario,
+      editorItem.igvRate,
+    );
+  });
+
   function onRateChange(newRate: number) {
     editorItem.igvRate = newRate;
     editorItem.precioUnitario = calcPrecioOnRateChange(
       editorItem.valorUnitario,
       newRate,
     );
+  }
+
+  function onSave() {
+    const payload: EditableItem = {
+      ...editorItem,
+      itemCode: itemEditor?.itemCode,
+    };
+    dispatch("save", payload);
+  }
+
+  function onClose() {
+    dispatch("close");
   }
 </script>
 
@@ -87,7 +113,7 @@
     <button
       aria-label="Cerrar modal"
       class="absolute inset-0 bg-[color:color-mix(in_oklab,var(--form-color-1)_74%,transparent)]"
-      onclick={() => dispatch("close")}
+      onclick={onClose}
       type="button"
     ></button>
 
@@ -124,7 +150,7 @@
           <button
             aria-label="Cerrar modal"
             class="inline-flex size-9 items-center justify-center rounded-full border border-[color:color-mix(in_oklab,var(--form-color-3)_28%,transparent)] bg-transparent text-[var(--form-text-color)] transition hover:bg-[color:color-mix(in_oklab,var(--form-color-3)_10%,transparent)]"
-            onclick={() => dispatch("close")}
+            onclick={onClose}
             type="button"
           >
             <svg
@@ -168,13 +194,17 @@
 
           <!-- Fila 2: Precios + Panel totales -->
           <div
-            class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-start"
+            class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_420px] lg:items-start"
           >
-            <div class="grid gap-3 sm:grid-cols-2">
-              <div class="grid gap-1.5 text-[13px] text-[var(--form-text-muted)]">
+            <div class="grid gap-3 sm:grid-cols-2 max-w-md">
+              <div
+                class="grid gap-1.5 text-[13px] text-[var(--form-text-muted)]"
+              >
                 <span class={fieldLabelClass}>
                   Valor unitario
-                  <span class="font-normal text-[var(--form-text-soft)]">(sin IGV)</span>
+                  <span class="font-normal text-[var(--form-text-soft)]"
+                    >(sin IGV)</span
+                  >
                 </span>
                 <Input
                   showLabel={false}
@@ -187,10 +217,14 @@
                 />
               </div>
 
-              <div class="grid gap-1.5 text-[13px] text-[var(--form-text-muted)]">
+              <div
+                class="grid gap-1.5 text-[13px] text-[var(--form-text-muted)]"
+              >
                 <span class={fieldLabelClass}>
                   Precio unitario
-                  <span class="font-normal text-[var(--form-text-soft)]">(con IGV)</span>
+                  <span class="font-normal text-[var(--form-text-soft)]"
+                    >(con IGV)</span
+                  >
                 </span>
                 <Input
                   showLabel={false}
@@ -209,21 +243,22 @@
               class="rounded-[1rem] border border-[color:color-mix(in_oklab,var(--form-color-3)_24%,transparent)] bg-[var(--form-panel-bg)] px-4 py-4"
             >
               <div class="space-y-2.5">
-
                 <!-- Tipo de operación -->
                 <div class="flex items-center justify-between gap-4">
-                  <span class="text-sm text-[var(--form-text-soft)]">Tipo op.</span>
+                  <span class="text-sm text-[var(--form-text-soft)]"
+                    >Tipo op.</span
+                  >
                   <div class="flex gap-1">
                     {#each CATALOGO05 as cat}
                       <button
                         type="button"
-                        disabled={cat.value !== '1000'}
-                        onclick={() => { editorItem.taxSchemeValue = cat.value }}
+                        disabled={cat.value !== "1000"}
+                        onclick={() => (editorItem.taxSchemeValue = cat.value)}
                         class="rounded-md px-2 py-1 text-xs font-medium border transition
-                          {editorItem.taxSchemeValue === cat.value
-                            ? 'border-[var(--form-color-3)] bg-[var(--form-color-3)] text-white'
-                            : 'border-[color:color-mix(in_oklab,var(--form-color-3)_30%,transparent)] bg-transparent text-[var(--form-text-soft)]'}
-                          disabled:opacity-35 disabled:cursor-not-allowed"
+                            {editorItem.taxSchemeValue === cat.value
+                          ? 'border-[var(--form-color-3)] bg-[var(--form-color-3)] text-white'
+                          : 'border-[color:color-mix(in_oklab,var(--form-color-3)_30%,transparent)] bg-transparent text-[var(--form-text-soft)]'}
+                            disabled:opacity-35 disabled:cursor-not-allowed"
                       >
                         {cat.label}
                       </button>
@@ -232,7 +267,9 @@
                 </div>
 
                 <div class="flex items-center justify-between gap-4">
-                  <span class="text-sm text-[var(--form-text-soft)]">Tasa IGV</span>
+                  <span class="text-sm text-[var(--form-text-soft)]"
+                    >Tasa IGV</span
+                  >
                   <select
                     class="rounded-lg border border-[color:color-mix(in_oklab,var(--form-color-3)_30%,transparent)] bg-[var(--form-field-bg)] px-2 py-1 text-sm text-[var(--form-text-color)] outline-none focus:border-[var(--form-color-3)]"
                     value={String(editorItem.igvRate)}
@@ -253,28 +290,41 @@
                 </div>
 
                 <div class="flex items-center justify-between gap-4">
-                  <span class="text-sm text-[var(--form-text-soft)]">Op. gravada</span>
-                  <span class="text-sm font-semibold text-[var(--form-text-color)]">
-                    {symbol} {itemAmounts.subtotal}
+                  <span class="text-sm text-[var(--form-text-soft)]"
+                    >Op. gravada</span
+                  >
+                  <span
+                    class="text-sm font-semibold text-[var(--form-text-color)]"
+                  >
+                    {symbol}
+                    {itemAmounts.subtotal}
                   </span>
                 </div>
                 <div class="flex items-center justify-between gap-4">
                   <span class="text-sm text-[var(--form-text-soft)]">
                     IGV ({editorItem.igvRate}%)
                   </span>
-                  <span class="text-sm font-semibold text-[var(--form-text-color)]">
-                    {symbol} {itemAmounts.tax}
+                  <span
+                    class="text-sm font-semibold text-[var(--form-text-color)]"
+                  >
+                    {symbol}
+                    {itemAmounts.tax}
                   </span>
                 </div>
                 <div
                   class="border-t border-[color:color-mix(in_oklab,var(--form-color-3)_20%,transparent)] pt-2.5"
                 >
                   <div class="flex items-center justify-between gap-4">
-                    <span class="text-base font-semibold text-[var(--form-text-color)]">
+                    <span
+                      class="text-base font-semibold text-[var(--form-text-color)]"
+                    >
                       Importe total
                     </span>
-                    <span class="text-lg font-semibold text-[var(--form-text-color)]">
-                      {symbol} {itemAmounts.total}
+                    <span
+                      class="text-lg font-semibold text-[var(--form-text-color)]"
+                    >
+                      {symbol}
+                      {itemAmounts.total}
                     </span>
                   </div>
                 </div>
@@ -289,13 +339,13 @@
         >
           <button
             class="inline-flex items-center justify-center rounded-full border border-[color:color-mix(in_oklab,var(--form-color-3)_28%,transparent)] bg-transparent px-4 py-2 text-sm font-medium text-[var(--form-text-color)] transition hover:bg-[color:color-mix(in_oklab,var(--form-color-3)_10%,transparent)]"
-            onclick={() => dispatch("close")}
+            onclick={onClose}
             type="button">Cancelar</button
           >
           <button
             class="inline-flex items-center justify-center rounded-full border border-[var(--form-color-3)] bg-[var(--form-color-3)] px-4 py-2 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-45"
             disabled={!isValid}
-            onclick={() => dispatch("save", editorItem)}
+            onclick={onSave}
             type="button"
           >
             {mode === "edit" ? "Guardar ítem" : "Agregar ítem"}

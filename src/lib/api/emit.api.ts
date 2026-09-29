@@ -3,7 +3,7 @@ import { getDocumentOutput } from '$lib/store/document.store'
 const API_URL = import.meta.env.VITE_API_URL
 
 export async function sendBillPOSTASYNC() {
-  const { personaId, personaToken, fileName, documentBody } = getDocumentOutput()
+  const { personaId, personaToken, fileName, customerEmail, documentBody } = getDocumentOutput()
 
   if (!documentBody || Object.keys(documentBody).length === 0) {
     throw new Error('No hay documento cargado para enviar')
@@ -20,7 +20,8 @@ export async function sendBillPOSTASYNC() {
         personaId,
         personaToken,
         fileName,
-        documentBody
+        documentBody,
+        customerEmail
       })
     }
   )

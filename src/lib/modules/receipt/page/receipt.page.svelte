@@ -6,14 +6,21 @@
   import Lines from "$lib/shared/components/lines/lines.component.svelte";
   import DocumentReference from "$lib/shared/components/document-reference/document-reference.component.svelte";
   import NotesPanel from "$lib/shared/components/notes/notes-panel.component.svelte";
-  import PaymentTerms from "$lib/shared/components/payment-terms/payment-terms.component.svelte";
   import EmitButton from "$lib/shared/components/emit/emit-button.component.svelte";
   import SummaryPanel from '$lib/shared/components/summary/summary-panel.component.svelte';
+  import Detraccion from "$lib/shared/components/detraccion/detraccion.component.svelte";
   import { documentStore } from "$lib/store/document.store";
+  import { setDetraccionNoteAutomatic, removeDetraccionNoteAutomatic } from "$lib/shared/components/notes/notes.component";
 
   let {
     showHeader = true,
     showSupplier = true,
+    showCustomer = true,
+    showCustomerRuc = true,
+    showCustomerName = true,
+    showCustomerAddress = true,
+    showCustomerEmail = true,
+    showCustomerPhone = true,
     showRetention = true,   // ← añadido
     onEmitClick = undefined as (() => Promise<any>) | undefined,
   } = $props();
@@ -22,6 +29,20 @@
     "text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--form-text-soft)]";
   const panelClass =
     "overflow-hidden rounded-[1.15rem] border border-[color:color-mix(in_oklab,var(--form-color-3)_22%,transparent)] bg-[var(--form-panel-bg)]";
+
+  // Verificar si la operacion es sujeta a detraccion (codigos que empiezan con "10")
+  const isDetraccionOperation = $derived(
+    ($documentStore["cbc:InvoiceTypeCode"]?._attributes?.listID ?? '').startsWith('10')
+  );
+
+  // Agregar o quitar nota de detracción automáticamente
+  $effect(() => {
+    if (isDetraccionOperation) {
+      setDetraccionNoteAutomatic()
+    } else {
+      removeDetraccionNoteAutomatic()
+    }
+  });
 </script>
 
 <section
@@ -49,10 +70,18 @@
         </section>
       {/if}
 
-      <section class="space-y-3 pt-1">
-        <p class={sectionLabel}>Cliente</p>
-        <Customer />
-      </section>
+      {#if showCustomer}
+        <section class="space-y-3 pt-1">
+          <p class={sectionLabel}>Cliente</p>
+          <Customer
+            {showCustomerRuc}
+            {showCustomerName}
+            {showCustomerAddress}
+            {showCustomerEmail}
+            {showCustomerPhone}
+          />
+        </section>
+      {/if}
 
       <section class="space-y-3 pt-1">
         <p class={sectionLabel}>Ítems</p>
@@ -64,7 +93,9 @@
 
             <SummaryPanel />
 
-
+            {#if isDetraccionOperation}
+              <Detraccion total={$documentStore['cac:LegalMonetaryTotal']?.['cbc:PayableAmount']?._text ?? 0} />
+            {/if}
           </div>
         </div>
       </section>

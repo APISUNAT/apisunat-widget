@@ -1,6 +1,7 @@
-import { documentStore } from '$lib/store/document.store'
+import { documentStore, documentTypeStore } from '$lib/store/document.store'
 import { getDNIGETAsync, getRUCGETAsync } from '$lib/api/documents.api'
 import { getCustomerCache, setCustomerCache } from './customer.cache'
+import { get } from 'svelte/store'
 
 type CustomerData = { name: string; address: string }
 
@@ -13,37 +14,41 @@ export function setCustomerActions(data: {
     email?: string
 }) {
     const isNoDocument = data.typeDocument === '-'
+    const docType = get(documentTypeStore)
+    const isGuiaRemision = docType === '09' || docType === '31'
+
+    const partyData = {
+        'cac:Party': {
+            'cac:PartyIdentification': {
+                'cbc:ID': {
+                    _attributes: { schemeID: isNoDocument ? '-' : data.typeDocument },
+                    _text: isNoDocument ? '00000000' : data.numberDocument,
+                }
+            },
+            'cac:PartyLegalEntity': {
+                'cbc:RegistrationName': {
+                    _text: data.name.trim() || '---'
+                },
+                ...(data.address && {
+                    'cac:RegistrationAddress': {
+                        'cac:AddressLine': {
+                            'cbc:Line': { _text: data.address }
+                        }
+                    }
+                }),
+            },
+            ...((data.phone || data.email) && {
+                'cac:Contact': {
+                    ...(data.phone && { 'cbc:Telephone': { _text: data.phone } }),
+                    ...(data.email && { 'cbc:ElectronicMail': { _text: data.email } }),
+                }
+            })
+        }
+    }
 
     documentStore.update(body => ({
         ...body,
-        'cac:AccountingCustomerParty': {
-            'cac:Party': {
-                'cac:PartyIdentification': {
-                    'cbc:ID': {
-                        _attributes: { schemeID: isNoDocument ? '-' : data.typeDocument },
-                        _text: isNoDocument ? '00000000' : data.numberDocument,
-                    }
-                },
-                'cac:PartyLegalEntity': {
-                    'cbc:RegistrationName': {
-                        _text: data.name.trim() || '---'
-                    },
-                    ...(data.address && {
-                        'cac:RegistrationAddress': {
-                            'cac:AddressLine': {
-                                'cbc:Line': { _text: data.address }
-                            }
-                        }
-                    }),
-                },
-                ...((data.phone || data.email) && {
-                    'cac:Contact': {
-                        ...(data.phone && { 'cbc:Telephone': { _text: data.phone } }),
-                        ...(data.email && { 'cbc:ElectronicMail': { _text: data.email } }),
-                    }
-                })
-            }
-        }
+        [isGuiaRemision ? 'cac:DeliveryCustomerParty' : 'cac:AccountingCustomerParty']: partyData
     }))
 }
 

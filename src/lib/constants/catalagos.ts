@@ -2,7 +2,6 @@ export const CATALOGOIGVPercents = [
     {
         value: 10,
         label: 'IGV 10%',
-        // disabled: true
     },
     {
         value: 10.5,
@@ -1717,7 +1716,127 @@ export const CATALOGO52 = [
         label: 'EXPORTACION DE SERVICIOS - DECRETO LEGISLATIVO Nº 919'
     }
 ]
-
+export const CATALOGO53 = [
+    {
+        value: '00',
+        level: 'Item',
+        type: 'descuento'
+    },
+    {
+        value: '01',
+        level: 'Item',
+        type: 'descuento'
+    },
+    {
+        value: '02',
+        level: 'Global',
+        type: 'descuento'
+    },
+    {
+        value: '03',
+        level: 'Global',
+        type: 'descuento'
+    },
+    {
+        value: '04',
+        level: 'Global',
+        type: 'descuento'
+    },
+    {
+        value: '05',
+        level: 'Global',
+        type: 'descuento'
+    },
+    {
+        value: '06',
+        level: 'Global',
+        type: 'descuento'
+    },
+    {
+        value: '07',
+        level: 'Item',
+        type: 'descuento'
+    },
+    {
+        value: '20',
+        level: 'Global',
+        type: 'cargo',
+        name: 'ANTICIPO_ISC'
+    },
+    {
+        value: '45',
+        level: 'Global',
+        type: 'cargo',
+        name: 'FISE'
+    },
+    {
+        value: '46',
+        level: 'Global',
+        type: 'cargo',
+        name: 'RECARGO_CONSUMO'
+    },
+    {
+        value: '47',
+        level: 'Item',
+        type: 'cargo'
+    },
+    {
+        value: '48',
+        level: 'Item',
+        type: 'cargo'
+    },
+    {
+        value: '49',
+        level: 'Global',
+        type: 'cargo'
+    },
+    {
+        value: '50',
+        level: 'Global',
+        type: 'cargo'
+    },
+    {
+        value: '51',
+        level: 'Global',
+        type: 'cargo',
+        name: 'PERCEPCION_VENTA_INTERNA'
+    },
+    {
+        value: '52',
+        level: 'Global',
+        type: 'cargo',
+        name: 'PERCEPCION_COMBUSTIBLE'
+    },
+    {
+        value: '53',
+        level: 'Global',
+        type: 'cargo',
+        name: 'PERCEPCION_TASA_ESPECIAL'
+    },
+    {
+        value: '54',
+        level: 'Item',
+        type: 'cargo'
+    },
+    {
+        value: '61',
+        level: 'Global',
+        type: 'cargo',
+        name: 'RETENCION_RENTA_ANTICIPOS'
+    },
+    {
+        value: '62',
+        level: 'Global',
+        type: 'cargo',
+        name: 'RETENCION_IGV'
+    },
+    {
+        value: '63',
+        level: 'Global',
+        type: 'cargo',
+        name: 'RETENCION_RENTA_SEGUNDA_CATEGORIA'
+    },
+]
 export const CATALOGO54 = [
     {
         value: '001',
