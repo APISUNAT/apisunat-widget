@@ -13,7 +13,7 @@ No depende de ningún framework: funciona en HTML plano, y también en proyectos
 <script type="module" src="https://unpkg.com/@apisunat/apisunat-widget@0.1.0/dist/apisunat-widget.js"></script>
 ```
 
-> Fija siempre la versión (`@0.1.0`) para evitar romper tu app con una actualización futura.
+> Fija siempre la versión (por ejemplo `@0.1.0`) para evitar romper tu app con una actualización futura.
 
 ### Con npm
 
