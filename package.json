@@ -1,5 +1,5 @@
 {
-	"name": "@kami_lml/apisunat-widget",
+	"name": "@apisunat/apisunat-widget",
 	"version": "0.1.0",
 	"description": "Widget de facturación electrónica SUNAT (custom element Svelte)",
 	"license": "MIT",
