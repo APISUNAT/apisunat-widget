@@ -8,6 +8,14 @@
 	"module": "./dist/apisunat-widget.js",
 	"style": "./dist/assets/apisunat-widget.css",
 	"sideEffects": true,
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/APISUNAT/apisunat-widget"
+	},
+	"bugs": {
+		"url": "https://github.com/APISUNAT/apisunat-widget"
+	},
+	"homepage": "https://github.com/APISUNAT/apisunat-widget",
 	"files": [
 		"dist"
 	],
