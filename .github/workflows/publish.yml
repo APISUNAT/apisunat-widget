@@ -19,11 +19,14 @@ jobs:
       - name: Instalar Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: 'node'
           registry-url: 'https://registry.npmjs.org'
+
+      - name: Actualizar npm para Trusted Publishing
+        run: npm install --global npm@latest
 
       - name: Instalar dependencias
         run: npm ci --registry=https://registry.npmjs.org
 
       - name: Publicar en npmRegistry
-        run: npm publish --access public
+        run: npm publish --access public --provenance
