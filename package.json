@@ -4,18 +4,18 @@
 	"description": "Widget de facturación electrónica SUNAT (custom element Svelte)",
 	"license": "MIT",
 	"type": "module",
-	"main": "./dist/sunat-invoice.js",
-	"module": "./dist/sunat-invoice.js",
-	"style": "./dist/assets/invoice-sunat.css",
+	"main": "./dist/apisunat-widget.js",
+	"module": "./dist/apisunat-widget.js",
+	"style": "./dist/assets/apisunat-widget.css",
 	"sideEffects": true,
 	"files": [
 		"dist"
 	],
 	"exports": {
 		".": {
-			"default": "./dist/sunat-invoice.js"
+			"default": "./dist/apisunat-widget.js"
 		},
-		"./styles.css": "./dist/assets/invoice-sunat.css"
+		"./styles.css": "./dist/assets/apisunat-widget.css"
 	},
 	"scripts": {
 		"dev": "vite dev",
