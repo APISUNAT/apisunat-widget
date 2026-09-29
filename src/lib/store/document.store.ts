@@ -257,7 +257,7 @@ export function getDocumentOutput(): Record<string, any> {
     const template = emitBody[type]
     const rawOutput = Object.fromEntries(
         Object.keys(template).map((key) => {
-            const fixedKeys = ['cbc:UBLVersionID', 'cbc:CustomizationID']
+            const fixedKeys = ['cbc:UBLVersionID', 'cbc:CustomizationID', 'cbc:DespatchAdviceTypeCode']
             return [key, fixedKeys.includes(key) ? (template as any)[key] : doc[key]]
         })
     )

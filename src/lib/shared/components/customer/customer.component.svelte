@@ -9,7 +9,7 @@
   } from "$lib/constants/icons.constants";
   import Input from "$lib/shared/ui/input.svelte";
   import Select from "$lib/shared/ui/select.svelte";
-  import { documentLoaded, documentStore } from "$lib/store/document.store";
+  import { documentLoaded, documentStore, documentTypeStore } from "$lib/store/document.store";
   import {
     fetchCustomerByDocument,
     setCustomerActions,
@@ -22,13 +22,7 @@
     maxLengthInput,
   } from "./customer.utils";
 
-  let {
-    showCustomerRuc = true,
-    showCustomerName = true,
-    showCustomerAddress = true,
-    showCustomerEmail = true,
-    showCustomerPhone = true,
-  } = $props();
+  let { hidden = false } = $props();
 
   let typeDocument = $state("");
   let numberDocument = $state("");
@@ -43,9 +37,9 @@
   let lastLoadedTimestamp = 0;
   let hydrateToken = 0;
 
-  const currentDocumentType = $derived(
-    $documentStore["cbc:InvoiceTypeCode"]?._text ?? "",
-  );
+  const isGuiaRemision = $derived($documentTypeStore === "09" || $documentTypeStore === "31");
+  const customerLabel = $derived(isGuiaRemision ? "Destinatario" : "Cliente");
+  const currentDocumentType = $derived($documentTypeStore ?? "");
   const filteredCatalogo06 = $derived(
     getFilteredCatalogo(CATALOGO06, currentDocumentType),
   );
@@ -59,6 +53,7 @@
   function getDefaultDocumentType(invoiceType: string): string {
     if (invoiceType === "03") return "1";
     if (invoiceType === "01") return "6";
+    if (invoiceType === "09") return "1";
     return "";
   }
 
@@ -71,7 +66,8 @@
   }
 
   function hydrateFromStore(doc: Record<string, any>) {
-    const party = doc["cac:AccountingCustomerParty"]?.["cac:Party"];
+    const partyKey = isGuiaRemision ? "cac:DeliveryCustomerParty" : "cac:AccountingCustomerParty";
+    const party = doc[partyKey]?.["cac:Party"];
 
     if (!party) {
       typeDocument = getDefaultDocumentType(currentDocumentType);
@@ -187,72 +183,64 @@
   });
 </script>
 
-{#if showCustomerRuc || showCustomerName}
+<div class:hidden>
+  <p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--form-text-soft)] mb-3">
+    {customerLabel}
+  </p>
+
   <div class="grid gap-3 md:grid-cols-[minmax(0,1.6fr)_220px_220px]">
-    {#if showCustomerName}
-      <Input
-        placeholder="Nombre / Razón social"
-        showLabel={false}
-        bind:value={name}
-        icon={userIcon}
-      />
-    {/if}
-    {#if showCustomerRuc}
-      <Select
-        placeholder="Tipo de documento"
-        showLabel={false}
-        bind:value={typeDocument}
-        options={filteredCatalogo06}
-        required
-      />
-      <Input
-        placeholder="Número de documento"
-        showLabel={false}
-        bind:value={numberDocument}
-        maxLength={documentMaxLength}
-        icon={documentIcon}
-        disabled={handleNoDocument}
-      />
-      {#if typeDocument === "6" && numberDocument && !isDocumentValid}
-        <span class="text-xs text-red-500">
-          El RUC debe comenzar con 10, 15, 16, 17 o 20 y tener 11 dígitos.
-        </span>
-      {/if}
+    <Input
+      placeholder="Nombre / Razón social"
+      showLabel={false}
+      bind:value={name}
+      icon={userIcon}
+    />
+    <Select
+      placeholder="Tipo de documento"
+      showLabel={false}
+      bind:value={typeDocument}
+      options={filteredCatalogo06}
+      required
+    />
+    <Input
+      placeholder="Número de documento"
+      showLabel={false}
+      bind:value={numberDocument}
+      maxLength={documentMaxLength}
+      icon={documentIcon}
+      disabled={handleNoDocument}
+    />
+    {#if typeDocument === "6" && numberDocument && !isDocumentValid}
+      <span class="text-xs text-red-500">
+        El RUC debe comenzar con 10, 15, 16, 17 o 20 y tener 11 dígitos.
+      </span>
     {/if}
   </div>
-{/if}
 
-{#if showCustomerAddress || showCustomerEmail || showCustomerPhone}
-  <div class="grid gap-3 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_220px]">
-    {#if showCustomerAddress}
-      <Input
-        placeholder="Dirección fiscal"
-        showLabel={false}
-        bind:value={address}
-        icon={buildingIcon}
-      />
-    {/if}
-    {#if showCustomerEmail}
-      <Input
-        placeholder="Email"
-        type="email"
-        showLabel={false}
-        bind:value={email}
-        icon={mailIcon}
-      />
-    {/if}
-    {#if showCustomerPhone}
-      <Input
-        placeholder="Teléfono"
-        maxLength={9}
-        type="tel"
-        showLabel={false}
-        bind:value={phone}
-        icon={phoneIcon}
-      />
-    {/if}
+  <div class="mt-3 grid gap-3 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_220px]">
+    <Input
+      placeholder="Dirección fiscal"
+      showLabel={false}
+      bind:value={address}
+      icon={buildingIcon}
+    />
+    <Input
+      placeholder="Email"
+      type="email"
+      showLabel={false}
+      bind:value={email}
+      icon={mailIcon}
+    />
+    <Input
+      placeholder="Teléfono"
+      maxLength={9}
+      type="tel"
+      showLabel={false}
+      bind:value={phone}
+      icon={phoneIcon}
+    />
     {#if customerError}
       <span class="text-xs text-red-500">{customerError}</span>
     {/if}
   </div>
-{/if}
+</div>

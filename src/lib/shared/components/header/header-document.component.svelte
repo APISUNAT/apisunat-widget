@@ -19,6 +19,8 @@
     DEFAULT_NOTE_REASON,
   } from "./header-document.component";
 
+  let { hidden = false } = $props();
+
   let series = $state("");
   let correlative = $state("00000000");
   let documentType = $state("");
@@ -34,6 +36,7 @@
   const defaultOperationType = "0101";
 
   const isNote = $derived(isNoteDocument(documentType));
+  const isGuia = $derived(documentType === "09" || documentType === "31");
   const filteredOperations = $derived(filterOperationsByDocumentType(documentType, CATALOGO51));
   const filteredReasons = $derived(filterReasonsByDocumentType(documentType));
 
@@ -131,61 +134,99 @@
   });
 </script>
 
-<section class="space-y-3">
-  <div class="grid gap-3" class:sm:grid-cols-3={!isNote} style={isNote ? 'grid-template-columns: 2fr 2fr 1fr 1fr' : ''}>
-    <!-- Solo visible en notas -->
-    <div class:hidden={!isNote}>
+<section class="space-y-3" class:hidden>
+  {#if isNote}
+    <!-- Notas de crédito/débito: Motivo + Descripción + Serie + Correlativo -->
+    <div class="grid gap-3" style="grid-template-columns: 2fr 2fr 1fr 1fr">
       <Select
         placeholder="Motivo"
         showLabel={false}
         bind:value={noteReason}
         options={filteredReasons}
       />
-    </div>
-
-    <div class:hidden={!isNote}>
       <Input
         placeholder="Descripción"
         showLabel={false}
         bind:value={noteDescription}
         icon={documentIcon}
       />
+      <Input
+        placeholder="Serie"
+        showLabel={false}
+        bind:value={series}
+        icon={documentIcon}
+        maxLength={4}
+        disabled={locked}
+      />
+      <div onfocusout={() => {
+        if (correlative && !locked) correlative = correlative.padStart(8, "0");
+      }}>
+        <Input
+          placeholder="Correlativo"
+          onlyNumbers={true}
+          showLabel={false}
+          bind:value={correlative}
+          icon={documentIcon}
+          maxLength={8}
+          disabled={locked}
+        />
+      </div>
     </div>
-
-    <!-- Solo visible en NO notas -->
-    <div class:hidden={isNote}>
+  {:else if isGuia}
+    <!-- Guías de remisión: Solo Serie + Correlativo -->
+    <div class="grid gap-3 sm:grid-cols-2">
+      <Input
+        placeholder="Serie"
+        showLabel={false}
+        bind:value={series}
+        icon={documentIcon}
+        maxLength={4}
+        disabled={locked}
+      />
+      <div onfocusout={() => {
+        if (correlative && !locked) correlative = correlative.padStart(8, "0");
+      }}>
+        <Input
+          placeholder="Correlativo"
+          onlyNumbers={true}
+          showLabel={false}
+          bind:value={correlative}
+          icon={documentIcon}
+          maxLength={8}
+          disabled={locked}
+        />
+      </div>
+    </div>
+  {:else}
+    <!-- Facturas/Boletas: Tipo de operación + Serie + Correlativo -->
+    <div class="grid gap-3 sm:grid-cols-3">
       <Select
         placeholder="Tipo de operación"
         showLabel={false}
         bind:value={operationType}
         options={filteredOperations}
       />
-    </div>
-
-    <!-- Siempre visibles -->
-    <Input
-      placeholder="Serie"
-      showLabel={false}
-      bind:value={series}
-      icon={documentIcon}
-      maxLength={4}
-      disabled={locked}
-    />
-
-    <div
-      onfocusout={() => {
-        if (correlative && !locked) correlative = correlative.padStart(8, "0");
-      }}
-    >
       <Input
-        placeholder="Correlativo"
-        onlyNumbers={true}
+        placeholder="Serie"
         showLabel={false}
-        bind:value={correlative}
+        bind:value={series}
         icon={documentIcon}
-        maxLength={8}
+        maxLength={4}
         disabled={locked}
       />
+      <div onfocusout={() => {
+        if (correlative && !locked) correlative = correlative.padStart(8, "0");
+      }}>
+        <Input
+          placeholder="Correlativo"
+          onlyNumbers={true}
+          showLabel={false}
+          bind:value={correlative}
+          icon={documentIcon}
+          maxLength={8}
+          disabled={locked}
+        />
+      </div>
     </div>
-  </div>
+  {/if}
 </section>

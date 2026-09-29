@@ -3,21 +3,14 @@
   import HeaderOptions from "$lib/shared/components/header/header-options.component.svelte";
   import Supplier from "$lib/shared/components/supplier/supplier.component.svelte";
   import Customer from "$lib/shared/components/customer/customer.component.svelte";
-  import Lines from "$lib/shared/components/lines/lines.component.svelte";
-  import PaymentTerms from "$lib/shared/components/payment-terms/payment-terms.component.svelte";
-  import NotesPanel from "$lib/shared/components/notes/notes-panel.component.svelte";
-  import Retention from "$lib/modules/invoice/components/retention.component.svelte";
+  import DeliveryOptions from "$lib/modules/senders-waybill/components/delivery-options/delivery-options.component.svelte";
   import EmitButton from "$lib/shared/components/emit/emit-button.component.svelte";
-  import SummaryPanel from "$lib/shared/components/summary/summary-panel.component.svelte";
-  import BillingReference from "$lib/modules/notes/components/billing-reference.component.svelte";
-  import { documentStore } from "$lib/store/document.store";
 
   let {
     showHeader = true,
     showSupplier = true,
     showCustomer = true,
-    showLines = true,
-    showRetention = true,
+    showDeliveryOptions = true,
     onEmitClick = undefined as (() => Promise<any>) | undefined,
   } = $props();
 
@@ -37,9 +30,9 @@
 
       <section class="space-y-3 pt-1">
         <HeaderOptions />
-        <BillingReference />
       </section>
 
+      <!-- Supplier oculto por defecto pero presente en el DOM para mantener datos -->
       <section class="space-y-3 pt-1" class:hidden={!showSupplier}>
         <p class={sectionLabel}>Emisor</p>
         <Supplier hidden={!showSupplier} />
@@ -49,19 +42,9 @@
         <Customer hidden={!showCustomer} />
       </section>
 
-      <section class="space-y-3 pt-1">
-        <p class={sectionLabel}>Ítems</p>
-        <div class="grid gap-4 lg:grid-cols-[70%_1fr] lg:items-start">
-          <Lines hidden={!showLines} />
-
-          <div class="grid gap-4">
-            <NotesPanel />
-
-            <SummaryPanel />
-
-            
-          </div>
-        </div>
+      <section class="space-y-3 pt-1" class:hidden={!showDeliveryOptions}>
+        <p class={sectionLabel}>Opciones de Entrega</p>
+        <DeliveryOptions hidden={!showDeliveryOptions} />
       </section>
 
       {#if onEmitClick}

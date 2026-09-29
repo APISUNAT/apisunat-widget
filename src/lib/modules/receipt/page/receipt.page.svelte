@@ -16,12 +16,8 @@
     showHeader = true,
     showSupplier = true,
     showCustomer = true,
-    showCustomerRuc = true,
-    showCustomerName = true,
-    showCustomerAddress = true,
-    showCustomerEmail = true,
-    showCustomerPhone = true,
-    showRetention = true,   // ← añadido
+    showLines = true,
+    showRetention = true,
     onEmitClick = undefined as (() => Promise<any>) | undefined,
   } = $props();
 
@@ -50,43 +46,29 @@
 >
   <div class="bg-[var(--form-color-2)]">
     <div class="grid gap-4 px-4 py-4">
-
-      {#if showHeader}
-        <section class="space-y-3 pt-1">
-          <p class={sectionLabel}>Documento</p>
-          <HeaderDocument />
-        </section>
-      {/if}
+      <section class="space-y-3 pt-1" class:hidden={!showHeader}>
+        <p class={sectionLabel}>Documento</p>
+        <HeaderDocument hidden={!showHeader} />
+      </section>
 
       <section class="space-y-3 pt-1">
         <p class={sectionLabel}></p>
         <HeaderOptions />
       </section>
 
-      {#if showSupplier}
-        <section class="space-y-3 pt-1">
-          <p class={sectionLabel}>Emisor</p>
-          <Supplier />
-        </section>
-      {/if}
+      <section class="space-y-3 pt-1" class:hidden={!showSupplier}>
+        <p class={sectionLabel}>Emisor</p>
+        <Supplier hidden={!showSupplier} />
+      </section>
 
-      {#if showCustomer}
-        <section class="space-y-3 pt-1">
-          <p class={sectionLabel}>Cliente</p>
-          <Customer
-            {showCustomerRuc}
-            {showCustomerName}
-            {showCustomerAddress}
-            {showCustomerEmail}
-            {showCustomerPhone}
-          />
-        </section>
-      {/if}
+      <section class="space-y-3 pt-1" class:hidden={!showCustomer}>
+        <Customer hidden={!showCustomer} />
+      </section>
 
       <section class="space-y-3 pt-1">
         <p class={sectionLabel}>Ítems</p>
         <div class="grid gap-4 lg:grid-cols-[70%_1fr] lg:items-start">
-          <Lines />
+          <Lines hidden={!showLines} />
 
           <div class="grid gap-4">
             <NotesPanel />
