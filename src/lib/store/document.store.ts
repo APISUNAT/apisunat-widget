@@ -255,12 +255,20 @@ export function getDocumentOutput(): Record<string, any> {
     if (!type || !emitBody[type]) return {}
 
     const template = emitBody[type]
-    const output = applyNoteInWords(Object.fromEntries(
+    const rawOutput = Object.fromEntries(
         Object.keys(template).map((key) => {
             const fixedKeys = ['cbc:UBLVersionID', 'cbc:CustomizationID']
             return [key, fixedKeys.includes(key) ? (template as any)[key] : doc[key]]
         })
-    ))
+    )
+
+    // Filtrar campos que sean null o undefined para que no aparezcan en el output
+    const filteredOutput = Object.fromEntries(
+        Object.entries(rawOutput).filter(([_, value]) => value !== null && value !== undefined)
+    )
+
+    const output = applyNoteInWords(filteredOutput)
+
     const email = output['cac:AccountingCustomerParty']
         ?.['cac:Party']
         ?.['cac:Contact']
