@@ -1,6 +1,6 @@
 # @kami_lml/apisunat-widget
 
-Widget de facturación electrónica SUNAT, empaquetado como [Custom Element](https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_custom_elements) (`<sunat-invoice>`). Renderiza el formulario de Boleta, Factura, Nota de Crédito o Nota de Débito y expone el payload UBL listo para emitir.
+Widget de facturación electrónica SUNAT, empaquetado como [Custom Element](https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_custom_elements) (`<apisunat-widget>`). Renderiza el formulario de Boleta, Factura, Nota de Crédito o Nota de Débito y expone el payload UBL listo para emitir.
 
 No depende de ningún framework: funciona en HTML plano, y también en proyectos con Vite, React, Vue, Angular, etc.
 
@@ -9,8 +9,8 @@ No depende de ningún framework: funciona en HTML plano, y también en proyectos
 ### Con CDN (sin bundler)
 
 ```html
-<link rel="stylesheet" href="https://unpkg.com/@alexander27/invoice-sunat@0.1.0/dist/assets/invoice-sunat.css" />
-<script type="module" src="https://unpkg.com/@alexander27/invoice-sunat@0.1.0/dist/sunat-invoice.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/@kami_lml/apisunat-widget@0.1.0/dist/assets/apisunat-widget.css" />
+<script type="module" src="https://unpkg.com/@kami_lml/apisunat-widget@0.1.0/dist/apisunat-widget.js"></script>
 ```
 
 > Fija siempre la versión (`@0.1.0`) para evitar romper tu app con una actualización futura.
@@ -18,23 +18,25 @@ No depende de ningún framework: funciona en HTML plano, y también en proyectos
 ### Con npm
 
 ```bash
-npm install @alexander27/invoice-sunat
+npm install @kami_lml/apisunat-widget
 ```
 
 ```js
-import '@alexander27/invoice-sunat';
-import '@alexander27/invoice-sunat/styles.css';
+import '@kami_lml/apisunat-widget';
+import '@kami_lml/apisunat-widget/styles.css';
 ```
 
 ## Uso básico
 
 ```html
-<sunat-invoice></sunat-invoice>
+<apisunat-widget></apisunat-widget>
+
+<script type="module" src="./dist/apisunat-widget.js"></script>
 
 <script type="module">
-  const el = document.querySelector('sunat-invoice');
-
-  el.config = {
+  // La función global apisunat() busca el elemento <apisunat-widget> en la página
+  // y le asigna la configuración automáticamente
+  apisunat({
     personaId: 'TU_PERSONA_ID',
     personaToken: 'TU_PERSONA_TOKEN',
     type: '01',        // '01' Factura, '03' Boleta, '07' Nota de Crédito, '08' Nota de Débito
@@ -49,11 +51,9 @@ import '@alexander27/invoice-sunat/styles.css';
     onchange: (data) => console.log('Documento actualizado:', data),
     onEmit: (result) => console.log('Documento emitido:', result),
     onError: (error) => console.error('Error al emitir:', error)
-  };
+  });
 </script>
 ```
-
-> El widget se configura asignando el objeto `config` como **propiedad** del elemento (`el.config = {...}`), no como atributo HTML, porque `config` es un objeto complejo.
 
 ## Prop `config`
 
@@ -84,50 +84,75 @@ Cualquier campo omitido se asume `true`. Para ocultar una sección, pásalo en `
 
 ## Emitir el documento
 
-El elemento expone el método `emitDocument()`, que valida `personaId`/`personaToken`, envía el documento y dispara `onEmit` o `onError`:
+El widget se emite automáticamente cuando el usuario hace clic en el botón "Emitir" del formulario. Los callbacks `onEmit` y `onError` se disparan según el resultado:
 
 ```js
-const el = document.querySelector('sunat-invoice');
-
-document.getElementById('btn-emitir').addEventListener('click', async () => {
-  try {
-    const result = await el.emitDocument();
-    console.log('Emitido:', result);
-  } catch (error) {
-    console.error('No se pudo emitir:', error);
+apisunat({
+  // ...resto de config
+  onEmit: (result) => {
+    console.log('Documento emitido exitosamente:', result);
+    // Aquí puedes mostrar el resultado al usuario
+  },
+  onError: (error) => {
+    console.error('Error al emitir:', error);
+    alert('No se pudo emitir: ' + error.message);
   }
 });
 ```
 
-## Obtener el payload sin emitir
-
-Para leer el payload UBL actual (por ejemplo, para previsualizarlo antes de emitir), usa `onchange` y guarda el último valor recibido:
+Si necesitas emitir el documento programáticamente, puedes acceder al método del elemento:
 
 ```js
-let ultimoPayload = null;
+const el = document.querySelector('apisunat-widget');
+const result = await el.emitDocument();
+```
 
-el.config = {
+## Obtener el payload sin emitir
+
+Puedes obtener el payload UBL actual en cualquier momento usando `window.apisunat.getOutput()`:
+
+```js
+function obtenerPayload() {
+  const payload = window.apisunat.getOutput();
+  console.log('Payload actual:', payload);
+  return payload;
+}
+```
+
+También puedes usar el callback `onchange` para capturar cambios en tiempo real:
+
+```js
+apisunat({
   // ...resto de config
-  onchange: (data) => { ultimoPayload = data; }
-};
-
-// más adelante:
-console.log(ultimoPayload);
+  onchange: (data) => {
+    console.log('Documento actualizado:', data);
+  }
+});
 ```
 
 ## Cambiar de tipo de documento en caliente
 
-El componente lee `config.type` y `config.serie` al montar. Para cambiar de tipo (por ejemplo, de Boleta a Factura), vuelve a crear el elemento en vez de solo reasignar `config`:
+El componente lee `config.type` y `config.serie` al montar. Para cambiar de tipo (por ejemplo, de Boleta a Factura), vuelve a crear el elemento:
 
 ```js
-function montarWidget(type, serie) {
+async function montarWidget(type, serie) {
   const wrapper = document.getElementById('invoice-wrapper');
   wrapper.innerHTML = '';
 
-  const el = document.createElement('sunat-invoice');
+  const el = document.createElement('apisunat-widget');
   wrapper.appendChild(el);
 
-  el.config = { ...configBase, type, serie };
+  await customElements.whenDefined('apisunat-widget');
+
+  apisunat({
+    personaId: 'TU_PERSONA_ID',
+    personaToken: 'TU_PERSONA_TOKEN',
+    type,
+    serie,
+    components: { header: true, supplier: true, customer: true, lines: true, paymentTerms: true },
+    onEmit: (data) => console.log('Emitido:', data),
+    onError: (error) => alert('Error: ' + error.message)
+  });
 }
 
 montarWidget('01', 'F001'); // Factura
@@ -138,7 +163,7 @@ montarWidget('01', 'F001'); // Factura
 El widget se renderiza **sin Shadow DOM** (`shadow: 'none'`), así que hereda y puede personalizarse con CSS normal, incluyendo estas variables:
 
 ```css
-sunat-invoice {
+apisunat-widget {
   --form-color-1: #ffffff;
   --form-color-2: #f8fafc;
   --form-color-3: #6366f1;
@@ -163,13 +188,13 @@ Al no usar Shadow DOM, también hereda estilos globales de tu página (resets, f
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <link rel="stylesheet" href="https://unpkg.com/@alexander27/invoice-sunat@0.1.0/dist/assets/invoice-sunat.css" />
+  <link rel="stylesheet" href="https://unpkg.com/@kami_lml/apisunat-widget@0.1.0/dist/assets/apisunat-widget.css" />
 </head>
 <body>
-  <sunat-invoice id="widget"></sunat-invoice>
+  <apisunat-widget id="widget"></apisunat-widget>
   <button id="emitir">Emitir</button>
 
-  <script type="module" src="https://unpkg.com/@alexander27/invoice-sunat@0.1.0/dist/sunat-invoice.js"></script>
+  <script type="module" src="https://unpkg.com/@kami_lml/apisunat-widget@0.1.0/dist/apisunat-widget.js"></script>
   <script type="module">
     const el = document.getElementById('widget');
 

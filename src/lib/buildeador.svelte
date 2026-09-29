@@ -1,6 +1,6 @@
 <svelte:options
   customElement={{
-    tag: "sunat-invoice",
+    tag: "apisunat-widget",
     shadow: "none",
     props: {
       config: { type: "Object" },

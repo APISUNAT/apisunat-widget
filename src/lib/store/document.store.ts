@@ -299,11 +299,11 @@ export function getDocumentFileName(): string {
 }
 
 /**
- * Expone la API pública `window.apisunat` para integración con el web component `<sunat-invoice>`.
+ * Expone la API pública `window.apisunat` para integración con el web component `<apisunat-widget>`.
  */
 ;(window as any).apisunat = (config: any) => {
-    customElements.whenDefined('sunat-invoice').then(() => {
-        const el = document.querySelector('sunat-invoice') as any
+    customElements.whenDefined('apisunat-widget').then(() => {
+        const el = document.querySelector('apisunat-widget') as any
         if (el) el.config = config
     })
 }

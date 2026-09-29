@@ -27,8 +27,8 @@ export default defineConfig(({ mode }) => {
 				lib: {
 					entry: 'src/lib/buildeador.svelte',
 					formats: ['es'],
-					fileName: () => 'sunat-invoice.js',
-					cssFileName: 'invoice-sunat'
+					fileName: () => 'apisunat-widget.js',
+					cssFileName: 'apisunat-widget'
 				},
 				rollupOptions: {
 					output: {
