@@ -1,30 +1,27 @@
 name: Publicar paquete en npm
 
-# El flujo se activará cada vez que crees una nueva "Release" en GitHub
 on:
   release:
     types: [published]
 
 jobs:
   build-and-publish:
-    runs-on: ubuntu-latest # Ejecuta el proceso en un servidor Linux limpio
+    runs-on: ubuntu-latest
     steps:
-      # 1. Clona el código de tu repositorio en el servidor de pruebas
+      # 1. Clona el código usando la versión más reciente v4
       - name: Descargar código del repositorio
         uses: actions/checkout@v4
 
-      # 2. Configura el entorno de Node.js y enlaza el registro oficial de npm
+      # 2. Configura Node.js v22 (LTS) y enlaza el registro oficial
       - name: Instalar Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20' # Puedes cambiarlo por tu versión actual de Node
+          node-version: '22'
           registry-url: 'https://npmjs.org'
 
-      # 3. Instala las dependencias limpias de tu widget (si las tiene)
       - name: Instalar dependencias
         run: npm ci
 
-      # 4. Publica en npm usando el secreto guardado de manera segura
       - name: Publicar en npmRegistry
         run: npm publish --access public
         env:
