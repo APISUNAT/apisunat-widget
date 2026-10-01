@@ -81,17 +81,19 @@ export function validateDocument(): ValidationError[] {
     const type = get(documentTypeStore)
     const errors: ValidationError[] = []
     const isNote = ['07', '08'].includes(type ?? '')
+    const isGuia = ['09', '31'].includes(type ?? '')
     // Valida que el valor de _text no esté vacío
     const isEmpty = (value: string | undefined) => !value?.trim()
     // La fecha de emisión es obligatoria
     if (isEmpty(doc['cbc:IssueDate']?._text))
         errors.push({ field: 'issueDate', message: 'La fecha de emisión es requerida' })
     // Para facturas y boletas, la moneda es obligatoria
-    if (isEmpty(doc['cbc:DocumentCurrencyCode']?._text))
+    if (!isGuia && isEmpty(doc['cbc:DocumentCurrencyCode']?._text))
         errors.push({ field: 'currency', message: 'Selecciona la moneda' })
     // Para facturas y boletas, el tipo de operación es obligatorio
     if (
         !isNote &&
+        !isGuia &&
         isEmpty(doc['cbc:InvoiceTypeCode']?._attributes?.listID)
     ) {
         errors.push({
@@ -99,18 +101,38 @@ export function validateDocument(): ValidationError[] {
             message: 'Selecciona el tipo de operación'
         })
     }
-    if (isEmpty(doc['cac:AccountingCustomerParty']?.['cac:Party']?.['cac:PartyIdentification']?.['cbc:ID']?._attributes?.schemeID))
-        errors.push({ field: 'customer', message: 'Selecciona Tipo de Documento del Cliente' })
-    //valida el numero de documento del emisor
-    if (isEmpty(doc['cac:AccountingSupplierParty']?.['cac:Party']?.['cac:PartyIdentification']?.['cbc:ID']?._text))
-        errors.push({ field: 'supplierNumber', message: 'El número de documento del emisor es requerido' })
-    //valida el nombre del emisor
-    if (isEmpty(doc['cac:AccountingSupplierParty']?.['cac:Party']?.['cac:PartyLegalEntity']?.['cbc:RegistrationName']?._text))
-        errors.push({ field: 'supplierName', message: 'El nombre del emisor es requerido' })
-    //Valida el numero de documento del cliente solo salta si es sin docmuento
-    if (doc['cac:AccountingCustomerParty']?.['cac:Party']?.['cac:PartyIdentification']?.['cbc:ID']?._attributes?.schemeID !== '-') {
-        if (isEmpty(doc['cac:AccountingCustomerParty']?.['cac:Party']?.['cac:PartyIdentification']?.['cbc:ID']?._text))
-            errors.push({ field: 'customerNumber', message: 'El número de documento del cliente es requerido' })
+    // Para guías, validar tipo de operación de traslado
+    if (isGuia && isEmpty(doc['cac:Shipment']?.['cbc:HandlingCode']?._text)) {
+        errors.push({
+            field: 'handlingCode',
+            message: 'Selecciona el tipo de operación'
+        })
+    }
+    // Validaciones de cliente (solo para facturas/boletas/notas, no para guías)
+    if (!isGuia) {
+        if (isEmpty(doc['cac:AccountingCustomerParty']?.['cac:Party']?.['cac:PartyIdentification']?.['cbc:ID']?._attributes?.schemeID))
+            errors.push({ field: 'customer', message: 'Selecciona Tipo de Documento del Cliente' })
+        //Valida el numero de documento del cliente solo salta si es sin documento
+        if (doc['cac:AccountingCustomerParty']?.['cac:Party']?.['cac:PartyIdentification']?.['cbc:ID']?._attributes?.schemeID !== '-') {
+            if (isEmpty(doc['cac:AccountingCustomerParty']?.['cac:Party']?.['cac:PartyIdentification']?.['cbc:ID']?._text))
+                errors.push({ field: 'customerNumber', message: 'El número de documento del cliente es requerido' })
+        }
+    }
+
+    // Validaciones de emisor (aplica para todos los documentos)
+    if (!isGuia) {
+        //valida el numero de documento del emisor
+        if (isEmpty(doc['cac:AccountingSupplierParty']?.['cac:Party']?.['cac:PartyIdentification']?.['cbc:ID']?._text))
+            errors.push({ field: 'supplierNumber', message: 'El número de documento del emisor es requerido' })
+        //valida el nombre del emisor
+        if (isEmpty(doc['cac:AccountingSupplierParty']?.['cac:Party']?.['cac:PartyLegalEntity']?.['cbc:RegistrationName']?._text))
+            errors.push({ field: 'supplierName', message: 'El nombre del emisor es requerido' })
+    } else {
+        // Para guías validar DespatchSupplierParty
+        if (isEmpty(doc['cac:DespatchSupplierParty']?.['cac:Party']?.['cac:PartyIdentification']?.['cbc:ID']?._text))
+            errors.push({ field: 'supplierNumber', message: 'El número de documento del emisor es requerido' })
+        if (isEmpty(doc['cac:DespatchSupplierParty']?.['cac:Party']?.['cac:PartyLegalEntity']?.['cbc:RegistrationName']?._text))
+            errors.push({ field: 'supplierName', message: 'El nombre del emisor es requerido' })
     }
     // Valida que el array de líneas no esté vacío
     const lineKey = LINE_KEY[type ?? ''] ?? 'cac:InvoiceLine'
@@ -118,16 +140,18 @@ export function validateDocument(): ValidationError[] {
         errors.push({ field: 'lines', message: 'Agrega al menos un ítem' }
         )
 
-    errors.push(...collectCreditPaymentErrors(doc))
+    // Validaciones de pago y detracción (solo para facturas/boletas/notas, no para guías)
+    if (!isGuia) {
+        errors.push(...collectCreditPaymentErrors(doc))
 
-    // El disparador real de "operación sujeta a detracción" es el tipo de
-    // operación (catálogo 51, código 1001) — NO la existencia de PaymentTerms.
-    // Ambos deben estar sincronizados: si el tipo de operación es 1001,
-    // exigimos que también exista el bien/servicio, el % y el monto en
-    // PaymentTerms, y la cuenta + método de pago completos en PaymentMeans.
-    const isOperacionDetraccion = doc['cbc:InvoiceTypeCode']?._attributes?.listID === '1001'
+        // El disparador real de "operación sujeta a detracción" es el tipo de
+        // operación (catálogo 51, código 1001) — NO la existencia de PaymentTerms.
+        // Ambos deben estar sincronizados: si el tipo de operación es 1001,
+        // exigimos que también exista el bien/servicio, el % y el monto en
+        // PaymentTerms, y la cuenta + método de pago completos en PaymentMeans.
+        const isOperacionDetraccion = doc['cbc:InvoiceTypeCode']?._attributes?.listID === '1001'
 
-    if (isOperacionDetraccion) {
+        if (isOperacionDetraccion) {
         const detraccionTerm = doc['cac:PaymentTerms']?.find(
             (t: any) => t['cbc:ID']?._text === 'Detraccion'
         )
@@ -152,6 +176,7 @@ export function validateDocument(): ValidationError[] {
                 message: 'Completa la cuenta y el método de pago de la detracción'
             })
         }
+        }
     }
 
     // Para notas de crédito/débito, la descripción de la razón es obligatoria
@@ -167,6 +192,37 @@ export function validateDocument(): ValidationError[] {
             field: 'referenceDocument',
             message: 'Agrega al menos un documento que va modificar'
         })
+    }
+
+    // Validaciones específicas para Guías de Remisión (09 y 31)
+    if (isGuia) {
+        // Validar peso bruto
+        const grossWeight = doc['cac:Shipment']?.['cbc:GrossWeightMeasure']?._text
+        if (!grossWeight || parseFloat(grossWeight) <= 0) {
+            errors.push({
+                field: 'grossWeight',
+                message: 'El peso bruto total es requerido'
+            })
+        }
+
+        // Validar datos del transportista
+        const carrierParty = doc['cac:Shipment']?.['cac:ShipmentStage']?.['cac:CarrierParty']
+        const carrierDocument = carrierParty?.['cac:PartyIdentification']?.['cbc:ID']?._text
+        if (isEmpty(carrierDocument)) {
+            errors.push({
+                field: 'carrierParty',
+                message: 'Los datos del transportista son requeridos'
+            })
+        }
+
+        // Validar destinatario
+        const deliveryCustomer = doc['cac:DeliveryCustomerParty']?.['cac:Party']?.['cac:PartyIdentification']?.['cbc:ID']?._text
+        if (isEmpty(deliveryCustomer)) {
+            errors.push({
+                field: 'deliveryCustomer',
+                message: 'El destinatario es requerido'
+            })
+        }
     }
 
     return errors

@@ -6,6 +6,7 @@
     mailIcon,
     phoneIcon,
     userIcon,
+    identificationIcon
   } from "$lib/constants/icons.constants";
   import Input from "$lib/shared/ui/input.svelte";
   import Select from "$lib/shared/ui/select.svelte";
@@ -52,8 +53,7 @@
 
   function getDefaultDocumentType(invoiceType: string): string {
     if (invoiceType === "03") return "1";
-    if (invoiceType === "01") return "6";
-    if (invoiceType === "09") return "1";
+    if (invoiceType === "01" || invoiceType === "09" || invoiceType === "31") return "6";
     return "";
   }
 
@@ -207,7 +207,7 @@
       showLabel={false}
       bind:value={numberDocument}
       maxLength={documentMaxLength}
-      icon={documentIcon}
+      icon={identificationIcon}
       disabled={handleNoDocument}
     />
     {#if typeDocument === "6" && numberDocument && !isDocumentValid}

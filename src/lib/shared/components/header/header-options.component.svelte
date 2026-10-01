@@ -2,7 +2,7 @@
   import { CATALOGO02 } from "$lib/constants/catalagos";
   import DatePicker from "$lib/shared/ui/date-picker.svelte";
   import Select from "$lib/shared/ui/select.svelte";
-  import { documentStore, documentLoaded, documentTypeStore } from "$lib/store/document.store";
+  import { documentStore, documentTypeStore } from "$lib/store/document.store";
   import { buildHeaderOptionsAction, resolveHeaderOptions } from "./header-options.component";
 
   let { hidden = false } = $props();
@@ -49,9 +49,9 @@
 
 <section class="space-y-3" class:hidden>
   <div class="grid gap-3 sm:grid-cols-2">
-    <DatePicker label="Fecha de emisión" showLabel={false} bind:value={date} required />
+    <DatePicker label="Fecha de emisión" showLabel={isGuia} bind:value={date} required />
     {#if isGuia}
-      <DatePicker label="Fecha de entrega al transportista" showLabel={false} bind:value={deliveryDate} required />
+      <DatePicker label="Fecha de entrega al transportista" showLabel={true} bind:value={deliveryDate} required />
     {:else}
       <Select placeholder="Moneda" showLabel={false} bind:value={currency} options={CATALOGO02} required />
     {/if}

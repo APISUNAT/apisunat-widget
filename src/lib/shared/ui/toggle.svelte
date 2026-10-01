@@ -16,13 +16,26 @@
       type="checkbox"
       bind:checked
       {disabled}
-      class="sr-only peer"
+      class="sr-only"
     />
 
     <div
-      class="w-[46px] h-6 bg-gray-300 rounded-full peer peer-checked:bg-blue-600 peer-disabled:opacity-50 transition-colors flex items-center justify-center"
+      class="w-[46px] h-6 rounded-full transition-colors relative flex items-center px-1.5"
+      class:bg-gray-300={!checked}
+      class:bg-blue-600={checked}
+      class:opacity-50={disabled}
+      class:justify-end={!checked}
+      class:justify-start={checked}
     >
-      <span class="text-[10px] font-semibold text-white select-none">
+      <!-- Círculo deslizante -->
+      <div
+        class="absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-all duration-200"
+        class:left-0.5={!checked}
+        class:left-[22px]={checked}
+      ></div>
+
+      <!-- Texto Sí/No -->
+      <span class="text-[10px] font-semibold text-white select-none z-10">
         {#if checked}
           Sí
         {:else}
@@ -33,7 +46,7 @@
   </div>
 
   <span
-    class="text-[13px] font-medium text-[var(--form-text-color)] select-none leading-tight min-w-0"
+    class="text-[11px] font-medium text-[var(--form-text-color)] select-none leading-tight min-w-0"
   >
     {label}
   </span>

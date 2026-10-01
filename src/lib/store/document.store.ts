@@ -291,9 +291,14 @@ export function getDocumentOutput(): Record<string, any> {
  */
 export function getDocumentFileName(): string {
     const doc        = get(documentStore)
-    const ruc        = doc['cac:AccountingSupplierParty']?.['cac:Party']?.['cac:PartyIdentification']?.['cbc:ID']?._text
     const docType    = get(documentTypeStore)
     const documentID = doc['cbc:ID']?._text
+
+    // Para guías de remisión (09 y 31) usar DespatchSupplierParty
+    const isGuia = ['09', '31'].includes(docType ?? '')
+    const ruc = isGuia
+        ? doc['cac:DespatchSupplierParty']?.['cac:Party']?.['cac:PartyIdentification']?.['cbc:ID']?._text
+        : doc['cac:AccountingSupplierParty']?.['cac:Party']?.['cac:PartyIdentification']?.['cbc:ID']?._text
 
     return `${ruc}-${docType}-${documentID}`
 }
