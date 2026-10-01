@@ -11,20 +11,20 @@ export interface Vehicle {
 export function setVehiclesActions(vehicles: Vehicle[], includeIndicator: boolean) {
   documentStore.update((body) => {
     const shipment = body["cac:Shipment"] || {};
+    const shipmentStage = shipment["cac:ShipmentStage"] || {};
 
-    // Si no hay vehículos, no agregar la estructura
+    // Si no hay vehículos o indicador, limpiar la estructura
     if (vehicles.length === 0 || !includeIndicator) {
-      const { "cac:TransportHandlingUnit": _, ...rest } = shipment;
-      const newShipment = { ...rest };
-
-      // Remover el indicador si no hay datos
-      if (!includeIndicator) {
-        delete newShipment["cbc:SpecialInstructions"];
-      }
-
       return {
         ...body,
-        "cac:Shipment": newShipment
+        "cac:Shipment": {
+          ...shipment,
+          "cbc:SpecialInstructions": [],
+          "cac:ShipmentStage": {
+            ...shipmentStage,
+            "cac:TransportHandlingUnit": []
+          }
+        }
       };
     }
 
@@ -37,8 +37,9 @@ export function setVehiclesActions(vehicles: Vehicle[], includeIndicator: boolea
             "_text": "SUNAT_Envio_IndicadorVehiculoConductoresTransp"
           }
         ],
-        "cac:TransportHandlingUnit": {
-          "cac:TransportEquipment": vehicles.map(vehicle => ({
+        "cac:ShipmentStage": {
+          ...shipmentStage,
+          "cac:TransportHandlingUnit": vehicles.map(vehicle => ({
             "cbc:ID": {
               "_text": vehicle.plate
             },
@@ -64,14 +65,14 @@ export function setVehiclesActions(vehicles: Vehicle[], includeIndicator: boolea
 
 export function getVehiclesData(): Vehicle[] {
   const doc = get(documentStore);
-  const transportEquipment = doc["cac:Shipment"]?.["cac:TransportHandlingUnit"]?.["cac:TransportEquipment"];
+  const transportHandlingUnit = doc["cac:Shipment"]?.["cac:ShipmentStage"]?.["cac:TransportHandlingUnit"];
 
-  if (!transportEquipment) {
+  if (!transportHandlingUnit || transportHandlingUnit.length === 0) {
     return [];
   }
 
   // Si es un solo vehículo, viene como objeto; si son varios, como array
-  const equipmentArray = Array.isArray(transportEquipment) ? transportEquipment : [transportEquipment];
+  const equipmentArray = Array.isArray(transportHandlingUnit) ? transportHandlingUnit : [transportHandlingUnit];
 
   return equipmentArray.map(equipment => ({
     plate: equipment["cbc:ID"]?._text || "",

@@ -38,7 +38,7 @@ export function setCarrierPartyActions(data: CarrierPartyState) {
                 }
               } : {})
             }
-          } : undefined
+          } : null
         }
       }
     };

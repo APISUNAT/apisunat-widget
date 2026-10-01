@@ -85,7 +85,8 @@
     numberDocument = party["cac:PartyIdentification"]?.["cbc:ID"]?._text ?? "";
     name = party["cac:PartyLegalEntity"]?.["cbc:RegistrationName"]?._text ?? "";
     address = party["cac:PartyLegalEntity"]?.["cac:RegistrationAddress"]?.["cac:AddressLine"]?.["cbc:Line"]?._text ?? "";
-    email = party["cac:Contact"]?.["cbc:ElectronicMail"]?._text ?? "";
+    // Para guías, el email está en _customerEmail
+    email = isGuiaRemision ? (doc["_customerEmail"] ?? "") : (party["cac:Contact"]?.["cbc:ElectronicMail"]?._text ?? "");
     phone = party["cac:Contact"]?.["cbc:Telephone"]?._text ?? "";
     previousDocumentType = currentDocumentType;
     isReady = true;
@@ -217,30 +218,45 @@
     {/if}
   </div>
 
-  <div class="mt-3 grid gap-3 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_220px]">
-    <Input
-      placeholder="Dirección fiscal"
-      showLabel={false}
-      bind:value={address}
-      icon={buildingIcon}
-    />
-    <Input
-      placeholder="Email"
-      type="email"
-      showLabel={false}
-      bind:value={email}
-      icon={mailIcon}
-    />
-    <Input
-      placeholder="Teléfono"
-      maxLength={9}
-      type="tel"
-      showLabel={false}
-      bind:value={phone}
-      icon={phoneIcon}
-    />
-    {#if customerError}
-      <span class="text-xs text-red-500">{customerError}</span>
-    {/if}
-  </div>
+  {#if !isGuiaRemision}
+    <div class="mt-3 grid gap-3 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_220px]">
+      <Input
+        placeholder="Dirección fiscal"
+        showLabel={false}
+        bind:value={address}
+        icon={buildingIcon}
+      />
+      <Input
+        placeholder="Email"
+        type="email"
+        showLabel={false}
+        bind:value={email}
+        icon={mailIcon}
+      />
+      <Input
+        placeholder="Teléfono"
+        maxLength={9}
+        type="tel"
+        showLabel={false}
+        bind:value={phone}
+        icon={phoneIcon}
+      />
+      {#if customerError}
+        <span class="text-xs text-red-500">{customerError}</span>
+      {/if}
+    </div>
+  {:else}
+    <div class="mt-3">
+      <Input
+        placeholder="Email (solo para notificaciones)"
+        type="email"
+        showLabel={false}
+        bind:value={email}
+        icon={mailIcon}
+      />
+      {#if customerError}
+        <span class="text-xs text-red-500">{customerError}</span>
+      {/if}
+    </div>
+  {/if}
 </div>

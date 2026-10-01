@@ -14,22 +14,18 @@ export function setDriversActions(drivers: Driver[], includeIndicator: boolean) 
     const shipment = body["cac:Shipment"] || {};
     const shipmentStage = shipment["cac:ShipmentStage"] || {};
 
-    // Si no hay conductores, remover la estructura
+    // Si no hay conductores o indicador, limpiar la estructura
     if (drivers.length === 0 || !includeIndicator) {
-      const { "cac:DriverPerson": _, ...rest } = shipmentStage;
-      const newShipment = {
-        ...shipment,
-        "cac:ShipmentStage": rest
-      };
-
-      // Remover el indicador si no hay datos
-      if (!includeIndicator) {
-        delete newShipment["cbc:SpecialInstructions"];
-      }
-
       return {
         ...body,
-        "cac:Shipment": newShipment
+        "cac:Shipment": {
+          ...shipment,
+          "cbc:SpecialInstructions": [],
+          "cac:ShipmentStage": {
+            ...shipmentStage,
+            "cac:DriverPerson": []
+          }
+        }
       };
     }
 

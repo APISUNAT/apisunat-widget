@@ -29,7 +29,8 @@ export function setCustomerActions(data: {
                 'cbc:RegistrationName': {
                     _text: data.name.trim() || '---'
                 },
-                ...(data.address && {
+                // Solo incluir dirección si NO es guía de remisión
+                ...(!isGuiaRemision && data.address && {
                     'cac:RegistrationAddress': {
                         'cac:AddressLine': {
                             'cbc:Line': { _text: data.address }
@@ -37,7 +38,8 @@ export function setCustomerActions(data: {
                     }
                 }),
             },
-            ...((data.phone || data.email) && {
+            // Solo incluir Contact si NO es guía de remisión
+            ...(!isGuiaRemision && (data.phone || data.email) && {
                 'cac:Contact': {
                     ...(data.phone && { 'cbc:Telephone': { _text: data.phone } }),
                     ...(data.email && { 'cbc:ElectronicMail': { _text: data.email } }),
@@ -48,7 +50,9 @@ export function setCustomerActions(data: {
 
     documentStore.update(body => ({
         ...body,
-        [isGuiaRemision ? 'cac:DeliveryCustomerParty' : 'cac:AccountingCustomerParty']: partyData
+        [isGuiaRemision ? 'cac:DeliveryCustomerParty' : 'cac:AccountingCustomerParty']: partyData,
+        // Para guías, guardar el email en un campo temporal para customerEmail
+        ...(isGuiaRemision && data.email && { '_customerEmail': data.email })
     }))
 }
 

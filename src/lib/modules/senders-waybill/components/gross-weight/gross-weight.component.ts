@@ -17,10 +17,10 @@ export function setGrossWeightActions(value: string, unitCode: string) {
         "cbc:GrossWeightMeasure":
           value && parseFloat(value) > 0
             ? {
-                _attributes: { unitCode: unitCode || "TNE" },
+                _attributes: { unitCode: unitCode || "KGM" },
                 _text: parseFloat(value),
               }
-            : undefined,
+            : null,
       },
     };
   });

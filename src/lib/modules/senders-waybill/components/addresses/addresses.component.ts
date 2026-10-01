@@ -32,8 +32,8 @@ export function setAddressesActions(
                 "cbc:Line": { _text: arrivalAddress }
               }
             } : {})
-          } : undefined,
-          "cac:Despatch": departureUbigeo || departureAddress ? {
+          } : null,
+          "cac:Despatch": (departureUbigeo || departureAddress) ? {
             "cac:DespatchAddress": {
               ...(departureUbigeo ? { "cbc:ID": { _text: departureUbigeo } } : {}),
               ...(departureAddress ? {
@@ -42,7 +42,7 @@ export function setAddressesActions(
                 }
               } : {})
             }
-          } : undefined
+          } : null
         }
       }
     };

@@ -20,35 +20,18 @@ export function setShipmentInfoActions(
     return {
       ...body,
       "cac:Shipment": {
-        "cbc:ID": { _text: "SUNAT_Envio" },
-        "cbc:HandlingCode": handlingCode ? { _text: handlingCode } : undefined,
+        ...shipment,
+        "cbc:HandlingCode": handlingCode ? { _text: handlingCode } : null,
         "cbc:Information": handlingCode === "13" && handlingDescription
           ? { _text: handlingDescription }
-          : undefined,
-        ...(shipment["cbc:GrossWeightMeasure"] ? {
-          "cbc:GrossWeightMeasure": shipment["cbc:GrossWeightMeasure"]
-        } : {}),
+          : null,
         "cac:ShipmentStage": {
-          "cbc:TransportModeCode": transportModeCode ? { _text: transportModeCode } : undefined,
+          ...shipmentStage,
+          "cbc:TransportModeCode": transportModeCode ? { _text: transportModeCode } : null,
           "cac:TransitPeriod": {
             "cbc:StartDate": { _text: issueDate }
           },
-          ...(shipmentStage["cac:CarrierParty"] ? {
-            "cac:CarrierParty": shipmentStage["cac:CarrierParty"]
-          } : {}),
-          ...(shipmentStage["cac:LoadingTransportEvent"] ? {
-            "cac:LoadingTransportEvent": shipmentStage["cac:LoadingTransportEvent"]
-          } : {}),
-          ...(shipmentStage["cac:TransportHandlingUnit"] ? {
-            "cac:TransportHandlingUnit": shipmentStage["cac:TransportHandlingUnit"]
-          } : {}),
-          ...(shipmentStage["cac:DriverPerson"] ? {
-            "cac:DriverPerson": shipmentStage["cac:DriverPerson"]
-          } : {})
         },
-        ...(shipment["cac:Delivery"] ? {
-          "cac:Delivery": shipment["cac:Delivery"]
-        } : {})
       }
     };
   });
