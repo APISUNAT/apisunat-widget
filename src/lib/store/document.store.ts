@@ -317,7 +317,12 @@ export function getDocumentOutput(): Record<string, any> {
                 // Reconstruir Shipment en el orden del template
                 const orderedShipment = Object.fromEntries(
                     Object.keys(shipmentTemplate).map((shipmentKey) => {
-                        const value = shipmentData[shipmentKey]
+                        let value = shipmentData[shipmentKey]
+
+                        // Si el valor no existe pero el template tiene un valor por defecto, usarlo
+                        if ((value === null || value === undefined) && shipmentTemplate[shipmentKey] !== null) {
+                            value = shipmentTemplate[shipmentKey]
+                        }
 
                         // Para ShipmentStage, reconstruir también en orden
                         if (shipmentKey === 'cac:ShipmentStage' && value) {
