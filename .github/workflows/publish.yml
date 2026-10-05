@@ -1,0 +1,32 @@
+name: Publicar paquete en npm
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Descargar código del repositorio
+        uses: actions/checkout@v4
+
+      - name: Instalar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'node'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Actualizar npm para Trusted Publishing
+        run: npm install --global npm@latest
+
+      - name: Instalar dependencias
+        run: npm ci --registry=https://registry.npmjs.org
+
+      - name: Publicar en npmRegistry
+        run: npm publish --access public --provenance

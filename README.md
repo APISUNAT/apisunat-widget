@@ -1,4 +1,4 @@
-# @kami_lml/apisunat-widget
+# @apisunat/apisunat-widget
 
 Widget de facturación electrónica SUNAT, empaquetado como [Custom Element](https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_custom_elements) (`<apisunat-widget>`). Renderiza el formulario de Boleta, Factura, Nota de Crédito o Nota de Débito y expone el payload UBL listo para emitir.
 
@@ -9,21 +9,21 @@ No depende de ningún framework: funciona en HTML plano, y también en proyectos
 ### Con CDN (sin bundler)
 
 ```html
-<link rel="stylesheet" href="https://unpkg.com/@kami_lml/apisunat-widget@0.1.0/dist/assets/apisunat-widget.css" />
-<script type="module" src="https://unpkg.com/@kami_lml/apisunat-widget@0.1.0/dist/apisunat-widget.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/@apisunat/apisunat-widget@0.1.0/dist/assets/apisunat-widget.css" />
+<script type="module" src="https://unpkg.com/@apisunat/apisunat-widget@0.1.0/dist/apisunat-widget.js"></script>
 ```
 
-> Fija siempre la versión (`@0.1.0`) para evitar romper tu app con una actualización futura.
+> Fija siempre la versión (por ejemplo `@0.1.0`) para evitar romper tu app con una actualización futura.
 
 ### Con npm
 
 ```bash
-npm install @kami_lml/apisunat-widget
+npm install @apisunat/apisunat-widget
 ```
 
 ```js
-import '@kami_lml/apisunat-widget';
-import '@kami_lml/apisunat-widget/styles.css';
+import '@apisunat/apisunat-widget';
+import '@apisunat/apisunat-widget/styles.css';
 ```
 
 ## Uso básico
@@ -188,13 +188,13 @@ Al no usar Shadow DOM, también hereda estilos globales de tu página (resets, f
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <link rel="stylesheet" href="https://unpkg.com/@kami_lml/apisunat-widget@0.1.0/dist/assets/apisunat-widget.css" />
+  <link rel="stylesheet" href="https://unpkg.com/@apisunat/apisunat-widget@0.1.0/dist/assets/apisunat-widget.css" />
 </head>
 <body>
   <apisunat-widget id="widget"></apisunat-widget>
   <button id="emitir">Emitir</button>
 
-  <script type="module" src="https://unpkg.com/@kami_lml/apisunat-widget@0.1.0/dist/apisunat-widget.js"></script>
+  <script type="module" src="https://unpkg.com/@apisunat/apisunat-widget@0.1.0/dist/apisunat-widget.js"></script>
   <script type="module">
     const el = document.getElementById('widget');
 

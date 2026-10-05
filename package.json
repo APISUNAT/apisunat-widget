@@ -1,6 +1,6 @@
 {
-	"name": "@kami_lml/apisunat-widget",
-	"version": "0.1.0",
+	"name": "@apisunat/apisunat-widget",
+	"version": "0.1.6",
 	"description": "Widget de facturación electrónica SUNAT (custom element Svelte)",
 	"license": "MIT",
 	"type": "module",
@@ -8,6 +8,14 @@
 	"module": "./dist/apisunat-widget.js",
 	"style": "./dist/assets/apisunat-widget.css",
 	"sideEffects": true,
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/APISUNAT/apisunat-widget.git"
+	},
+	"bugs": {
+		"url": "https://github.com/APISUNAT/apisunat-widget"
+	},
+	"homepage": "https://github.com/APISUNAT/apisunat-widget",
 	"files": [
 		"dist"
 	],
@@ -28,6 +36,7 @@
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-auto": "^7.0.1",
+		"@types/node": "^24.0.0",
 		"@sveltejs/kit": "^2.57.0",
 		"@sveltejs/vite-plugin-svelte": "^7.0.0",
 		"@tailwindcss/forms": "^0.5.11",
