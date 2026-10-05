@@ -3,13 +3,13 @@
   import Input from "$lib/shared/ui/input.svelte";
   import Select from "$lib/shared/ui/select.svelte";
   import { documentLoaded } from "$lib/store/document.store";
-  import { getRUCGETAsync } from "$lib/api/documents.api";
   import {
     setCarrierPartyActions,
     getCarrierPartyData,
+    fetchCarrierByRUC,
   } from "./carrier-party.component";
 
-  let { hidden = false } = $props();
+  let { hidden = false, enabled = true } = $props();
 
   let documentType = $state("6");
   let documentNumber = $state("");
@@ -52,21 +52,21 @@
       documentNumber,
       name,
       mtcRegistration,
-    });
+    }, enabled);
   });
 
-  // Buscar transportista por RUC automáticamente
+  // Buscar transportista por RUC automáticamente (primero en caché, luego API)
   $effect(() => {
     const ruc = documentNumber;
     const token = hydrateToken;
 
     if (!isReady || !isRucComplete) return;
 
-    getRUCGETAsync(ruc)
-      .then((json) => {
+    fetchCarrierByRUC(ruc)
+      .then((data) => {
         if (token !== hydrateToken) return;
-        if (json?.success && json.data) {
-          name = json.data.nombre ?? name;
+        if (data) {
+          name = data.name ?? name;
         }
       })
       .catch(() => {
@@ -106,6 +106,8 @@
       placeholder="Registro MTC"
       showLabel={false}
       bind:value={mtcRegistration}
+      pattern={`[A-Z0-9]{0,20}`}
+      maxLength={20}
       icon={identificationIcon}
     />
   </div>

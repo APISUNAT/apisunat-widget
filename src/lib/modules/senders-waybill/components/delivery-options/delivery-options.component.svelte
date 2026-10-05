@@ -1,12 +1,10 @@
 <script lang="ts">
   import Toggle from "$lib/shared/ui/toggle.svelte";
   import ShipmentInfo from "$lib/modules/senders-waybill/components/shipment-info/shipment-info.component.svelte";
+  import SellerSupplierParty from "$lib/modules/senders-waybill/components/seller-supplier-party/seller-supplier-party.component.svelte";
   import CarrierParty from "$lib/modules/senders-waybill/components/carrier-party/carrier-party.component.svelte";
   import Vehicles from "$lib/modules/senders-waybill/components/vehicles/vehicles.component.svelte";
   import Drivers from "$lib/modules/senders-waybill/components/drivers/drivers.component.svelte";
-  import Addresses from "$lib/modules/senders-waybill/components/addresses/addresses.component.svelte";
-  import WaybillItems from "$lib/modules/senders-waybill/components/waybill-items/waybill-items.component.svelte";
-  import GrossWeight from "$lib/modules/senders-waybill/components/gross-weight/gross-weight.component.svelte";
   import { documentLoaded, documentStore } from "$lib/store/document.store";
   import {
     setDeliveryOptionsActions,
@@ -26,9 +24,16 @@
   let hydrateToken = 0;
 
   const handlingCode = $derived($documentStore?.["cac:Shipment"]?.["cbc:HandlingCode"]?._text || "");
+  const transportModeCode = $derived($documentStore?.["cac:Shipment"]?.["cac:ShipmentStage"]?.["cbc:TransportModeCode"]?._text || "01");
+
   const isTrasladoTotalEnabled = $derived(
     handlingCode === "08" || handlingCode === "09"
   );
+
+  const isTransportePrivado = $derived(transportModeCode === "02");
+
+  // Mostrar datos del proveedor solo en Traslado por Compra
+  const showSellerSupplier = $derived(handlingCode === "02");
 
   // Desactivar automáticamente el traslado total si cambia el tipo de operación
   $effect(() => {
@@ -112,7 +117,7 @@
         <Toggle
           label="Datos del Transportista"
           bind:checked={datosTransportista}
-          disabled={vehiculosCategoriaM1L}
+          disabled={vehiculosCategoriaM1L || isTransportePrivado}
         />
       </div>
     </div>
@@ -123,31 +128,22 @@
     </div>
   </div>
 
-  <!-- Datos del Transportista (siempre visible) -->
-  <div class="mt-4">
-    <CarrierParty />
-  </div>
-
-  <!-- Vehículos y Conductores (solo cuando se activa el toggle) -->
-  {#if datosTransportista}
-    <div class="mt-4 space-y-4">
-      <Vehicles enabled={datosTransportista} />
-      <Drivers enabled={datosTransportista} />
+  <!-- Datos del Proveedor: solo visible cuando el motivo es Traslado por Compra (02) -->
+  <div class="mt-4" class:hidden={!showSellerSupplier}>
+    <div class="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--form-text-soft)] mb-3">
+      Datos del Proveedor
     </div>
-  {/if}
-
-  <!-- Punto de Partida y Llegada -->
-  <div class="mt-4">
-    <Addresses />
+    <SellerSupplierParty hidden={!showSellerSupplier} />
   </div>
 
-  <!-- Bienes a Transportar -->
-  <div class="mt-4">
-    <WaybillItems />
+  <!-- Datos del Transportista (solo en Transporte Público) -->
+  <div class="mt-4" class:hidden={isTransportePrivado}>
+    <CarrierParty enabled={!isTransportePrivado} />
   </div>
 
-  <!-- Peso Bruto Total -->
-  <div class="mt-4">
-    <GrossWeight />
+  <!-- Vehículos y Conductores: ocultos cuando M1L está activo, pero mantienen datos -->
+  <div class="mt-4 space-y-4" class:hidden={vehiculosCategoriaM1L || (!isTransportePrivado && !datosTransportista)}>
+    <Vehicles enabled={!vehiculosCategoriaM1L && (isTransportePrivado || datosTransportista)} />
+    <Drivers enabled={!vehiculosCategoriaM1L && (isTransportePrivado || datosTransportista)} />
   </div>
 </div>

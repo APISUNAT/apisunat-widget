@@ -28,7 +28,6 @@
       hydrateToken = token;
 
       const data = getDriversData();
-      // Solo cargar datos si existen, no crear uno vacío por defecto
       drivers = data.length > 0 ? data : [];
 
       requestAnimationFrame(() => {
@@ -40,9 +39,18 @@
   });
 
   // Sincronizar con el store cuando cambian los valores
+  // Solo se ejecuta si enabled es true para evitar bucle infinito
   $effect(() => {
     if (!isReady) return;
-    setDriversActions(drivers, enabled);
+    if (!enabled) return; // CRÍTICO: Evita bucle infinito cuando M1L está activo
+
+    // Asegurar que el primer conductor sea "Principal" y los demás "Secundario"
+    const driversWithTypes = drivers.map((driver, index) => ({
+      ...driver,
+      driverType: index === 0 ? "Principal" : "Secundario"
+    }));
+
+    setDriversActions(driversWithTypes, enabled);
   });
 
   function addDriver() {
@@ -51,6 +59,7 @@
       documentNumber: "",
       firstName: "",
       lastName: "",
+      driverType: drivers.length === 0 ? "Principal" : "Secundario",
       licenseNumber: ""
     }];
   }
@@ -136,6 +145,9 @@
               label="# Licencia"
               placeholder="Ej: S46862927"
               bind:value={driver.licenseNumber}
+              pattern={`[A-Z0-9]{9,10}`}
+              maxLength={10}
+              required={true}
               icon={identificationIcon}
             />
           </div>

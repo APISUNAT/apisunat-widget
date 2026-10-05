@@ -4,6 +4,10 @@
   import Supplier from "$lib/shared/components/supplier/supplier.component.svelte";
   import Customer from "$lib/shared/components/customer/customer.component.svelte";
   import DeliveryOptions from "$lib/modules/senders-waybill/components/delivery-options/delivery-options.component.svelte";
+  import Addresses from "$lib/modules/senders-waybill/components/addresses/addresses.component.svelte";
+  import WaybillItems from "$lib/modules/senders-waybill/components/waybill-items/waybill-items.component.svelte";
+  import GrossWeight from "$lib/modules/senders-waybill/components/gross-weight/gross-weight.component.svelte";
+  import NotesPanel from "$lib/shared/components/notes/notes-panel.component.svelte";
   import EmitButton from "$lib/shared/components/emit/emit-button.component.svelte";
 
   let {
@@ -45,6 +49,26 @@
       <section class="space-y-3 pt-1" class:hidden={!showDeliveryOptions}>
         <p class={sectionLabel}>Opciones de Entrega</p>
         <DeliveryOptions hidden={!showDeliveryOptions} />
+      </section>
+
+      <section class="space-y-3 pt-1">
+        <p class={sectionLabel}>Punto de Partida y Llegada</p>
+        <Addresses />
+      </section>
+
+      <section class="space-y-3 pt-1">
+        <p class={sectionLabel}>Bienes a Transportar</p>
+        <WaybillItems />
+      </section>
+
+      <section class="space-y-3 pt-1">
+        <p class={sectionLabel}>Peso Bruto Total</p>
+        <GrossWeight />
+      </section>
+
+      <section class="space-y-3 pt-1">
+        <p class={sectionLabel}>Notas / Observaciones</p>
+        <NotesPanel />
       </section>
 
       {#if onEmitClick}

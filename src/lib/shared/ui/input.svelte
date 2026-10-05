@@ -12,6 +12,7 @@
     onlyNumbers = false,
     maxDecimals = undefined,
     oninput = undefined,
+    pattern = undefined,
   }: {
     label?: string;
     value?: string;
@@ -25,6 +26,7 @@
     onlyNumbers?: boolean;
     maxDecimals?: number;
     oninput?: (e: Event) => void;
+    pattern?: string;
   } = $props();
 
   function handleInput(event: Event) {
@@ -55,6 +57,12 @@
       }
     }
 
+    // Si hay un pattern personalizado, aplicar validación
+    if (pattern) {
+      // Convertir a mayúsculas y solo permitir A-Z y 0-9
+      val = val.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    }
+
     // Sincroniza el DOM con el valor ya filtrado para que el navegador
     // no muestre por un instante el carácter rechazado.
     target.value = val;
@@ -83,6 +91,7 @@
       {disabled}
       {required}
       maxlength={maxLength}
+      pattern={pattern}
       inputmode={onlyNumbers ? (maxDecimals !== undefined ? 'decimal' : 'numeric') : undefined}
       oninput={handleInput}
       class={inputClass}

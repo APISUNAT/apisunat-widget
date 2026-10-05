@@ -205,14 +205,19 @@ export function validateDocument(): ValidationError[] {
             })
         }
 
-        // Validar datos del transportista
-        const carrierParty = doc['cac:Shipment']?.['cac:ShipmentStage']?.['cac:CarrierParty']
-        const carrierDocument = carrierParty?.['cac:PartyIdentification']?.['cbc:ID']?._text
-        if (isEmpty(carrierDocument)) {
-            errors.push({
-                field: 'carrierParty',
-                message: 'Los datos del transportista son requeridos'
-            })
+        // Validar datos del transportista (solo en Transporte Público)
+        const transportModeCode = doc['cac:Shipment']?.['cac:ShipmentStage']?.['cbc:TransportModeCode']?._text
+        const isTransportePrivado = transportModeCode === '02'
+
+        if (!isTransportePrivado) {
+            const carrierParty = doc['cac:Shipment']?.['cac:ShipmentStage']?.['cac:CarrierParty']
+            const carrierDocument = carrierParty?.['cac:PartyIdentification']?.['cbc:ID']?._text
+            if (isEmpty(carrierDocument)) {
+                errors.push({
+                    field: 'carrierParty',
+                    message: 'Los datos del transportista son requeridos'
+                })
+            }
         }
 
         // Validar destinatario
@@ -222,6 +227,182 @@ export function validateDocument(): ValidationError[] {
                 field: 'deliveryCustomer',
                 message: 'El destinatario es requerido'
             })
+        }
+
+        // Validar Punto de Partida (DespatchAddress)
+        const despatchAddress = doc['cac:Shipment']?.['cac:Delivery']?.['cac:Despatch']?.['cac:DespatchAddress']
+        const departureUbigeo = despatchAddress?.['cbc:ID']?._text
+        const departureAddress = despatchAddress?.['cac:AddressLine']?.['cbc:Line']?._text
+
+        if (isEmpty(departureUbigeo)) {
+            errors.push({
+                field: 'departure.ubigeo',
+                message: 'Punto de Partida: Selecciona Departamento, Provincia y Distrito'
+            })
+        } else if (departureUbigeo.length !== 6) {
+            errors.push({
+                field: 'departure.ubigeo',
+                message: 'Punto de Partida: El ubigeo debe estar completo'
+            })
+        }
+
+        if (isEmpty(departureAddress)) {
+            errors.push({
+                field: 'departure.address',
+                message: 'Punto de Partida: La dirección completa es requerida'
+            })
+        }
+
+        // Validar Punto de Llegada (DeliveryAddress)
+        const deliveryAddressObj = doc['cac:Shipment']?.['cac:Delivery']?.['cac:DeliveryAddress']
+        const arrivalUbigeo = deliveryAddressObj?.['cbc:ID']?._text
+        const arrivalAddress = deliveryAddressObj?.['cac:AddressLine']?.['cbc:Line']?._text
+
+        if (isEmpty(arrivalUbigeo)) {
+            errors.push({
+                field: 'arrival.ubigeo',
+                message: 'Punto de Llegada: Selecciona Departamento, Provincia y Distrito'
+            })
+        } else if (arrivalUbigeo.length !== 6) {
+            errors.push({
+                field: 'arrival.ubigeo',
+                message: 'Punto de Llegada: El ubigeo debe estar completo'
+            })
+        }
+
+        if (isEmpty(arrivalAddress)) {
+            errors.push({
+                field: 'arrival.address',
+                message: 'Punto de Llegada: La dirección completa es requerida'
+            })
+        }
+
+        // Validar vehículos y conductores si el indicador está presente O si es Transporte Privado
+        const specialInstructions = doc['cac:Shipment']?.['cbc:SpecialInstructions']
+        const hasIndicator = Array.isArray(specialInstructions) &&
+            specialInstructions.length > 0 &&
+            specialInstructions.some((instr: any) => instr._text === 'SUNAT_Envio_IndicadorVehiculoConductoresTransp')
+
+        // Verificar si M1L está activo
+        const hasM1LIndicator = Array.isArray(specialInstructions) &&
+            specialInstructions.some((instr: any) => instr._text === 'SUNAT_Envio_IndicadorTrasladoVehiculoM1L')
+
+        // Validar vehículos/conductores si: tiene indicador O es transporte privado (y M1L no está activo)
+        const shouldValidateVehicles = (hasIndicator || isTransportePrivado) && !hasM1LIndicator
+
+        if (shouldValidateVehicles) {
+            // Validar vehículos
+            const transportHandlingUnit = doc['cac:Shipment']?.['cac:TransportHandlingUnit']
+            const vehicles = Array.isArray(transportHandlingUnit) ? transportHandlingUnit : (transportHandlingUnit ? [transportHandlingUnit] : [])
+
+            if (vehicles.length === 0) {
+                errors.push({
+                    field: 'vehicles',
+                    message: 'Agrega al menos un vehículo'
+                })
+            }
+
+            vehicles.forEach((vehicle: any, index: number) => {
+                const equipment = vehicle['cac:TransportEquipment']
+                const plate = equipment?.['cbc:ID']?._text
+
+                // Placa: obligatoria, 6-8 caracteres alfanuméricos
+                if (isEmpty(plate)) {
+                    errors.push({
+                        field: 'vehicle.plate',
+                        message: `Vehículo ${index + 1}: La placa es obligatoria`
+                    })
+                } else if (!/^[A-Z0-9]{6,8}$/.test(plate)) {
+                    errors.push({
+                        field: 'vehicle.plate',
+                        message: `Vehículo ${index + 1}: La placa debe tener entre 6 y 8 caracteres alfanuméricos`
+                    })
+                }
+
+                // TUC/CHV: opcional, 10-15 caracteres alfanuméricos (solo validar si no está vacío)
+                const tucChv = equipment?.['cac:ApplicableTransportMeans']?.['cbc:RegistrationNationalityID']?._text
+                if (tucChv && !/^[A-Z0-9]{10,15}$/.test(tucChv)) {
+                    errors.push({
+                        field: 'vehicle.tucChv',
+                        message: `Vehículo ${index + 1}: TUC/CHV debe tener entre 10 y 15 caracteres alfanuméricos`
+                    })
+                }
+
+                // Autorización: opcional, 3-50 caracteres alfanuméricos (solo validar si no está vacío)
+                const authorization = equipment?.['cac:ShipmentDocumentReference']?.['cbc:ID']?._text
+                if (authorization && !/^[A-Z0-9]{3,50}$/.test(authorization)) {
+                    errors.push({
+                        field: 'vehicle.authorization',
+                        message: `Vehículo ${index + 1}: Autorización debe tener entre 3 y 50 caracteres alfanuméricos`
+                    })
+                }
+            })
+
+            // Validar conductores (solo si M1L NO está activo)
+            if (!hasM1LIndicator) {
+                const driverPersons = doc['cac:Shipment']?.['cac:ShipmentStage']?.['cac:DriverPerson']
+                const drivers = Array.isArray(driverPersons) ? driverPersons : (driverPersons ? [driverPersons] : [])
+
+                if (drivers.length === 0) {
+                    errors.push({
+                        field: 'drivers',
+                        message: 'Agrega al menos un conductor'
+                    })
+                }
+
+                drivers.forEach((driver: any, index: number) => {
+                    // Licencia: obligatoria, 9-10 caracteres alfanuméricos
+                    const license = driver?.['cac:IdentityDocumentReference']?.['cbc:ID']?._text
+                    if (isEmpty(license)) {
+                        errors.push({
+                            field: 'driver.license',
+                            message: `Conductor ${index + 1}: La licencia es obligatoria`
+                        })
+                    } else if (!/^[A-Z0-9]{9,10}$/.test(license)) {
+                        errors.push({
+                            field: 'driver.license',
+                            message: `Conductor ${index + 1}: La licencia debe tener entre 9 y 10 caracteres alfanuméricos`
+                        })
+                    }
+
+                    // Validar nombre y apellido
+                    const firstName = driver?.['cbc:FirstName']?._text
+                    const lastName = driver?.['cbc:FamilyName']?._text
+                    if (isEmpty(firstName)) {
+                        errors.push({
+                            field: 'driver.firstName',
+                            message: `Conductor ${index + 1}: El nombre es obligatorio`
+                        })
+                    }
+                    if (isEmpty(lastName)) {
+                        errors.push({
+                            field: 'driver.lastName',
+                            message: `Conductor ${index + 1}: El apellido es obligatorio`
+                        })
+                    }
+
+                    // Validar tipo de conductor (Principal/Secundario)
+                    const jobTitle = driver?.['cbc:JobTitle']?._text
+                    if (isEmpty(jobTitle)) {
+                        errors.push({
+                            field: 'driver.jobTitle',
+                            message: `Conductor ${index + 1}: El tipo de conductor es obligatorio`
+                        })
+                    }
+                })
+            }
+
+            // Registro MTC: opcional, 0-20 caracteres alfanuméricos (solo en Transporte Público)
+            if (!isTransportePrivado) {
+                const carrierParty = doc['cac:Shipment']?.['cac:ShipmentStage']?.['cac:CarrierParty']
+                const mtcRegistration = carrierParty?.['cac:PartyLegalEntity']?.['cbc:CompanyID']?._text
+                if (mtcRegistration && !/^[A-Z0-9]{0,20}$/.test(mtcRegistration)) {
+                    errors.push({
+                        field: 'carrierParty.mtcRegistration',
+                        message: 'Registro MTC debe tener máximo 20 caracteres alfanuméricos'
+                    })
+                }
+            }
         }
     }
 

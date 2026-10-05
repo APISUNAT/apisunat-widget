@@ -1,24 +1,34 @@
 import { get } from "svelte/store";
-import { documentStore } from "$lib/store/document.store";
+import { documentStore, documentTypeStore } from "$lib/store/document.store";
 
 export interface AddressState {
   // Punto de partida (Despatch)
   departureUbigeo: string;
   departureAddress: string;
+  departureAddressTypeCode: string;
 
   // Punto de llegada (Delivery)
   arrivalUbigeo: string;
   arrivalAddress: string;
+  arrivalAddressTypeCode: string;
 }
 
 export function setAddressesActions(
   departureUbigeo: string,
   departureAddress: string,
+  departureAddressTypeCode: string,
   arrivalUbigeo: string,
-  arrivalAddress: string
+  arrivalAddress: string,
+  arrivalAddressTypeCode: string
 ) {
   documentStore.update((body) => {
     const shipment = body["cac:Shipment"] || {};
+
+    // Obtener el RUC del supplier según el tipo de documento
+    const docType = get(documentTypeStore);
+    const isGuiaRemision = docType === '09' || docType === '31';
+    const supplierKey = isGuiaRemision ? 'cac:DespatchSupplierParty' : 'cac:AccountingSupplierParty';
+    const supplierRUC = body[supplierKey]?.["cac:Party"]?.["cac:PartyIdentification"]?.["cbc:ID"]?._text || "";
 
     return {
       ...body,
@@ -31,6 +41,14 @@ export function setAddressesActions(
               "cac:AddressLine": {
                 "cbc:Line": { _text: arrivalAddress }
               }
+            } : {}),
+            ...(arrivalAddressTypeCode && supplierRUC ? {
+              "cbc:AddressTypeCode": {
+                _attributes: {
+                  listID: supplierRUC
+                },
+                _text: arrivalAddressTypeCode
+              }
             } : {})
           } : null,
           "cac:Despatch": (departureUbigeo || departureAddress) ? {
@@ -39,6 +57,14 @@ export function setAddressesActions(
               ...(departureAddress ? {
                 "cac:AddressLine": {
                   "cbc:Line": { _text: departureAddress }
+                }
+              } : {}),
+              ...(departureAddressTypeCode && supplierRUC ? {
+                "cbc:AddressTypeCode": {
+                  _attributes: {
+                    listID: supplierRUC
+                  },
+                  _text: departureAddressTypeCode
                 }
               } : {})
             }
@@ -59,7 +85,9 @@ export function getAddressesData(): AddressState {
   return {
     departureUbigeo: despatchAddress?.["cbc:ID"]?._text || "",
     departureAddress: despatchAddress?.["cac:AddressLine"]?.["cbc:Line"]?._text || "",
+    departureAddressTypeCode: despatchAddress?.["cbc:AddressTypeCode"]?._text || "",
     arrivalUbigeo: deliveryAddress?.["cbc:ID"]?._text || "",
     arrivalAddress: deliveryAddress?.["cac:AddressLine"]?.["cbc:Line"]?._text || "",
+    arrivalAddressTypeCode: deliveryAddress?.["cbc:AddressTypeCode"]?._text || "",
   };
 }

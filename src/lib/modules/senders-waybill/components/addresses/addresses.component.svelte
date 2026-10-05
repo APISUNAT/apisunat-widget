@@ -1,8 +1,8 @@
 <script lang="ts">
   import Input from "$lib/shared/ui/input.svelte";
   import Select from "$lib/shared/ui/select.svelte";
-  import { locationIcon } from "$lib/constants/icons.constants";
-  import { documentLoaded } from "$lib/store/document.store";
+  import { locationIcon, identificationIcon,documentIcon } from "$lib/constants/icons.constants";
+  import { documentLoaded, documentStore, documentTypeStore } from "$lib/store/document.store";
   import {
     setAddressesActions,
     getAddressesData,
@@ -20,19 +20,32 @@
   let departureProvincia = $state("");
   let departureDistrito = $state("");
   let departureAddress = $state("");
+  let departureAddressTypeCode = $state("");
 
   // Punto de llegada
   let arrivalDepartamento = $state("");
   let arrivalProvincia = $state("");
   let arrivalDistrito = $state("");
   let arrivalAddress = $state("");
+  let arrivalAddressTypeCode = $state("");
 
   let isReady = $state(false);
   let hydrateToken = 0;
 
+  // Obtener el handlingCode (tipo de operación)
+  const handlingCode = $derived($documentStore?.["cac:Shipment"]?.["cbc:HandlingCode"]?._text || "");
+
+  // Solo mostrar los campos cuando es "Traslado entre establecimientos" (código 04)
+  const showAddressTypeCode = $derived(handlingCode === "04");
+
+  // Obtener el RUC del supplier (según el tipo de documento)
+  const isGuiaRemision = $derived($documentTypeStore === '09' || $documentTypeStore === '31');
+  const supplierKey = $derived(isGuiaRemision ? 'cac:DespatchSupplierParty' : 'cac:AccountingSupplierParty');
+  const supplierRUC = $derived($documentStore?.[supplierKey]?.["cac:Party"]?.["cac:PartyIdentification"]?.["cbc:ID"]?._text || "");
+
   // Opciones para los selects
   const departamentosOptions = [
-    { value: "", label: "Debe seleccionar..." },
+    { value: "", label: "Departamento" },
     ...getRegionList().map((item) => ({
       value: item.r,
       label: item.n,
@@ -42,49 +55,49 @@
   const departureProvienciasOptions = $derived(
     departureDepartamento
       ? [
-          { value: "", label: "Debe seleccionar..." },
+          { value: "", label: "Provincia" },
           ...getProvinceList(departureDepartamento).map((item) => ({
             value: item.r + item.p,
             label: item.n,
           }))
         ]
-      : [{ value: "", label: "Debe seleccionar..." }]
+      : [{ value: "", label: "Provincia" }]
   );
 
   const departureDistritosOptions = $derived(
     departureProvincia && departureProvincia.length === 4
       ? [
-          { value: "", label: "Debe seleccionar..." },
+          { value: "", label: "Distrito" },
           ...getDistrictList(departureProvincia.substring(0, 2), departureProvincia.substring(2, 4)).map((item) => ({
             value: item.r + item.p + item.d,
             label: item.n,
           }))
         ]
-      : [{ value: "", label: "Debe seleccionar..." }]
+      : [{ value: "", label: "Distrito" }]
   );
 
   const arrivalProvienciasOptions = $derived(
     arrivalDepartamento
       ? [
-          { value: "", label: "Debe seleccionar..." },
+          { value: "", label: "Provincia" },
           ...getProvinceList(arrivalDepartamento).map((item) => ({
             value: item.r + item.p,
             label: item.n,
           }))
         ]
-      : [{ value: "", label: "Debe seleccionar..." }]
+      : [{ value: "", label: "Provincia" }]
   );
 
   const arrivalDistritosOptions = $derived(
     arrivalProvincia && arrivalProvincia.length === 4
       ? [
-          { value: "", label: "Debe seleccionar..." },
+          { value: "", label: "Distrito" },
           ...getDistrictList(arrivalProvincia.substring(0, 2), arrivalProvincia.substring(2, 4)).map((item) => ({
             value: item.r + item.p + item.d,
             label: item.n,
           }))
         ]
-      : [{ value: "", label: "Debe seleccionar..." }]
+      : [{ value: "", label: "Distrito" }]
   );
 
   // Resetear provincia cuando cambia departamento de partida
@@ -132,8 +145,10 @@
     setAddressesActions(
       departureDistrito,
       departureAddress,
+      departureAddressTypeCode,
       arrivalDistrito,
-      arrivalAddress
+      arrivalAddress,
+      arrivalAddressTypeCode
     );
   });
 
@@ -156,6 +171,7 @@
         departureDistrito = r + p + d;
       }
       departureAddress = data.departureAddress;
+      departureAddressTypeCode = data.departureAddressTypeCode;
 
       // Punto de llegada
       if (data.arrivalUbigeo && data.arrivalUbigeo.length === 6) {
@@ -168,6 +184,7 @@
         arrivalDistrito = r + p + d;
       }
       arrivalAddress = data.arrivalAddress;
+      arrivalAddressTypeCode = data.arrivalAddressTypeCode;
 
       requestAnimationFrame(() => {
         if (token === hydrateToken) {
@@ -213,6 +230,23 @@
           icon={locationIcon}
         />
       </div>
+      {#if showAddressTypeCode}
+        <div class="grid gap-3 mt-3" style="grid-template-columns: 66fr 17fr 17fr;">
+          <div></div>
+          <Input
+            label="Código"
+            bind:value={departureAddressTypeCode}
+            placeholder="Código"
+            icon={documentIcon}
+          />
+          <Input
+            label="RUC"
+            value={supplierRUC}
+            disabled={true}
+            icon={identificationIcon}
+          />
+        </div>
+      {/if}
     </div>
 
     <!-- Punto de Llegada -->
@@ -248,6 +282,23 @@
           icon={locationIcon}
         />
       </div>
+      {#if showAddressTypeCode}
+        <div class="grid gap-3 mt-3" style="grid-template-columns: 66fr 17fr 17fr;">
+          <div></div>
+          <Input
+            label="Código"
+            bind:value={arrivalAddressTypeCode}
+            placeholder="Código"
+            icon={documentIcon}
+          />
+          <Input
+            label="RUC"
+            value={supplierRUC}
+            disabled={true}
+            icon={identificationIcon}
+          />
+        </div>
+      {/if}
     </div>
   </div>
 </div>

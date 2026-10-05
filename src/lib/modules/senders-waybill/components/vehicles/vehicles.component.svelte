@@ -35,8 +35,10 @@
   });
 
   // Sincronizar con el store cuando cambian los valores
+  // Solo se ejecuta si enabled es true para evitar bucle infinito
   $effect(() => {
     if (!isReady) return;
+    if (!enabled) return; // CRÍTICO: Evita bucle infinito cuando M1L está activo
     setVehiclesActions(vehicles, enabled);
   });
 
@@ -97,27 +99,33 @@
                 label="Placa"
                 placeholder="Ej: BFJ901"
                 bind:value={vehicle.plate}
+                pattern={`[A-Z0-9]{6,8}`}
                 maxLength={8}
+                required={true}
                 icon={packageIcon}
               />
               <Input
                 label="TUC / CHV"
                 placeholder="Ej: AZZ5656A888"
                 bind:value={vehicle.tucChv}
+                pattern={`[A-Z0-9]{10,15}`}
+                maxLength={15}
                 icon={identificationIcon}
               />
             </div>
             <div class="grid gap-3 md:grid-cols-2">
               <Select
                 label="Tipo de Autorización"
-                placeholder="Seleccione tipo"
+                placeholder="Entidad emisora"
                 bind:value={vehicle.authorizationType}
-                options={catalogoD37}
+                options={[{ value: "", label: "Entidad emisora" }, ...catalogoD37]}
               />
               <Input
                 label="# Autorización"
                 placeholder="Ej: RDASASASA"
                 bind:value={vehicle.authorization}
+                pattern={`[A-Z0-9]{3,50}`}
+                maxLength={50}
                 icon={identificationIcon}
               />
             </div>
