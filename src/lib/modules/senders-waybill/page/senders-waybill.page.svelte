@@ -8,6 +8,7 @@
   import WaybillItems from "$lib/modules/senders-waybill/components/waybill-items/waybill-items.component.svelte";
   import GrossWeight from "$lib/modules/senders-waybill/components/gross-weight/gross-weight.component.svelte";
   import NotesPanel from "$lib/shared/components/notes/notes-panel.component.svelte";
+  import RelatedDocumentsPanel from "$lib/shared/components/related-documents/related-documents-panel.component.svelte";
   import EmitButton from "$lib/shared/components/emit/emit-button.component.svelte";
 
   let {
@@ -69,6 +70,11 @@
       <section class="space-y-3 pt-1">
         <p class={sectionLabel}>Notas / Observaciones</p>
         <NotesPanel />
+      </section>
+
+      <section class="space-y-3 pt-1">
+        <p class={sectionLabel}>Documentos Relacionados</p>
+        <RelatedDocumentsPanel />
       </section>
 
       {#if onEmitClick}

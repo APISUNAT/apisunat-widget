@@ -14,31 +14,16 @@ export function setDriversActions(drivers: Driver[], includeIndicator: boolean) 
   documentStore.update((body) => {
     const shipment = body["cac:Shipment"] || {};
     const shipmentStage = shipment["cac:ShipmentStage"] || {};
-    const currentInstructions = shipment["cbc:SpecialInstructions"] || [];
 
-    // Si no hay conductores, limpiar la estructura
-    if (drivers.length === 0) {
+    // Si no hay conductores o no se debe incluir el indicador (ej: M1L activo), limpiar la estructura
+    if (drivers.length === 0 || !includeIndicator) {
       return {
         ...body,
         "cac:Shipment": {
           ...shipment,
           "cac:ShipmentStage": {
             ...shipmentStage,
-            "cac:DriverPerson": []
-          }
-        }
-      };
-    }
-
-    // Si includeIndicator es false (ej: M1L activo), limpiar del JSON pero no del estado local
-    if (!includeIndicator) {
-      return {
-        ...body,
-        "cac:Shipment": {
-          ...shipment,
-          "cac:ShipmentStage": {
-            ...shipmentStage,
-            "cac:DriverPerson": []
+            "cac:DriverPerson": null
           }
         }
       };

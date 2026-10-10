@@ -11,21 +11,9 @@ export interface Vehicle {
 export function setVehiclesActions(vehicles: Vehicle[], includeIndicator: boolean) {
   documentStore.update((body) => {
     const shipment = body["cac:Shipment"] || {};
-    const currentInstructions = shipment["cbc:SpecialInstructions"] || [];
 
-    // Si no hay vehículos, limpiar la estructura
-    if (vehicles.length === 0) {
-      return {
-        ...body,
-        "cac:Shipment": {
-          ...shipment,
-          "cac:TransportHandlingUnit": null
-        }
-      };
-    }
-
-    // Si includeIndicator es false (ej: M1L activo), limpiar del JSON pero no del estado local
-    if (!includeIndicator) {
+    // Si no hay vehículos o no se debe incluir el indicador (ej: M1L activo), limpiar la estructura
+    if (vehicles.length === 0 || !includeIndicator) {
       return {
         ...body,
         "cac:Shipment": {

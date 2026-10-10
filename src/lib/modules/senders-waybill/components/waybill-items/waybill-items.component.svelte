@@ -24,6 +24,10 @@
       quantity: data.quantity,
       unitCode: data.unitCode,
       description: data.description,
+      damSerie: data.damSerie,
+      damNumero: data.damNumero,
+      partidaArancelaria: data.partidaArancelaria,
+      bienNormalizado: data.bienNormalizado,
     };
   }
 

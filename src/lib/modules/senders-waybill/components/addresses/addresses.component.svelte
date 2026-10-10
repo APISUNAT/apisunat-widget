@@ -21,6 +21,7 @@
   let departureDistrito = $state("");
   let departureAddress = $state("");
   let departureAddressTypeCode = $state("");
+  let departureRUC = $state("");
 
   // Punto de llegada
   let arrivalDepartamento = $state("");
@@ -28,6 +29,7 @@
   let arrivalDistrito = $state("");
   let arrivalAddress = $state("");
   let arrivalAddressTypeCode = $state("");
+  let arrivalRUC = $state("");
 
   let isReady = $state(false);
   let hydrateToken = 0;
@@ -37,6 +39,12 @@
 
   // Solo mostrar los campos cuando es "Traslado entre establecimientos" (código 04)
   const showAddressTypeCode = $derived(handlingCode === "04");
+
+  // Mostrar campos de código y RUC para importación (08) en punto de partida
+  const showDepartureCodeRUC = $derived(handlingCode === "08");
+
+  // Mostrar campos de código y RUC para exportación (09) en punto de llegada
+  const showArrivalCodeRUC = $derived(handlingCode === "09");
 
   // Obtener el RUC del supplier (según el tipo de documento)
   const isGuiaRemision = $derived($documentTypeStore === '09' || $documentTypeStore === '31');
@@ -142,13 +150,19 @@
   $effect(() => {
     if (!isReady) return;
 
+    // Para HandlingCode "04", usar el RUC del supplier automáticamente
+    const finalDepartureRUC = showAddressTypeCode ? supplierRUC : departureRUC;
+    const finalArrivalRUC = showAddressTypeCode ? supplierRUC : arrivalRUC;
+
     setAddressesActions(
       departureDistrito,
       departureAddress,
       departureAddressTypeCode,
+      finalDepartureRUC,
       arrivalDistrito,
       arrivalAddress,
-      arrivalAddressTypeCode
+      arrivalAddressTypeCode,
+      finalArrivalRUC
     );
   });
 
@@ -172,6 +186,7 @@
       }
       departureAddress = data.departureAddress;
       departureAddressTypeCode = data.departureAddressTypeCode;
+      departureRUC = data.departureRUC;
 
       // Punto de llegada
       if (data.arrivalUbigeo && data.arrivalUbigeo.length === 6) {
@@ -185,6 +200,7 @@
       }
       arrivalAddress = data.arrivalAddress;
       arrivalAddressTypeCode = data.arrivalAddressTypeCode;
+      arrivalRUC = data.arrivalRUC;
 
       requestAnimationFrame(() => {
         if (token === hydrateToken) {
@@ -247,6 +263,23 @@
           />
         </div>
       {/if}
+      {#if showDepartureCodeRUC}
+        <div class="grid gap-3 mt-3" style="grid-template-columns: 66fr 17fr 17fr;">
+          <div></div>
+          <Input
+            label="Código"
+            bind:value={departureAddressTypeCode}
+            placeholder="Código"
+            icon={documentIcon}
+          />
+          <Input
+            label="RUC"
+            bind:value={departureRUC}
+            placeholder="RUC"
+            icon={identificationIcon}
+          />
+        </div>
+      {/if}
     </div>
 
     <!-- Punto de Llegada -->
@@ -295,6 +328,23 @@
             label="RUC"
             value={supplierRUC}
             disabled={true}
+            icon={identificationIcon}
+          />
+        </div>
+      {/if}
+      {#if showArrivalCodeRUC}
+        <div class="grid gap-3 mt-3" style="grid-template-columns: 66fr 17fr 17fr;">
+          <div></div>
+          <Input
+            label="Código"
+            bind:value={arrivalAddressTypeCode}
+            placeholder="Código"
+            icon={documentIcon}
+          />
+          <Input
+            label="RUC"
+            bind:value={arrivalRUC}
+            placeholder="RUC"
             icon={identificationIcon}
           />
         </div>

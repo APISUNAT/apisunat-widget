@@ -5,16 +5,15 @@
   import {
     buildingIcon,
     identificationIcon,
-
   } from "$lib/constants/icons.constants";
   import { CATALOGO06 } from "$lib/constants/catalagos";
   import { documentLoaded } from "$lib/store/document.store";
   import {
-    getSellerSupplierPartyData,
-    setSellerSupplierPartyActions,
+    getBuyerCustomerPartyData,
+    setBuyerCustomerPartyActions,
     isValidRuc,
-    fetchSellerByDocument,
-  } from "./seller-supplier-party.component";
+    fetchBuyerByDocument,
+  } from "./buyer-customer-party.component";
 
   let { hidden = false } = $props();
 
@@ -22,8 +21,8 @@
   let numberDocument = $state("");
   let documentType = $state("6"); // RUC por defecto
   let isReady = $state(false);
-  let isLoadingSeller = $state(false);
-  let sellerError = $state("");
+  let isLoadingBuyer = $state(false);
+  let buyerError = $state("");
   let hydrateToken = 0;
 
   const isRucValid = $derived.by(() => {
@@ -46,7 +45,7 @@
       const token = hydrateToken + 1;
       hydrateToken = token;
 
-      const data = getSellerSupplierPartyData();
+      const data = getBuyerCustomerPartyData();
 
       name = data.name;
       numberDocument = data.numberDocument;
@@ -70,7 +69,7 @@
     if (!ready) return;
 
     untrack(() => {
-      setSellerSupplierPartyActions({
+      setBuyerCustomerPartyActions({
         name: n,
         numberDocument: nd,
         documentType: dt,
@@ -78,30 +77,30 @@
     });
   });
 
-  // Buscar proveedor por documento automáticamente
+  // Buscar comprador por documento automáticamente
   $effect(() => {
     const td = documentType;
     const nd = numberDocument;
     const token = hydrateToken;
-    sellerError = "";
+    buyerError = "";
 
     if (!isReady || !isDocumentComplete) return;
 
     const hadPrefill = Boolean(name.trim());
-    isLoadingSeller = true;
+    isLoadingBuyer = true;
 
-    fetchSellerByDocument(td, nd)
+    fetchBuyerByDocument(td, nd)
       .then((data) => {
         if (token !== hydrateToken) return;
         if (data) {
           name = data.name ?? name;
         } else if (!hadPrefill) {
-          sellerError = "No se encontraron datos para este documento.";
+          buyerError = "No se encontraron datos para este documento.";
         }
       })
       .finally(() => {
         if (token === hydrateToken) {
-          isLoadingSeller = false;
+          isLoadingBuyer = false;
         }
       });
   });
@@ -139,7 +138,7 @@
     </span>
   {/if}
 
-  {#if sellerError}
-    <span class="text-xs text-red-500 mt-1 block">{sellerError}</span>
+  {#if buyerError}
+    <span class="text-xs text-red-500 mt-1 block">{buyerError}</span>
   {/if}
 </div>

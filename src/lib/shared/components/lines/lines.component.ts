@@ -29,6 +29,10 @@ export type EditableItem = {
   precioUnitario: string
   igvRate: number
   itemCode?: string
+  damSerie?: string
+  damNumero?: string
+  partidaArancelaria?: string
+  bienNormalizado?: string // "0" o "1"
 }
 
 export type LineItem = EditableItem & { id: number }
@@ -87,6 +91,32 @@ export function hydrateLines(doc: any): LineItem[] {
 
     const itemCode = line['cac:Item']?.['cac:SellersItemIdentification']?.['cbc:ID']?._text
 
+    // Extraer datos adicionales de AdditionalItemProperty
+    const additionalProps = line['cac:Item']?.['cac:AdditionalItemProperty']
+    let damSerie = ''
+    let damNumero = ''
+    let partidaArancelaria = ''
+    let bienNormalizado = '0'
+
+    if (additionalProps) {
+      const props = Array.isArray(additionalProps) ? additionalProps : [additionalProps]
+
+      props.forEach((prop: any) => {
+        const nameCode = prop['cbc:NameCode']?._text
+        const value = prop['cbc:Value']?._text
+
+        if (nameCode === '7023' && value) {
+          damSerie = String(value)
+        } else if (nameCode === '7021' && value) {
+          damNumero = String(value)
+        } else if (nameCode === '7020' && value) {
+          partidaArancelaria = String(value)
+        } else if (nameCode === '7022' && value) {
+          bienNormalizado = String(value)
+        }
+      })
+    }
+
     return {
       id: i + 1,
       description: line['cac:Item']?.['cbc:Description']?._text ?? '',
@@ -96,6 +126,10 @@ export function hydrateLines(doc: any): LineItem[] {
       precioUnitario,
       igvRate,
       itemCode,
+      damSerie,
+      damNumero,
+      partidaArancelaria,
+      bienNormalizado,
     }
   })
 }
@@ -128,6 +162,10 @@ export function addInvoiceLineActions(data: {
   precioUnitario: number
   igvRate: number
   itemCode?: string
+  damSerie?: string
+  damNumero?: string
+  partidaArancelaria?: string
+  bienNormalizado?: string
 }) {
   const currency = getCurrency()
   const lineKey = getLineKey()
@@ -238,6 +276,30 @@ export function addInvoiceLineActions(data: {
             ...existingLine['cac:Item']?.['cac:SellersItemIdentification'],
             'cbc:ID': { _text: resolvedItemCode },
           },
+        }),
+        ...((data.damSerie || data.damNumero || data.partidaArancelaria || data.bienNormalizado) && {
+          'cac:AdditionalItemProperty': [
+            ...(data.partidaArancelaria && data.partidaArancelaria.trim() && !/^0+$/.test(data.partidaArancelaria) ? [{
+              'cbc:Name': { _text: 'Partida arancelaria' },
+              'cbc:NameCode': { _text: '7020' },
+              'cbc:Value': { _text: data.partidaArancelaria },
+            }] : []),
+            ...(data.damNumero ? [{
+              'cbc:Name': { _text: 'Numero de declaracion aduanera (DAM)' },
+              'cbc:NameCode': { _text: '7021' },
+              'cbc:Value': { _text: data.damNumero },
+            }] : []),
+            ...(data.bienNormalizado && (data.bienNormalizado === '0' || data.bienNormalizado === '1') ? [{
+              'cbc:Name': { _text: 'Indicador de bien normalizado' },
+              'cbc:NameCode': { _text: '7022' },
+              'cbc:Value': { _text: data.bienNormalizado },
+            }] : []),
+            ...(data.damSerie ? [{
+              'cbc:Name': { _text: 'Numero de serie en la DAM o DS' },
+              'cbc:NameCode': { _text: '7023' },
+              'cbc:Value': { _text: data.damSerie },
+            }] : []),
+          ],
         }),
       },
       'cac:Price': {

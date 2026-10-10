@@ -1,5 +1,6 @@
 import { get } from "svelte/store";
 import { documentStore } from "$lib/store/document.store";
+import { DELIVERY_INDICATORS, TRANSPORT_MODE_CODES } from "../../constants/delivery-options.constants";
 
 export interface DeliveryOptionsState {
   retornoVehiculoVacio: boolean;
@@ -21,18 +22,8 @@ export function setDeliveryOptionsActions(
   documentStore.update((body) => {
     const shipment = body["cac:Shipment"] || {};
     const currentInstructions = shipment["cbc:SpecialInstructions"] || [];
-    const transportModeCode = shipment["cac:ShipmentStage"]?.["cbc:TransportModeCode"]?._text || "01";
-    const isTransportePrivado = transportModeCode === "02";
-
-    // Mapeo de toggles a sus valores en SpecialInstructions
-    const instructionMap = {
-      retornoVehiculoVacio: "SUNAT_Envio_IndicadorRetornoVehiculoVacio",
-      retornoEnvasesVacios: "SUNAT_Envio_IndicadorRetornoVehiculoEnvaseVacio",
-      transbordoProgramado: "SUNAT_Envio_IndicadorTransbordoProgramado",
-      vehiculosCategoriaM1L: "SUNAT_Envio_IndicadorTrasladoVehiculoM1L",
-      trasladoTotalDAM: "SUNAT_Envio_IndicadorTrasladoTotalDAMoDS",
-      datosTransportista: "SUNAT_Envio_IndicadorVehiculoConductoresTransp",
-    };
+    const transportModeCode = shipment["cac:ShipmentStage"]?.["cbc:TransportModeCode"]?._text || TRANSPORT_MODE_CODES.PUBLICO;
+    const isTransportePrivado = transportModeCode === TRANSPORT_MODE_CODES.PRIVADO;
 
     // Crear un Set con las instrucciones actuales (solo los textos)
     const instructionsSet = new Set(
@@ -41,40 +32,40 @@ export function setDeliveryOptionsActions(
 
     // Agregar o quitar según el estado de cada toggle
     if (retornoVehiculoVacio) {
-      instructionsSet.add(instructionMap.retornoVehiculoVacio);
+      instructionsSet.add(DELIVERY_INDICATORS.RETORNO_VEHICULO_VACIO);
     } else {
-      instructionsSet.delete(instructionMap.retornoVehiculoVacio);
+      instructionsSet.delete(DELIVERY_INDICATORS.RETORNO_VEHICULO_VACIO);
     }
 
     if (retornoEnvasesVacios) {
-      instructionsSet.add(instructionMap.retornoEnvasesVacios);
+      instructionsSet.add(DELIVERY_INDICATORS.RETORNO_ENVASES_VACIOS);
     } else {
-      instructionsSet.delete(instructionMap.retornoEnvasesVacios);
+      instructionsSet.delete(DELIVERY_INDICATORS.RETORNO_ENVASES_VACIOS);
     }
 
     if (transbordoProgramado) {
-      instructionsSet.add(instructionMap.transbordoProgramado);
+      instructionsSet.add(DELIVERY_INDICATORS.TRANSBORDO_PROGRAMADO);
     } else {
-      instructionsSet.delete(instructionMap.transbordoProgramado);
+      instructionsSet.delete(DELIVERY_INDICATORS.TRANSBORDO_PROGRAMADO);
     }
 
     if (vehiculosCategoriaM1L) {
-      instructionsSet.add(instructionMap.vehiculosCategoriaM1L);
+      instructionsSet.add(DELIVERY_INDICATORS.VEHICULO_M1L);
     } else {
-      instructionsSet.delete(instructionMap.vehiculosCategoriaM1L);
+      instructionsSet.delete(DELIVERY_INDICATORS.VEHICULO_M1L);
     }
 
     if (trasladoTotalDAM) {
-      instructionsSet.add(instructionMap.trasladoTotalDAM);
+      instructionsSet.add(DELIVERY_INDICATORS.TRASLADO_TOTAL_DAM);
     } else {
-      instructionsSet.delete(instructionMap.trasladoTotalDAM);
+      instructionsSet.delete(DELIVERY_INDICATORS.TRASLADO_TOTAL_DAM);
     }
 
     // Solo agregar indicador de datos de transportista si NO es transporte privado
     if (datosTransportista && !isTransportePrivado) {
-      instructionsSet.add(instructionMap.datosTransportista);
+      instructionsSet.add(DELIVERY_INDICATORS.DATOS_TRANSPORTISTA);
     } else {
-      instructionsSet.delete(instructionMap.datosTransportista);
+      instructionsSet.delete(DELIVERY_INDICATORS.DATOS_TRANSPORTISTA);
     }
 
     // Convertir el Set de vuelta a array de objetos
@@ -86,7 +77,7 @@ export function setDeliveryOptionsActions(
       ...body,
       "cac:Shipment": {
         ...shipment,
-        "cbc:SpecialInstructions": newInstructions.length > 0 ? newInstructions : [],
+        "cbc:SpecialInstructions": newInstructions.length > 0 ? newInstructions : null,
       }
     };
   });
@@ -103,11 +94,11 @@ export function getDeliveryOptionsData(): DeliveryOptionsState {
   );
 
   return {
-    retornoVehiculoVacio: instructionsSet.has("SUNAT_Envio_IndicadorRetornoVehiculoVacio"),
-    retornoEnvasesVacios: instructionsSet.has("SUNAT_Envio_IndicadorRetornoVehiculoEnvaseVacio"),
-    transbordoProgramado: instructionsSet.has("SUNAT_Envio_IndicadorTransbordoProgramado"),
-    vehiculosCategoriaM1L: instructionsSet.has("SUNAT_Envio_IndicadorTrasladoVehiculoM1L"),
-    trasladoTotalDAM: instructionsSet.has("SUNAT_Envio_IndicadorTrasladoTotalDAMoDS"),
-    datosTransportista: instructionsSet.has("SUNAT_Envio_IndicadorVehiculoConductoresTransp"),
+    retornoVehiculoVacio: instructionsSet.has(DELIVERY_INDICATORS.RETORNO_VEHICULO_VACIO),
+    retornoEnvasesVacios: instructionsSet.has(DELIVERY_INDICATORS.RETORNO_ENVASES_VACIOS),
+    transbordoProgramado: instructionsSet.has(DELIVERY_INDICATORS.TRANSBORDO_PROGRAMADO),
+    vehiculosCategoriaM1L: instructionsSet.has(DELIVERY_INDICATORS.VEHICULO_M1L),
+    trasladoTotalDAM: instructionsSet.has(DELIVERY_INDICATORS.TRASLADO_TOTAL_DAM),
+    datosTransportista: instructionsSet.has(DELIVERY_INDICATORS.DATOS_TRANSPORTISTA),
   };
 }

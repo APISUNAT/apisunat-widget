@@ -15,12 +15,13 @@ export function resolveHeaderOptions(doc: Record<string, any>) {
     const hasDate     = !!doc["cbc:IssueDate"]?._text;
     const hasTime     = !!doc["cbc:IssueTime"]?._text;
     const hasCurrency = !!doc["cbc:DocumentCurrencyCode"]?._text;
-    const hasDeliveryDate = !!doc["cac:Shipment"]?.["cac:ShipmentStage"]?.["cac:LoadingTransportEvent"]?.["cbc:OccurrenceDate"]?._text;
+    // Para guías, la fecha de inicio de traslado se obtiene de TransitPeriod
+    const hasDeliveryDate = !!doc["cac:Shipment"]?.["cac:ShipmentStage"]?.["cac:TransitPeriod"]?.["cbc:StartDate"]?._text;
 
     const date     = hasDate ? doc["cbc:IssueDate"]._text : TODAY();
     const currency = hasCurrency ? doc["cbc:DocumentCurrencyCode"]._text : DEFAULT_CURRENCY;
     const deliveryDate = hasDeliveryDate
-        ? doc["cac:Shipment"]["cac:ShipmentStage"]["cac:LoadingTransportEvent"]["cbc:OccurrenceDate"]._text
+        ? doc["cac:Shipment"]["cac:ShipmentStage"]["cac:TransitPeriod"]["cbc:StartDate"]._text
         : TODAY();
 
     // Solo generamos time si tampoco vino, Y la fecha tampoco vino
@@ -50,18 +51,8 @@ export function buildHeaderOptionsAction(data: {
         'cbc:DocumentCurrencyCode': { _text: data.currency },
     };
 
-    if (data.isGuia && data.deliveryDate) {
-        return {
-            ...baseAction,
-            'cac:Shipment': {
-                'cac:ShipmentStage': {
-                    'cac:LoadingTransportEvent': {
-                        'cbc:OccurrenceDate': { _text: data.deliveryDate }
-                    }
-                }
-            }
-        };
-    }
+    // Para guías NO agregamos LoadingTransportEvent
+    // El TransitPeriod.StartDate ya se maneja en shipment-info.component.ts
 
     return baseAction;
 }

@@ -1,5 +1,8 @@
 import { get } from 'svelte/store'
 import { documentStore, documentTypeStore } from '$lib/store/document.store'
+import { isValidRuc, isDocumentComplete } from '$lib/shared/utils/validation.utils'
+
+export { isValidRuc }
 
 export function setSupplierActions(data: {
   supplier: string
@@ -42,7 +45,10 @@ export function setSupplierActions(data: {
           'cbc:RegistrationName': { _text: data.supplier },
           'cac:RegistrationAddress': {
             ...current['cac:PartyLegalEntity']?.['cac:RegistrationAddress'],
-            'cbc:AddressTypeCode': { _text: data.codeAddress || '0000' },
+            // Solo agregar AddressTypeCode si NO es guía de remisión
+            ...(!isGuiaRemision ? {
+              'cbc:AddressTypeCode': { _text: data.codeAddress || '0000' }
+            } : {}),
             ...(data.address.trim().length >= 3 ? {
               'cac:AddressLine': {
                 ...current['cac:PartyLegalEntity']?.['cac:RegistrationAddress']?.['cac:AddressLine'],
@@ -87,10 +93,6 @@ export function getSupplierData(): {
   }
 }
 
-export function isValidRuc(ruc: string): boolean {
-  return /^(10|15|16|17|20)\d{9}$/.test(ruc)
-}
-
 export function isRucComplete(ruc: string): boolean {
-  return ruc.length === 11 && isValidRuc(ruc)
+  return isDocumentComplete('6', ruc)
 }

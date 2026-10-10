@@ -1,3 +1,13 @@
+import {
+  isValidRuc,
+  isDocumentComplete,
+  getMaxLengthByDocumentType,
+  requiresDocumentSelection
+} from '$lib/shared/utils/validation.utils'
+
+// Re-exportar las validaciones comunes
+export { isValidRuc, isDocumentComplete }
+
 export const DOCUMENT_TYPE_ALLOWED: Record<string, string[]> = {
   '01': ['6'],
   '03': ['-', '1', '6', 'H', '7', '4', 'E', 'A', 'G', 'C', 'D', 'B', '0'],
@@ -20,21 +30,9 @@ export function getDefaultTypeDocument(documentType: string, current: string): s
 }
 
 export function maxLengthInput(typeDocument: string): number {
-  if (typeDocument === '6') return 11
-  if (typeDocument === '1') return 8
-  return 15
-}
-
-export function isValidRuc(ruc: string): boolean {
-	return /^(10|15|16|17|20)\d{9}$/.test(ruc)
+  return getMaxLengthByDocumentType(typeDocument)
 }
 
 export function handleNoDocumentSelection(typeDocument: string): boolean {
-  return typeDocument === '-'
-}
-
-export function isDocumentComplete(typeDocument: string, numberDocument: string): boolean {
-  if (typeDocument === '6') return numberDocument.length === 11 && isValidRuc(numberDocument)
-  if (typeDocument === '1') return numberDocument.length === 8
-  return false
+  return !requiresDocumentSelection(typeDocument)
 }

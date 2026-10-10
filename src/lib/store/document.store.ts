@@ -109,18 +109,16 @@ export const emitBody = {
         'cbc:IssueDate': null,
         'cbc:IssueTime': null,
         'cbc:DespatchAdviceTypeCode': { _text: '09' },
-        'cbc:Note': [],
-        'cac:AdditionalDocumentReference': [],
+        'cbc:Note': null,
+        'cac:AdditionalDocumentReference': null,
         'cac:DespatchSupplierParty': null,
         'cac:DeliveryCustomerParty': null,
-        'cac:BuyerCustomerParty': [],
-        'cac:SellerSupplierParty': [],
         'cac:Shipment': {
             'cbc:ID': { _text: 'SUNAT_Envio' },
             'cbc:HandlingCode': null,
             'cbc:Information': null,
             'cbc:GrossWeightMeasure': null,
-            'cbc:SpecialInstructions': [],
+            'cbc:SpecialInstructions': null,
             'cbc:ReturnVehicleIndicator': null,
             'cbc:ReturnPackagingIndicator': null,
             'cbc:TransbordoIndicator': null,
@@ -132,7 +130,7 @@ export const emitBody = {
                 'cac:TransitPeriod': null,
                 'cac:CarrierParty': null,
                 'cac:LoadingTransportEvent': null,
-                'cac:DriverPerson': [],
+                'cac:DriverPerson': null,
             },
             'cac:Delivery': {
                 'cac:DeliveryAddress': null,
@@ -159,7 +157,7 @@ export const emitBody = {
             'cbc:HandlingCode': null,
             'cbc:Information': null,
             'cbc:GrossWeightMeasure': null,
-            'cbc:SpecialInstructions': [],
+            'cbc:SpecialInstructions': null,
             'cbc:ReturnVehicleIndicator': null,
             'cbc:ReturnPackagingIndicator': null,
             'cbc:TransbordoIndicator': null,
@@ -171,7 +169,7 @@ export const emitBody = {
                 'cac:TransitPeriod': null,
                 'cac:CarrierParty': null,
                 'cac:LoadingTransportEvent': null,
-                'cac:DriverPerson': [],
+                'cac:DriverPerson': null,
             },
             'cac:Delivery': {
                 'cac:DeliveryAddress': null,
@@ -293,6 +291,35 @@ function applyNoteInWords(output: Record<string, any>): Record<string, any> {
 }
 
 /**
+ * Limpia recursivamente un objeto eliminando:
+ * - null
+ * - undefined
+ * - Arrays vacíos []
+ * - Objetos vacíos {}
+ */
+function cleanEmptyFields(obj: any): any {
+    if (obj === null || obj === undefined) {
+        return undefined
+    }
+
+    if (Array.isArray(obj)) {
+        const cleaned = obj.map(cleanEmptyFields).filter(item => item !== undefined)
+        return cleaned.length > 0 ? cleaned : undefined
+    }
+
+    if (typeof obj === 'object') {
+        const cleaned = Object.fromEntries(
+            Object.entries(obj)
+                .map(([key, value]) => [key, cleanEmptyFields(value)])
+                .filter(([_, value]) => value !== undefined)
+        )
+        return Object.keys(cleaned).length > 0 ? cleaned : undefined
+    }
+
+    return obj
+}
+
+/**
  * Toma los datos del store y los estructura según el tipo de comprobante activo,
  * usando `emitBody` como esqueleto para respetar el orden de campos exigido por UBL.
  */
@@ -360,7 +387,10 @@ export function getDocumentOutput(): Record<string, any> {
         Object.entries(rawOutput).filter(([_, value]) => value !== null && value !== undefined)
     )
 
-    const output = applyNoteInWords(filteredOutput)
+    const outputWithNotes = applyNoteInWords(filteredOutput)
+
+    // Limpiar recursivamente campos vacíos (null, undefined, [], {})
+    const output = cleanEmptyFields(outputWithNotes) || {}
 
     // Para guías de remisión, el email está en _customerEmail (campo temporal)
     const isGuia = ['09', '31'].includes(type ?? '')

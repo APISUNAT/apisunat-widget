@@ -2,7 +2,9 @@
   import Toggle from "$lib/shared/ui/toggle.svelte";
   import ShipmentInfo from "$lib/modules/senders-waybill/components/shipment-info/shipment-info.component.svelte";
   import SellerSupplierParty from "$lib/modules/senders-waybill/components/seller-supplier-party/seller-supplier-party.component.svelte";
+  import BuyerCustomerParty from "$lib/modules/senders-waybill/components/buyer-customer-party/buyer-customer-party.component.svelte";
   import CarrierParty from "$lib/modules/senders-waybill/components/carrier-party/carrier-party.component.svelte";
+  import PortLocation from "$lib/modules/senders-waybill/components/port-location/port-location.component.svelte";
   import Vehicles from "$lib/modules/senders-waybill/components/vehicles/vehicles.component.svelte";
   import Drivers from "$lib/modules/senders-waybill/components/drivers/drivers.component.svelte";
   import { documentLoaded, documentStore } from "$lib/store/document.store";
@@ -32,8 +34,14 @@
 
   const isTransportePrivado = $derived(transportModeCode === "02");
 
-  // Mostrar datos del proveedor solo en Traslado por Compra
-  const showSellerSupplier = $derived(handlingCode === "02");
+  // Mostrar datos del proveedor solo en Traslado por Compra (02)
+  const showSellerSupplier = $derived(handlingCode === "02"||handlingCode === "07"||handlingCode === "13");
+
+  // Mostrar datos del comprador solo en Venta con entrega a terceros (03)
+  const showBuyerCustomer = $derived(handlingCode === "03"||handlingCode === "13");
+
+  // Mostrar puerto/aeropuerto solo en Importación (08) o Exportación (09)
+  const showPortLocation = $derived(handlingCode === "08" || handlingCode === "09");
 
   // Desactivar automáticamente el traslado total si cambia el tipo de operación
   $effect(() => {
@@ -136,9 +144,22 @@
     <SellerSupplierParty hidden={!showSellerSupplier} />
   </div>
 
+  <!-- Datos del Comprador: solo visible cuando el motivo es Venta con entrega a terceros (03) -->
+  <div class="mt-4" class:hidden={!showBuyerCustomer}>
+    <div class="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--form-text-soft)] mb-3">
+      Datos del Comprador
+    </div>
+    <BuyerCustomerParty hidden={!showBuyerCustomer} />
+  </div>
+
   <!-- Datos del Transportista (solo en Transporte Público) -->
   <div class="mt-4" class:hidden={isTransportePrivado}>
     <CarrierParty enabled={!isTransportePrivado} />
+  </div>
+
+  <!-- Puerto/Aeropuerto y Bultos: solo visible en Importación (08) o Exportación (09) -->
+  <div class="mt-4" class:hidden={!showPortLocation}>
+    <PortLocation hidden={!showPortLocation} />
   </div>
 
   <!-- Vehículos y Conductores: ocultos cuando M1L está activo, pero mantienen datos -->

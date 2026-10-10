@@ -5,6 +5,8 @@ import {
     validateCuotas,
     type Cuota,
 } from '$lib/shared/components/payment-terms/payment-terms.component'
+import { DELIVERY_INDICATORS, TRANSPORT_MODE_CODES } from '$lib/modules/senders-waybill/constants/delivery-options.constants'
+import { isEmpty } from '$lib/shared/utils/validation.utils'
 
 export interface ValidationError {
     field: string
@@ -82,8 +84,7 @@ export function validateDocument(): ValidationError[] {
     const errors: ValidationError[] = []
     const isNote = ['07', '08'].includes(type ?? '')
     const isGuia = ['09', '31'].includes(type ?? '')
-    // Valida que el valor de _text no esté vacío
-    const isEmpty = (value: string | undefined) => !value?.trim()
+
     // La fecha de emisión es obligatoria
     if (isEmpty(doc['cbc:IssueDate']?._text))
         errors.push({ field: 'issueDate', message: 'La fecha de emisión es requerida' })
@@ -207,7 +208,7 @@ export function validateDocument(): ValidationError[] {
 
         // Validar datos del transportista (solo en Transporte Público)
         const transportModeCode = doc['cac:Shipment']?.['cac:ShipmentStage']?.['cbc:TransportModeCode']?._text
-        const isTransportePrivado = transportModeCode === '02'
+        const isTransportePrivado = transportModeCode === TRANSPORT_MODE_CODES.PRIVADO
 
         if (!isTransportePrivado) {
             const carrierParty = doc['cac:Shipment']?.['cac:ShipmentStage']?.['cac:CarrierParty']
@@ -227,6 +228,44 @@ export function validateDocument(): ValidationError[] {
                 field: 'deliveryCustomer',
                 message: 'El destinatario es requerido'
             })
+        }
+
+        // Validar relación remitente-destinatario según motivo de traslado
+        const handlingCode = doc['cac:Shipment']?.['cbc:HandlingCode']?._text
+        const despatchSupplier = doc['cac:DespatchSupplierParty']?.['cac:Party']?.['cac:PartyIdentification']?.['cbc:ID']?._text
+
+        // Validar proveedor obligatorio en Traslado por Compra (02)
+        if (handlingCode === '02') {
+            const sellerSupplier = doc['cac:SellerSupplierParty']?.['cac:Party']?.['cac:PartyIdentification']?.['cbc:ID']?._text
+            if (isEmpty(sellerSupplier)) {
+                errors.push({
+                    field: 'sellerSupplier',
+                    message: 'El proveedor es obligatorio para Traslado por Compra'
+                })
+            }
+        }
+
+        // Motivos donde el destinatario DEBE ser igual al remitente
+        const requiresSameParty = ['02', '04', '07']
+        // Motivos donde el destinatario NO DEBE ser igual al remitente
+        const requiresDifferentParty = ['01', '03', '05', '06', '09', '14', '17']
+
+        if (handlingCode && despatchSupplier && deliveryCustomer) {
+            const isSameParty = despatchSupplier === deliveryCustomer
+
+            if (requiresSameParty.includes(handlingCode) && !isSameParty) {
+                errors.push({
+                    field: 'deliveryCustomer',
+                    message: 'Para este motivo de traslado, el destinatario debe ser igual al remitente'
+                })
+            }
+
+            if (requiresDifferentParty.includes(handlingCode) && isSameParty) {
+                errors.push({
+                    field: 'deliveryCustomer',
+                    message: 'Para este motivo de traslado, el destinatario debe ser diferente al remitente'
+                })
+            }
         }
 
         // Validar Punto de Partida (DespatchAddress)
@@ -281,11 +320,15 @@ export function validateDocument(): ValidationError[] {
         const specialInstructions = doc['cac:Shipment']?.['cbc:SpecialInstructions']
         const hasIndicator = Array.isArray(specialInstructions) &&
             specialInstructions.length > 0 &&
-            specialInstructions.some((instr: any) => instr._text === 'SUNAT_Envio_IndicadorVehiculoConductoresTransp')
+            specialInstructions.some((instr: any) => instr._text === DELIVERY_INDICATORS.DATOS_TRANSPORTISTA)
 
         // Verificar si M1L está activo
         const hasM1LIndicator = Array.isArray(specialInstructions) &&
-            specialInstructions.some((instr: any) => instr._text === 'SUNAT_Envio_IndicadorTrasladoVehiculoM1L')
+            specialInstructions.some((instr: any) => instr._text === DELIVERY_INDICATORS.VEHICULO_M1L)
+
+        // Verificar si "Traslado total DAM/DS" está activo
+        const hasTrasladoTotalDAM = Array.isArray(specialInstructions) &&
+            specialInstructions.some((instr: any) => instr._text === DELIVERY_INDICATORS.TRASLADO_TOTAL_DAM)
 
         // Validar vehículos/conductores si: tiene indicador O es transporte privado (y M1L no está activo)
         const shouldValidateVehicles = (hasIndicator || isTransportePrivado) && !hasM1LIndicator
@@ -400,6 +443,72 @@ export function validateDocument(): ValidationError[] {
                     errors.push({
                         field: 'carrierParty.mtcRegistration',
                         message: 'Registro MTC debe tener máximo 20 caracteres alfanuméricos'
+                    })
+                }
+            }
+        }
+
+        // Validaciones para Importación (08) y Exportación (09)
+        const isImportExport = handlingCode === '08' || handlingCode === '09'
+
+        if (isImportExport) {
+            // Validar que haya puerto o aeropuerto seleccionado
+            const portLocation = doc['cac:Shipment']?.['cac:FirstArrivalPortLocation']
+            const portCode = portLocation?.['cbc:ID']?._text
+            const locationType = portLocation?.['cbc:LocationTypeCode']?._text
+
+            if (isEmpty(portCode) || isEmpty(locationType)) {
+                errors.push({
+                    field: 'port',
+                    message: 'Debe seleccionar puerto o aeropuerto'
+                })
+            }
+
+            // Validar bultos o contenedor
+            const transportHandlingUnits = doc['cac:Shipment']?.['cac:TransportHandlingUnit']
+            const units = Array.isArray(transportHandlingUnits) ? transportHandlingUnits : (transportHandlingUnits ? [transportHandlingUnits] : [])
+
+            // Verificar si hay bultos
+            const hasPackages = units.some((unit: any) =>
+                unit?.['cac:Package']?.['cbc:Quantity']?._text &&
+                parseFloat(unit['cac:Package']['cbc:Quantity']._text) > 0
+            )
+
+            // Verificar si hay contenedores
+            const hasContainers = units.some((unit: any) =>
+                unit?.['cbc:ID']?._text?.trim()
+            )
+
+            // Si NO hay bultos, entonces contenedor es OBLIGATORIO
+            if (!hasPackages && !hasContainers) {
+                errors.push({
+                    field: 'container',
+                    message: 'Si no indica bultos, debe ingresar al menos un contenedor'
+                })
+            }
+        }
+
+        // Validaciones específicas para "Traslado total DAM/DS"
+        if (hasTrasladoTotalDAM) {
+            // Validar que haya conductores y vehículos (si M1L no está activo)
+            if (!hasM1LIndicator) {
+                const driverPersons = doc['cac:Shipment']?.['cac:ShipmentStage']?.['cac:DriverPerson']
+                const drivers = Array.isArray(driverPersons) ? driverPersons : (driverPersons ? [driverPersons] : [])
+
+                if (drivers.length === 0) {
+                    errors.push({
+                        field: 'trasladoTotal.drivers',
+                        message: 'Traslado total DAM/DS: Falta conductor'
+                    })
+                }
+
+                const transportHandlingUnit = doc['cac:Shipment']?.['cac:TransportHandlingUnit']
+                const vehicles = Array.isArray(transportHandlingUnit) ? transportHandlingUnit : (transportHandlingUnit ? [transportHandlingUnit] : [])
+
+                if (vehicles.length === 0) {
+                    errors.push({
+                        field: 'trasladoTotal.vehicles',
+                        message: 'Traslado total DAM/DS: Falta vehículo'
                     })
                 }
             }

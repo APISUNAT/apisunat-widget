@@ -1,9 +1,12 @@
 <script lang="ts">
-  import { packageIcon, quantityIcon } from "$lib/constants/icons.constants";
-  import { createEventDispatcher } from "svelte";
-  import { CATALOGO03 } from "$lib/constants/catalagos";
+  import { packageIcon, quantityIcon, documentIcon } from "$lib/constants/icons.constants";
+  import { createEventDispatcher, untrack } from "svelte";
+  import { CATALOGO03, catalogo65 } from "$lib/constants/catalagos";
+  import { documentStore } from "$lib/store/document.store";
   import Input from "$lib/shared/ui/input.svelte";
+  import CustomSelect from "$lib/shared/ui/custom-select.svelte";
   import SelectString from "$lib/shared/ui/select.svelte";
+  import Toggle from "$lib/shared/ui/toggle.svelte";
   import {
     createEditableWaybillItem,
     type WaybillItem,
@@ -20,6 +23,14 @@
   const dispatch = createEventDispatcher();
 
   let editorItem = $state(createEditableWaybillItem());
+  let additionalDataType = $state<string>("");
+  let isAdditionalDataOpen = $state(false);
+  let previousAdditionalDataType = $state<string>("");
+
+  // Detectar si es importación (08) o exportación (09) para usar catálogo de aduanas
+  const handlingCode = $derived($documentStore?.["cac:Shipment"]?.["cbc:HandlingCode"]?._text || "");
+  const isImportExport = $derived(handlingCode === "08" || handlingCode === "09");
+  const unitCatalog = $derived(isImportExport ? catalogo65 : CATALOGO03);
 
   const isValid = $derived(
     editorItem.description.trim().length > 0 &&
@@ -27,9 +38,62 @@
   );
 
   $effect(() => {
-    editorItem = isOpen
-      ? createEditableWaybillItem(itemEditor ?? {})
-      : createEditableWaybillItem();
+    if (isOpen) {
+      const newItem = createEditableWaybillItem(itemEditor ?? {});
+
+      // Establecer unidad por defecto según el tipo de operación
+      // Si no tiene unitCode, usar UNI para importación/exportación, NIU para otros
+      if (!itemEditor || !itemEditor.unitCode) {
+        newItem.unitCode = isImportExport ? "UNI" : "NIU";
+      }
+
+      editorItem = newItem;
+
+      // Detectar qué tipo de dato adicional está presente
+      if (newItem.partidaArancelaria && newItem.partidaArancelaria.trim()) {
+        additionalDataType = "partida";
+        previousAdditionalDataType = "partida";
+      } else if ((newItem.damSerie && newItem.damSerie.trim()) || (newItem.damNumero && newItem.damNumero.trim())) {
+        additionalDataType = "dam";
+        previousAdditionalDataType = "dam";
+      } else if (newItem.bienNormalizado === "1") {
+        additionalDataType = "bienNormalizado";
+        previousAdditionalDataType = "bienNormalizado";
+      } else {
+        additionalDataType = "";
+        previousAdditionalDataType = "";
+      }
+    } else {
+      const newItem = createEditableWaybillItem();
+      newItem.unitCode = isImportExport ? "UNI" : "NIU";
+      editorItem = newItem;
+      additionalDataType = "";
+      previousAdditionalDataType = "";
+    }
+  });
+
+  // Limpiar campos cuando cambia el tipo de dato adicional
+  $effect(() => {
+    const currentType = additionalDataType;
+
+    // Solo limpiar si el tipo realmente cambió (no en la inicialización)
+    if (previousAdditionalDataType !== "" && currentType !== previousAdditionalDataType) {
+      untrack(() => {
+        // Limpiar campos que no corresponden al tipo seleccionado
+        if (currentType !== "partida") {
+          editorItem.partidaArancelaria = "";
+        }
+        if (currentType !== "dam") {
+          editorItem.damSerie = "";
+          editorItem.damNumero = "";
+        }
+        if (currentType !== "bienNormalizado") {
+          editorItem.bienNormalizado = "0";
+        }
+
+        previousAdditionalDataType = currentType;
+      });
+    }
   });
 
   function onSave() {
@@ -113,10 +177,11 @@
               maxDecimals={10}
             />
 
-            <SelectString
+            <CustomSelect
               label="Unidad"
               bind:value={editorItem.unitCode}
-              options={CATALOGO03}
+              options={unitCatalog}
+              placeholder="Buscar unidad..."
             />
 
             <Input
@@ -124,6 +189,86 @@
               bind:value={editorItem.description}
               icon={packageIcon}
             />
+          </div>
+
+          <!-- Datos Adicionales (DAM/DS) -->
+          <div class="border-t border-[color:color-mix(in_oklab,var(--form-color-3)_20%,transparent)] pt-4">
+            <button
+              type="button"
+              onclick={() => (isAdditionalDataOpen = !isAdditionalDataOpen)}
+              class="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-medium text-[var(--form-text-color)] transition hover:bg-[color:color-mix(in_oklab,var(--form-color-3)_10%,transparent)]"
+            >
+              <span class="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--form-text-soft)]">
+                Datos Adicionales
+              </span>
+              <svg
+                class="size-4 shrink-0 transition-transform duration-200"
+                class:rotate-180={isAdditionalDataOpen}
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+              >
+                <path d="m6 9 6 6 6-6" />
+              </svg>
+            </button>
+
+            {#if isAdditionalDataOpen}
+              <div class="mt-3 px-3">
+                <div class="grid gap-3 sm:grid-cols-[180px_minmax(0,1fr)]">
+                  <SelectString
+                    label="Tipo de dato"
+                    bind:value={additionalDataType}
+                    options={[
+                      { value: "", label: "Ninguno" },
+                      { value: "partida", label: "Partida arancelaria" },
+                      { value: "dam", label: "DAM/DS" },
+                      { value: "bienNormalizado", label: "Bien normalizado" }
+                    ]}
+                  />
+
+                  {#if additionalDataType === "partida"}
+                    <Input
+                      label="Partida arancelaria"
+                      bind:value={editorItem.partidaArancelaria}
+                      placeholder="1-10 dígitos"
+                      maxLength={10}
+                      onlyNumbers={true}
+                      icon={documentIcon}
+                    />
+                  {:else if additionalDataType === "dam"}
+                    <div class="grid gap-3 sm:grid-cols-[1fr_2fr]">
+                      <Input
+                        label="Serie"
+                        bind:value={editorItem.damSerie}
+                        placeholder="1-4 dígitos"
+                        maxLength={4}
+                        onlyNumbers={true}
+                        icon={documentIcon}
+                      />
+                      <Input
+                        label="Número de DAM/DS"
+                        bind:value={editorItem.damNumero}
+                        placeholder="999-9999-99-999999"
+                        icon={documentIcon}
+                      />
+                    </div>
+                  {:else if additionalDataType === "bienNormalizado"}
+                    <div class="flex items-center h-full pt-6">
+                      <Toggle
+                        label="Indicador de bien normalizado"
+                        checked={editorItem.bienNormalizado === '1'}
+                        onchange={(e) => {
+                          editorItem.bienNormalizado = e.target.checked ? '1' : '0';
+                        }}
+                      />
+                    </div>
+                  {/if}
+                </div>
+              </div>
+            {/if}
           </div>
         </div>
 
