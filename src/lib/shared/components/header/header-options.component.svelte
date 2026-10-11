@@ -49,11 +49,11 @@
 
 <section class="space-y-3" class:hidden>
   <div class="grid gap-3 sm:grid-cols-2">
-    <DatePicker label="Fecha de emisión" showLabel={isGuia} bind:value={date} required />
+    <DatePicker label="Fecha de emisión" showLabel={isGuia} bind:value={date} required fieldName="issueDate" />
     {#if isGuia}
       <DatePicker label="Fecha de entrega al transportista" showLabel={true} bind:value={deliveryDate} required />
     {:else}
-      <Select placeholder="Moneda" showLabel={false} bind:value={currency} options={CATALOGO02} required />
+      <Select placeholder="Moneda" showLabel={false} bind:value={currency} options={CATALOGO02} required fieldName="currency" />
     {/if}
   </div>
 </section>

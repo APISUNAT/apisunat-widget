@@ -39,8 +39,6 @@
   let { config = {} as InvoiceConfig } = $props();
 
   $effect(() => {
-
-
     runtimeConfigStore.set({
       personaId: config.personaId,
       personaToken: config.personaToken,
@@ -50,15 +48,24 @@
   });
 
   const CurrentForm = $derived(FORMS[config?.type ?? ""] ?? InvoiceForm);
-  const isGuiaRemision = $derived(config?.type === '09' || config?.type === '31');
 
-  const showHeader = $derived(config?.components?.header !== false);
-  const showSupplier = $derived(config?.components?.supplier !== false);
-  const showCustomer = $derived(config?.components?.customer !== false);
-  const showRetention = $derived(config?.components?.retention !== false);
-  const showPaymentTerms = $derived(config?.components?.paymentTerms !== false);
-  const showLines = $derived(config?.components?.lines !== false);
-  const showDeliveryOptions = $derived(config?.components?.deliveryOptions !== false);
+  // Props simples que se pasan a las páginas (config.config.display sobreescribe defaults)
+  const showHeader = $derived(config?.config?.display?.header ?? true);
+  const showSupplier = $derived(config?.config?.display?.supplier ?? true);
+  const showCustomer = $derived(config?.config?.display?.customer ?? true);
+  const showLines = $derived(config?.config?.display?.lines ?? true);
+  const showPaymentTerms = $derived(config?.config?.display?.paymentTerms ?? true);
+  const showDetraccion = $derived(config?.config?.display?.detraccion ?? true);
+  const showRetention = $derived(config?.config?.display?.retention ?? true);
+  const showNotes = $derived(config?.config?.display?.notes ?? true);
+  const showSummary = $derived(config?.config?.display?.summary ?? true);
+  const showBillingReference = $derived(config?.config?.display?.billingReference ?? true);
+  const showDeliveryCustomer = $derived(config?.config?.display?.deliveryCustomer ?? true);
+  const showDeliveryOptions = $derived(config?.config?.display?.deliveryOptions ?? true);
+  const showAddresses = $derived(config?.config?.display?.addresses ?? true);
+  const showWaybillItems = $derived(config?.config?.display?.waybillItems ?? true);
+  const showGrossWeight = $derived(config?.config?.display?.grossWeight ?? true);
+  const showRelatedDocuments = $derived(config?.config?.display?.relatedDocuments ?? true);
 
   $effect(() => {
     if (!config?.type) return;
@@ -112,10 +119,19 @@
       {showHeader}
       {showSupplier}
       {showCustomer}
-      {showRetention}
-      {showPaymentTerms}
       {showLines}
+      {showPaymentTerms}
+      {showDetraccion}
+      {showRetention}
+      {showNotes}
+      {showSummary}
+      {showBillingReference}
+      {showDeliveryCustomer}
       {showDeliveryOptions}
+      {showAddresses}
+      {showWaybillItems}
+      {showGrossWeight}
+      {showRelatedDocuments}
       onEmitClick={config?.onEmit ? emitDocument : undefined}
     />
   {/key}

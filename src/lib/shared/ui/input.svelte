@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { validationErrorsStore } from '$lib/store/validation-errors.store';
+
   let {
     label = '',
     value = $bindable(''),
@@ -13,6 +15,7 @@
     maxDecimals = undefined,
     oninput = undefined,
     pattern = undefined,
+    fieldName = undefined,
   }: {
     label?: string;
     value?: string;
@@ -27,7 +30,12 @@
     maxDecimals?: number;
     oninput?: (e: Event) => void;
     pattern?: string;
+    fieldName?: string;
   } = $props();
+
+  // Obtener errores del store
+  const errors = $derived($validationErrorsStore);
+  const hasError = $derived(fieldName ? errors.some(e => e.field === fieldName) : false);
 
   function handleInput(event: Event) {
     const target = event.target as HTMLInputElement;
@@ -71,8 +79,11 @@
     oninput?.(event);
   }
 
-  const inputClass =
-    'block w-full rounded-xl border border-[color:color-mix(in_oklab,var(--form-color-3)_30%,transparent)] bg-[var(--form-field-bg)] px-4 py-3 ps-11 text-sm font-medium text-[var(--form-text-color)] outline-none';
+  const inputClass = $derived(
+    hasError
+      ? 'block w-full rounded-xl border-2 border-red-500 bg-[var(--form-field-bg)] px-4 py-3 ps-11 text-sm font-medium text-[var(--form-text-color)] outline-none disabled:opacity-50 disabled:cursor-not-allowed'
+      : 'block w-full rounded-xl border border-[color:color-mix(in_oklab,var(--form-color-3)_30%,transparent)] bg-[var(--form-field-bg)] px-4 py-3 ps-11 text-sm font-medium text-[var(--form-text-color)] outline-none disabled:opacity-50 disabled:cursor-not-allowed'
+  );
 </script>
 
 <div class="grid gap-1.5 text-[13px] text-[var(--form-text-muted)]">

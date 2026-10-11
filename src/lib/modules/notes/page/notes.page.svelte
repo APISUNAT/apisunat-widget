@@ -14,10 +14,12 @@
 
   let {
     showHeader = true,
+    showBillingReference = true,
     showSupplier = true,
     showCustomer = true,
     showLines = true,
-    showRetention = true,
+    showNotes = true,
+    showSummary = true,
     onEmitClick = undefined as (() => Promise<any>) | undefined,
   } = $props();
 
@@ -37,7 +39,7 @@
 
       <section class="space-y-3 pt-1">
         <HeaderOptions />
-        <BillingReference />
+        <BillingReference hidden={!showBillingReference} />
       </section>
 
       <section class="space-y-3 pt-1" class:hidden={!showSupplier}>
@@ -49,17 +51,17 @@
         <Customer hidden={!showCustomer} />
       </section>
 
-      <section class="space-y-3 pt-1">
+      <section class="space-y-3 pt-1" class:hidden={!showLines}>
         <p class={sectionLabel}>Ítems</p>
         <div class="grid gap-4 lg:grid-cols-[70%_1fr] lg:items-start">
           <Lines hidden={!showLines} />
 
           <div class="grid gap-4">
-            <NotesPanel />
+            <NotesPanel hidden={!showNotes} />
 
-            <SummaryPanel />
+            <SummaryPanel hidden={!showSummary} />
 
-            
+
           </div>
         </div>
       </section>

@@ -56,6 +56,7 @@
       label="Tipo de Operación"
       options={CATALOGO20}
       bind:value={handlingCode}
+      fieldName="handlingCode"
     />
 
     {#if showOtrosField}

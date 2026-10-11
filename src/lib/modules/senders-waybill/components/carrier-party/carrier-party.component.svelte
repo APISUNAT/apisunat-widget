@@ -86,6 +86,7 @@
       showLabel={false}
       bind:value={name}
       icon={userIcon}
+      fieldName="carrierParty"
     />
     <Select
       placeholder="Tipo"
@@ -94,6 +95,7 @@
       options={filteredCatalogo06}
       required
       disabled={true}
+      fieldName="carrierParty"
     />
     <Input
       placeholder="RUC"
@@ -101,6 +103,7 @@
       bind:value={documentNumber}
       icon={identificationIcon}
       maxLength={11}
+      fieldName="carrierParty"
     />
     <Input
       placeholder="Registro MTC"
@@ -109,6 +112,7 @@
       pattern={`[A-Z0-9]{0,20}`}
       maxLength={20}
       icon={identificationIcon}
+      fieldName="carrierParty.mtcRegistration"
     />
   </div>
 </div>

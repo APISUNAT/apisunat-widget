@@ -103,6 +103,7 @@
                 maxLength={8}
                 required={true}
                 icon={packageIcon}
+                fieldName="vehicle.plate"
               />
               <Input
                 label="TUC / CHV"
@@ -111,6 +112,7 @@
                 pattern={`[A-Z0-9]{10,15}`}
                 maxLength={15}
                 icon={identificationIcon}
+                fieldName="vehicle.tucChv"
               />
             </div>
             <div class="grid gap-3 md:grid-cols-2">
@@ -127,6 +129,7 @@
                 pattern={`[A-Z0-9]{3,50}`}
                 maxLength={50}
                 icon={identificationIcon}
+                fieldName="vehicle.authorization"
               />
             </div>
           </div>

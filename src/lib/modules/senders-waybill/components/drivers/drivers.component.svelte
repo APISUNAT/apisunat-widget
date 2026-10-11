@@ -132,12 +132,14 @@
                 placeholder="Ej: JAVIER"
                 bind:value={driver.firstName}
                 icon={userIcon}
+                fieldName="driver.firstName"
               />
               <Input
                 label="Apellidos"
                 placeholder="Ej: QUISPE PAUCAR"
                 bind:value={driver.lastName}
                 icon={userIcon}
+                fieldName="driver.lastName"
               />
             </div>
 
@@ -149,6 +151,7 @@
               maxLength={10}
               required={true}
               icon={identificationIcon}
+              fieldName="driver.license"
             />
           </div>
         </div>

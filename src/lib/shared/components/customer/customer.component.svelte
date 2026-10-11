@@ -195,6 +195,7 @@
       showLabel={false}
       bind:value={name}
       icon={userIcon}
+      fieldName={isGuiaRemision ? "deliveryCustomer" : "customer"}
     />
     <Select
       placeholder="Tipo de documento"
@@ -202,6 +203,7 @@
       bind:value={typeDocument}
       options={filteredCatalogo06}
       required
+      fieldName={isGuiaRemision ? "deliveryCustomer" : "customer"}
     />
     <Input
       placeholder="Número de documento"
@@ -210,6 +212,7 @@
       maxLength={documentMaxLength}
       icon={identificationIcon}
       disabled={handleNoDocument}
+      fieldName={isGuiaRemision ? "deliveryCustomer" : "customerNumber"}
     />
     {#if typeDocument === "6" && numberDocument && !isDocumentValid}
       <span class="text-xs text-red-500">

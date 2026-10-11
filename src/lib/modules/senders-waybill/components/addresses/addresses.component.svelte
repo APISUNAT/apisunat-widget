@@ -224,6 +224,7 @@
           showLabel={false}
           bind:value={departureDepartamento}
           options={departamentosOptions}
+          fieldName="departure.ubigeo"
         />
         <Select
           placeholder="Provincia"
@@ -231,6 +232,7 @@
           bind:value={departureProvincia}
           options={departureProvienciasOptions}
           disabled={!departureDepartamento}
+          fieldName="departure.ubigeo"
         />
         <Select
           placeholder="Distrito"
@@ -238,12 +240,14 @@
           bind:value={departureDistrito}
           options={departureDistritosOptions}
           disabled={!departureProvincia}
+          fieldName="departure.ubigeo"
         />
         <Input
           placeholder="Dirección completa"
           showLabel={false}
           bind:value={departureAddress}
           icon={locationIcon}
+          fieldName="departure.address"
         />
       </div>
       {#if showAddressTypeCode}
@@ -254,12 +258,16 @@
             bind:value={departureAddressTypeCode}
             placeholder="Código"
             icon={documentIcon}
+            maxLength={4}
+            pattern="[A-Z0-9]{0,4}"
+            fieldName="departure.code"
           />
           <Input
             label="RUC"
             value={supplierRUC}
             disabled={true}
             icon={identificationIcon}
+            maxLength={11}
           />
         </div>
       {/if}
@@ -271,12 +279,18 @@
             bind:value={departureAddressTypeCode}
             placeholder="Código"
             icon={documentIcon}
+            maxLength={4}
+            pattern="[A-Z0-9]{0,4}"
+            fieldName="departure.code"
           />
           <Input
             label="RUC"
             bind:value={departureRUC}
             placeholder="RUC"
             icon={identificationIcon}
+            maxLength={11}
+            onlyNumbers={true}
+            fieldName="departure.ruc"
           />
         </div>
       {/if}
@@ -293,6 +307,7 @@
           showLabel={false}
           bind:value={arrivalDepartamento}
           options={departamentosOptions}
+          fieldName="arrival.ubigeo"
         />
         <Select
           placeholder="Provincia"
@@ -300,6 +315,7 @@
           bind:value={arrivalProvincia}
           options={arrivalProvienciasOptions}
           disabled={!arrivalDepartamento}
+          fieldName="arrival.ubigeo"
         />
         <Select
           placeholder="Distrito"
@@ -307,12 +323,14 @@
           bind:value={arrivalDistrito}
           options={arrivalDistritosOptions}
           disabled={!arrivalProvincia}
+          fieldName="arrival.ubigeo"
         />
         <Input
           placeholder="Dirección completa"
           showLabel={false}
           bind:value={arrivalAddress}
           icon={locationIcon}
+          fieldName="arrival.address"
         />
       </div>
       {#if showAddressTypeCode}
@@ -323,12 +341,16 @@
             bind:value={arrivalAddressTypeCode}
             placeholder="Código"
             icon={documentIcon}
+            maxLength={4}
+            pattern="[A-Z0-9]{0,4}"
+            fieldName="arrival.code"
           />
           <Input
             label="RUC"
             value={supplierRUC}
             disabled={true}
             icon={identificationIcon}
+            maxLength={11}
           />
         </div>
       {/if}
@@ -340,12 +362,18 @@
             bind:value={arrivalAddressTypeCode}
             placeholder="Código"
             icon={documentIcon}
+            maxLength={4}
+            pattern="[A-Z0-9]{0,4}"
+            fieldName="arrival.code"
           />
           <Input
             label="RUC"
             bind:value={arrivalRUC}
             placeholder="RUC"
             icon={identificationIcon}
+            maxLength={11}
+            onlyNumbers={true}
+            fieldName="arrival.ruc"
           />
         </div>
       {/if}

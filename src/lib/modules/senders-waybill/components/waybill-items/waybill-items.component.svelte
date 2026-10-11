@@ -7,9 +7,14 @@
     type EditableWaybillItem,
   } from "./waybill-items.component";
   import { documentStore, documentLoaded } from "$lib/store/document.store";
+  import { validationErrorsStore } from '$lib/store/validation-errors.store';
   import WaybillItemEditor from "./waybill-item-editor.component.svelte";
 
   let { hidden = false } = $props();
+
+  // Obtener errores del store
+  const errors = $derived($validationErrorsStore);
+  const hasError = $derived(errors.some(e => e.field === 'lines'));
 
   let items = $state<WaybillItem[]>([]);
   let isOpen = $state(false);
@@ -87,7 +92,8 @@
   }
 </script>
 
-<div class="overflow-hidden rounded-[1.15rem] border border-[color:color-mix(in_oklab,var(--form-color-3)_22%,transparent)] bg-[var(--form-panel-bg)]" class:hidden>
+<div>
+<div class="overflow-hidden rounded-[1.15rem] border bg-[var(--form-panel-bg)]" class:hidden class:border-red-500={hasError} class:border-2={hasError} class:border-[color:color-mix(in_oklab,var(--form-color-3)_22%,transparent)]={!hasError}>
   <!-- Header -->
   <div class="flex items-center justify-between gap-3 border-b border-[color:color-mix(in_oklab,var(--form-color-3)_16%,transparent)] px-5 py-3">
     <p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--form-text-soft)]">
@@ -168,6 +174,7 @@
       </div>
     </div>
   {/if}
+</div>
 </div>
 
 <WaybillItemEditor {isOpen} {itemEditor} {mode} on:close={handleClose} on:save={handleSave} />

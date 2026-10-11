@@ -92,7 +92,14 @@
   <div class="grid grid-cols-2 gap-6">
     <!-- Columna izquierda: Toggles -->
     <div class="min-w-0 pl-8">
+      <p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--form-text-soft)] mb-3">Opciones de Entrega</p>
       <div class="grid grid-cols-2 gap-x-4 gap-y-4">
+      <Toggle
+          label="Vehículos Categoría M1 o L"
+          bind:checked={vehiculosCategoriaM1L}
+          disabled={datosTransportista}
+        />
+
         <Toggle
           label="Retorno de Vehículo Vacío"
           bind:checked={retornoVehiculoVacio}
@@ -106,17 +113,6 @@
         />
 
         <Toggle
-          label="Transbordo Programado"
-          bind:checked={transbordoProgramado}
-        />
-
-        <Toggle
-          label="Vehículos Categoría M1 o L"
-          bind:checked={vehiculosCategoriaM1L}
-          disabled={datosTransportista}
-        />
-
-        <Toggle
           label="Traslado total (DAM o DS)"
           bind:checked={trasladoTotalDAM}
           disabled={!isTrasladoTotalEnabled}
@@ -127,6 +123,12 @@
           bind:checked={datosTransportista}
           disabled={vehiculosCategoriaM1L || isTransportePrivado}
         />
+        
+        <Toggle
+          label="Transbordo Programado"
+          bind:checked={transbordoProgramado}
+        />
+
       </div>
     </div>
 

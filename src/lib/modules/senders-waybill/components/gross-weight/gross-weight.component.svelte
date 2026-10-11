@@ -58,6 +58,7 @@
           showLabel={false}
           bind:value={unitCode}
           options={unitOptions}
+          fieldName="grossWeight"
         />
         <Input
           placeholder="500.000"
@@ -66,6 +67,7 @@
           icon={weightIcon}
           onlyNumbers={true}
           maxDecimals={3}
+          fieldName="grossWeight"
         />
       </div>
     </div>

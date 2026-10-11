@@ -1,6 +1,6 @@
 # @apisunat/apisunat-widget
 
-Widget de facturación electrónica SUNAT, empaquetado como [Custom Element](https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_custom_elements) (`<apisunat-widget>`). Renderiza el formulario de Boleta, Factura, Nota de Crédito o Nota de Débito y expone el payload UBL listo para emitir.
+Widget de facturación electrónica SUNAT, empaquetado como [Custom Element](https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_custom_elements) (`<apisunat-widget>`). Renderiza el formulario de Boleta, Factura, Nota de Crédito, Nota de Débito y Guía de Remisión Electrónica (GRE) y expone el payload UBL listo para emitir.
 
 No depende de ningún framework: funciona en HTML plano, y también en proyectos con Vite, React, Vue, Angular, etc.
 
@@ -39,14 +39,16 @@ import '@apisunat/apisunat-widget/styles.css';
   apisunat({
     personaId: 'TU_PERSONA_ID',
     personaToken: 'TU_PERSONA_TOKEN',
-    type: '01',        // '01' Factura, '03' Boleta, '07' Nota de Crédito, '08' Nota de Débito
+    type: '01',        // '01' Factura, '03' Boleta, '07' Nota Crédito, '08' Nota Débito, '09' Guía de Remisión
     serie: 'F001',
-    components: {
-      header: true,
-      supplier: true,
-      customer: true,
-      lines: true,
-      paymentTerms: true
+    config: {
+      display: {
+        header: true,
+        supplier: true,
+        customer: true,
+        lines: true,
+        paymentTerms: true
+      }
     },
     onchange: (data) => console.log('Documento actualizado:', data),
     onEmit: (result) => console.log('Documento emitido:', result),
@@ -61,26 +63,74 @@ import '@apisunat/apisunat-widget/styles.css';
 |---|---|---|---|
 | `personaId` | `string` | Sí, para emitir | ID de la persona emisora en APISUNAT. |
 | `personaToken` | `string` | Sí, para emitir | Token de autenticación de APISUNAT. |
-| `type` | `'01' \| '03' \| '07' \| '08'` | Sí | Tipo de comprobante: Factura, Boleta, Nota de Crédito, Nota de Débito. |
-| `serie` | `string` | Sí | Serie del comprobante (ej. `'F001'`, `'B001'`). |
-| `json` | `object` | No | Documento UBL base a precargar (por ejemplo, líneas de una Nota de Crédito). Si no se pasa, el widget inicia un documento vacío según `type`. |
-| `components` | `object` | No | Activa/oculta secciones del formulario (ver tabla abajo). Por defecto todas están visibles. |
+| `type` | `'01' \| '03' \| '07' \| '08' \| '09'` | Sí | Tipo de comprobante: `'01'` Factura, `'03'` Boleta, `'07'` Nota de Crédito, `'08'` Nota de Débito, `'09'` Guía de Remisión. |
+| `serie` | `string` | Sí | Serie del comprobante (ej. `'F001'`, `'B001'`, `'T001'`). |
+| `json` | `object` | No | Documento UBL base a precargar. Si no se pasa, el widget inicia un documento vacío según `type`. |
+| `config.display` | `object` | No | Activa/oculta secciones del formulario (ver tabla abajo). Por defecto todas están visibles. |
 | `onchange` | `(data) => void` | No | Se dispara cada vez que cambia algún campo del formulario. Recibe el payload actual. |
 | `onEmit` | `(result) => void` | No | Se dispara cuando la emisión es exitosa (ver [Emitir el documento](#emitir-el-documento)). |
 | `onError` | `(error) => void` | No | Se dispara si la emisión falla, o si faltan `personaId`/`personaToken` al emitir. |
 
-### `components`
+### `config.display`
 
-| Campo | Sección |
+Permite mostrar u ocultar componentes del formulario. Todos los componentes están visibles por defecto (`true`). Para ocultar un componente, configúralo en `false`.
+
+#### Facturas y Boletas (`'01'`, `'03'`)
+
+| Campo | Descripción |
 |---|---|
-| `header` | Encabezado del comprobante |
+| `header` | Encabezado del documento (serie, correlativo, fecha) |
 | `supplier` | Datos del emisor |
-| `customer` | Datos del cliente |
+| `customer` | Datos del cliente/receptor |
 | `lines` | Ítems / líneas del documento |
 | `paymentTerms` | Condiciones de pago |
+| `detraccion` | Detracción (si aplica) |
 | `retention` | Retención (si aplica) |
+| `notes` | Notas / Observaciones |
+| `summary` | Resumen de totales |
 
-Cualquier campo omitido se asume `true`. Para ocultar una sección, pásalo en `false`.
+#### Notas de Crédito y Débito (`'07'`, `'08'`)
+
+| Campo | Descripción |
+|---|---|
+| `header` | Encabezado del documento |
+| `billingReference` | Referencia a documento que modifica |
+| `supplier` | Datos del emisor |
+| `customer` | Datos del cliente/receptor |
+| `lines` | Ítems / líneas del documento |
+| `notes` | Notas / Observaciones |
+| `summary` | Resumen de totales |
+
+#### Guía de Remisión Electrónica (`'09'`)
+
+| Campo | Descripción |
+|---|---|
+| `header` | Encabezado del documento |
+| `supplier` | Datos del remitente (emisor) |
+| `deliveryCustomer` | Destinatario |
+| `deliveryOptions` | Opciones de entrega |
+| `addresses` | Punto de partida y llegada |
+| `waybillItems` | Bienes a transportar |
+| `grossWeight` | Peso bruto total |
+| `notes` | Notas / Observaciones |
+| `relatedDocuments` | Documentos relacionados |
+
+**Ejemplo:**
+
+```javascript
+apisunat({
+  personaId: 'TU_PERSONA_ID',
+  personaToken: 'TU_PERSONA_TOKEN',
+  type: '09',
+  serie: 'T001',
+  config: {
+    display: {
+      deliveryCustomer: false,  // Oculta el destinatario
+      notes: false              // Oculta las notas
+    }
+  }
+});
+```
 
 ## Emitir el documento
 
@@ -149,13 +199,22 @@ async function montarWidget(type, serie) {
     personaToken: 'TU_PERSONA_TOKEN',
     type,
     serie,
-    components: { header: true, supplier: true, customer: true, lines: true, paymentTerms: true },
+    config: {
+      display: {
+        header: true,
+        supplier: true,
+        customer: true,
+        lines: true,
+        paymentTerms: true
+      }
+    },
     onEmit: (data) => console.log('Emitido:', data),
     onError: (error) => alert('Error: ' + error.message)
   });
 }
 
 montarWidget('01', 'F001'); // Factura
+montarWidget('09', 'T001'); // Guía de Remisión
 ```
 
 ## Personalización visual
@@ -181,7 +240,9 @@ apisunat-widget {
 
 Al no usar Shadow DOM, también hereda estilos globales de tu página (resets, fuentes, etc.). Ten esto en cuenta si tu sitio tiene un CSS muy genérico que pueda chocar con las clases internas del widget.
 
-## Ejemplo completo
+## Ejemplos completos
+
+### Ejemplo básico (Boleta)
 
 ```html
 <!DOCTYPE html>
@@ -208,6 +269,39 @@ Al no usar Shadow DOM, también hereda estilos globales de tu página (resets, f
     };
 
     document.getElementById('emitir').addEventListener('click', () => el.emitDocument());
+  </script>
+</body>
+</html>
+```
+
+### Ejemplo con componentes personalizados (Guía de Remisión)
+
+```html
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="stylesheet" href="https://unpkg.com/@apisunat/apisunat-widget@0.1.0/dist/assets/apisunat-widget.css" />
+</head>
+<body>
+  <apisunat-widget></apisunat-widget>
+
+  <script type="module" src="https://unpkg.com/@apisunat/apisunat-widget@0.1.0/dist/apisunat-widget.js"></script>
+  <script type="module">
+    apisunat({
+      personaId: 'TU_PERSONA_ID',
+      personaToken: 'TU_PERSONA_TOKEN',
+      type: '09',
+      serie: 'T001',
+      config: {
+        display: {
+          deliveryCustomer: false,  // Oculta el destinatario
+          relatedDocuments: false   // Oculta documentos relacionados
+        }
+      },
+      onEmit: (data) => console.log('Guía emitida:', data),
+      onError: (err) => console.error('Error:', err)
+    });
   </script>
 </body>
 </html>

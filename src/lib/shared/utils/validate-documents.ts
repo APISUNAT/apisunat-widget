@@ -234,13 +234,24 @@ export function validateDocument(): ValidationError[] {
         const handlingCode = doc['cac:Shipment']?.['cbc:HandlingCode']?._text
         const despatchSupplier = doc['cac:DespatchSupplierParty']?.['cac:Party']?.['cac:PartyIdentification']?.['cbc:ID']?._text
 
-        // Validar proveedor obligatorio en Traslado por Compra (02)
-        if (handlingCode === '02') {
+        // Validar proveedor obligatorio en Traslado por Compra (02), Recojo de bienes (07), u Otros (13)
+        if (handlingCode === '02' || handlingCode === '07' || handlingCode === '13') {
             const sellerSupplier = doc['cac:SellerSupplierParty']?.['cac:Party']?.['cac:PartyIdentification']?.['cbc:ID']?._text
             if (isEmpty(sellerSupplier)) {
                 errors.push({
                     field: 'sellerSupplier',
-                    message: 'El proveedor es obligatorio para Traslado por Compra'
+                    message: 'El proveedor es obligatorio para este tipo de traslado'
+                })
+            }
+        }
+
+        // Validar comprador obligatorio en Venta con entrega a terceros (03) o Venta sujeta a confirmación (13)
+        if (handlingCode === '03' || handlingCode === '13') {
+            const buyerCustomer = doc['cac:BuyerCustomerParty']?.['cac:Party']?.['cac:PartyIdentification']?.['cbc:ID']?._text
+            if (isEmpty(buyerCustomer)) {
+                errors.push({
+                    field: 'buyerCustomer',
+                    message: 'El comprador es obligatorio para este tipo de traslado'
                 })
             }
         }
@@ -314,6 +325,60 @@ export function validateDocument(): ValidationError[] {
                 field: 'arrival.address',
                 message: 'Punto de Llegada: La dirección completa es requerida'
             })
+        }
+
+        // Validar código y RUC según tipo de operación
+        const departureCode = despatchAddress?.['cbc:AddressTypeCode']?._text
+        const departureRUC = despatchAddress?.['cbc:AddressTypeCode']?._attributes?.listID
+        const arrivalCode = deliveryAddressObj?.['cbc:AddressTypeCode']?._text
+        const arrivalRUC = deliveryAddressObj?.['cbc:AddressTypeCode']?._attributes?.listID
+
+        // Traslado entre establecimientos (04): Código obligatorio en ambos puntos
+        if (handlingCode === '04') {
+            if (isEmpty(departureCode)) {
+                errors.push({
+                    field: 'departure.code',
+                    message: 'Punto de Partida: El código es obligatorio para traslado entre establecimientos'
+                })
+            }
+            if (isEmpty(arrivalCode)) {
+                errors.push({
+                    field: 'arrival.code',
+                    message: 'Punto de Llegada: El código es obligatorio para traslado entre establecimientos'
+                })
+            }
+        }
+
+        // Importación (08): Código y RUC obligatorios en punto de partida
+        if (handlingCode === '08') {
+            if (isEmpty(departureCode)) {
+                errors.push({
+                    field: 'departure.code',
+                    message: 'Punto de Partida: El código es obligatorio para importación'
+                })
+            }
+            if (isEmpty(departureRUC)) {
+                errors.push({
+                    field: 'departure.ruc',
+                    message: 'Punto de Partida: El RUC es obligatorio para importación'
+                })
+            }
+        }
+
+        // Exportación (09): Código y RUC obligatorios en punto de llegada
+        if (handlingCode === '09') {
+            if (isEmpty(arrivalCode)) {
+                errors.push({
+                    field: 'arrival.code',
+                    message: 'Punto de Llegada: El código es obligatorio para exportación'
+                })
+            }
+            if (isEmpty(arrivalRUC)) {
+                errors.push({
+                    field: 'arrival.ruc',
+                    message: 'Punto de Llegada: El RUC es obligatorio para exportación'
+                })
+            }
         }
 
         // Validar vehículos y conductores si el indicador está presente O si es Transporte Privado

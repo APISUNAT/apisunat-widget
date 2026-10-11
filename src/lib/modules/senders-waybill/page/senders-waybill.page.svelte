@@ -14,8 +14,13 @@
   let {
     showHeader = true,
     showSupplier = true,
-    showCustomer = true,
+    showDeliveryCustomer = true,
     showDeliveryOptions = true,
+    showAddresses = true,
+    showWaybillItems = true,
+    showGrossWeight = true,
+    showNotes = true,
+    showRelatedDocuments = true,
     onEmitClick = undefined as (() => Promise<any>) | undefined,
   } = $props();
 
@@ -43,36 +48,35 @@
         <Supplier hidden={!showSupplier} />
       </section>
 
-      <section class="space-y-3 pt-1" class:hidden={!showCustomer}>
-        <Customer hidden={!showCustomer} />
+      <section class="space-y-3 pt-1" class:hidden={!showDeliveryCustomer}>
+        <Customer hidden={!showDeliveryCustomer} />
       </section>
 
       <section class="space-y-3 pt-1" class:hidden={!showDeliveryOptions}>
-        <p class={sectionLabel}>Opciones de Entrega</p>
         <DeliveryOptions hidden={!showDeliveryOptions} />
       </section>
 
-      <section class="space-y-3 pt-1">
+      <section class="space-y-3 pt-1" class:hidden={!showAddresses}>
         <p class={sectionLabel}>Punto de Partida y Llegada</p>
         <Addresses />
       </section>
 
-      <section class="space-y-3 pt-1">
+      <section class="space-y-3 pt-1" class:hidden={!showWaybillItems}>
         <p class={sectionLabel}>Bienes a Transportar</p>
         <WaybillItems />
       </section>
 
-      <section class="space-y-3 pt-1">
+      <section class="space-y-3 pt-1" class:hidden={!showGrossWeight}>
         <p class={sectionLabel}>Peso Bruto Total</p>
         <GrossWeight />
       </section>
 
-      <section class="space-y-3 pt-1">
+      <section class="space-y-3 pt-1" class:hidden={!showNotes}>
         <p class={sectionLabel}>Notas / Observaciones</p>
         <NotesPanel />
       </section>
 
-      <section class="space-y-3 pt-1">
+      <section class="space-y-3 pt-1" class:hidden={!showRelatedDocuments}>
         <p class={sectionLabel}>Documentos Relacionados</p>
         <RelatedDocumentsPanel />
       </section>

@@ -113,6 +113,7 @@
       showLabel={false}
       options={CATALOGO06}
       bind:value={documentType}
+      fieldName="buyerCustomer"
     />
 
     <Input
@@ -122,6 +123,7 @@
       icon={identificationIcon}
       maxLength={maxLength}
       onlyNumbers={documentType === "6" || documentType === "1"}
+      fieldName="buyerCustomer"
     />
 
     <Input
@@ -129,6 +131,7 @@
       showLabel={false}
       bind:value={name}
       icon={buildingIcon}
+      fieldName="buyerCustomer"
     />
   </div>
 

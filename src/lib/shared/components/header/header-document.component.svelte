@@ -149,6 +149,7 @@
         showLabel={false}
         bind:value={noteDescription}
         icon={documentIcon}
+        fieldName="noteDescription"
       />
       <Input
         placeholder="Serie"
@@ -168,7 +169,7 @@
           bind:value={correlative}
           icon={documentIcon}
           maxLength={8}
-          disabled={locked}
+          disabled={locked || series.trim() !== ''}
         />
       </div>
     </div>
@@ -193,7 +194,7 @@
           bind:value={correlative}
           icon={documentIcon}
           maxLength={8}
-          disabled={locked}
+          disabled={locked || series.trim() !== ''}
         />
       </div>
     </div>
@@ -205,6 +206,7 @@
         showLabel={false}
         bind:value={operationType}
         options={filteredOperations}
+        fieldName="operationType"
       />
       <Input
         placeholder="Serie"
@@ -224,7 +226,7 @@
           bind:value={correlative}
           icon={documentIcon}
           maxLength={8}
-          disabled={locked}
+          disabled={locked || series.trim() !== ''}
         />
       </div>
     </div>

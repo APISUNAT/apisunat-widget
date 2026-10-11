@@ -18,8 +18,11 @@
     showSupplier = true,
     showCustomer = true,
     showLines = true,
-    showRetention = true,
     showPaymentTerms = true,
+    showDetraccion = true,
+    showRetention = true,
+    showNotes = true,
+    showSummary = true,
     onEmitClick = undefined as (() => Promise<any>) | undefined,
   } = $props();
 
@@ -65,21 +68,21 @@
         <Customer hidden={!showCustomer} />
       </section>
 
-      <section class="space-y-3 pt-1">
+      <section class="space-y-3 pt-1" class:hidden={!showLines}>
         <p class={sectionLabel}>Ítems</p>
         <div class="grid gap-4 lg:grid-cols-[70%_1fr] lg:items-start">
           <Lines hidden={!showLines} />
 
           <div class="grid gap-4">
-            <NotesPanel />
+            <NotesPanel hidden={!showNotes} />
 
-            <SummaryPanel />
+            <SummaryPanel hidden={!showSummary} />
 
             {#if showRetention}
               <Retention />
             {/if}
 
-            {#if isDetraccionOperation}
+            {#if isDetraccionOperation && showDetraccion}
               <Detraccion total={$documentStore['cac:LegalMonetaryTotal']?.['cbc:PayableAmount']?._text ?? 0} />
             {/if}
 
