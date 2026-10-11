@@ -67,6 +67,9 @@
   const showGrossWeight = $derived(config?.config?.display?.grossWeight ?? true);
   const showRelatedDocuments = $derived(config?.config?.display?.relatedDocuments ?? true);
 
+  // Orden de componentes (si se especifica)
+  const componentOrder = $derived(config?.config?.order ?? null);
+
   $effect(() => {
     if (!config?.type) return;
 
@@ -132,6 +135,7 @@
       {showWaybillItems}
       {showGrossWeight}
       {showRelatedDocuments}
+      {componentOrder}
       onEmitClick={config?.onEmit ? emitDocument : undefined}
     />
   {/key}

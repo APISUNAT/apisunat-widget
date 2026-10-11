@@ -66,7 +66,8 @@ import '@apisunat/apisunat-widget/styles.css';
 | `type` | `'01' \| '03' \| '07' \| '08' \| '09'` | Sí | Tipo de comprobante: `'01'` Factura, `'03'` Boleta, `'07'` Nota de Crédito, `'08'` Nota de Débito, `'09'` Guía de Remisión. |
 | `serie` | `string` | Sí | Serie del comprobante (ej. `'F001'`, `'B001'`, `'T001'`). |
 | `json` | `object` | No | Documento UBL base a precargar. Si no se pasa, el widget inicia un documento vacío según `type`. |
-| `config.display` | `object` | No | Activa/oculta secciones del formulario (ver tabla abajo). Por defecto todas están visibles. |
+| `config.display` | `object` | No | Activa/oculta componentes del formulario. Por defecto todos están visibles. |
+| `config.order` | `string[]` | No | Define el orden visual de los componentes. |
 | `onchange` | `(data) => void` | No | Se dispara cada vez que cambia algún campo del formulario. Recibe el payload actual. |
 | `onEmit` | `(result) => void` | No | Se dispara cuando la emisión es exitosa (ver [Emitir el documento](#emitir-el-documento)). |
 | `onError` | `(error) => void` | No | Se dispara si la emisión falla, o si faltan `personaId`/`personaToken` al emitir. |
@@ -131,6 +132,62 @@ apisunat({
   }
 });
 ```
+
+### `config.order`
+
+Permite definir el **orden visual** de los componentes en el formulario. Los componentes se muestran en el orden especificado en el array.
+
+**Características:**
+- Los componentes que están en `order` aparecen en ese orden específico
+- Los componentes que NO están en `order` aparecen al final en su orden por defecto
+- El botón "Emitir" siempre va al final, sin importar el orden
+- Se puede combinar con `display` para ocultar componentes específicos
+
+**Ejemplo básico:**
+
+```javascript
+apisunat({
+  type: '09',
+  serie: 'T001',
+  config: {
+    order: [
+      "deliveryCustomer",  // ← Va primero
+      "addresses",         // ← Va segundo
+      "waybillItems"       // ← Va tercero
+    ]
+  }
+});
+```
+
+**Ejemplo combinado con `display`:**
+
+```javascript
+apisunat({
+  type: '01',
+  serie: 'F001',
+  config: {
+    order: [
+      "customer",    // Cliente primero
+      "lines",       // Luego ítems
+      "supplier"     // Emisor al final
+    ],
+    display: {
+      retention: false  // Ocultar retención
+    }
+  }
+});
+```
+
+#### Componentes ordenables por tipo de documento
+
+**Facturas/Boletas (`'01'`, `'03'`):**
+- `header`, `headerOptions`, `supplier`, `customer`, `lines`
+
+**Notas (`'07'`, `'08'`):**
+- `header`, `headerOptions`, `supplier`, `customer`, `lines`
+
+**GRE (`'09'`):**
+- `header`, `headerOptions`, `supplier`, `deliveryCustomer`, `deliveryOptions`, `addresses`, `waybillItems`, `grossWeight`, `notes`, `relatedDocuments`
 
 ## Emitir el documento
 
