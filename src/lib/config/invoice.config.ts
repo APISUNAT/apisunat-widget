@@ -1,23 +1,11 @@
-export interface CustomerFieldsConfig {
-  ruc?: boolean
-  name?: boolean
-  address?: boolean
-  email?: boolean
-  phone?: boolean
-}
-
 export interface InvoiceComponents {
   header?: boolean
-  retention?: boolean
   supplier?: boolean
-  customer?: boolean | CustomerFieldsConfig
-  'customer.ruc'?: boolean
-  'customer.name'?: boolean
-  'customer.address'?: boolean
-  'customer.email'?: boolean
-  'customer.phone'?: boolean
-  lines?: boolean
+  customer?: boolean
+  retention?: boolean
   paymentTerms?: boolean
+  lines?: boolean
+  deliveryOptions?: boolean
 }
 
 export interface InvoiceConfig {

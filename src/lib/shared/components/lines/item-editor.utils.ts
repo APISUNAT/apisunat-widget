@@ -9,6 +9,10 @@ export type ItemFormFields = {
   precioUnitario: string
   igvRate: number
   taxSchemeValue: string
+  damSerie?: string
+  damNumero?: string
+  partidaArancelaria?: string
+  bienNormalizado?: string // "0" o "1"
 }
 
 export type ItemAmounts = {
@@ -36,6 +40,10 @@ export function createEditableItem(source: Partial<ItemFormFields> = {}): ItemFo
     precioUnitario: source.precioUnitario ?? '',
     igvRate: normalizeIgvRate(source.igvRate ?? 18),
     taxSchemeValue: source.taxSchemeValue ?? '1000',
+    damSerie: source.damSerie ?? '',
+    damNumero: source.damNumero ?? '',
+    partidaArancelaria: source.partidaArancelaria ?? '',
+    bienNormalizado: source.bienNormalizado ?? '0',
   }
 }
 

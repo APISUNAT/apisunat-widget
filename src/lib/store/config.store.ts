@@ -6,6 +6,7 @@ export interface RuntimeConfig {
     type: string
     serie?: string
 }
+
 export const runtimeConfigStore = writable<RuntimeConfig>({
     personaId: '',
     personaToken: '',

@@ -68,10 +68,17 @@ export async function loadLastDocumentAction(): Promise<{ series: string; correl
     const { serie } = get(runtimeConfigStore)
     if (!serie) return null
 
-    const data = await getLastDocumentPOSTAsync()
-
-    return {
-        series: data.serie,
-        correlative: data.suggestedNumber
+    try {
+        const data = await getLastDocumentPOSTAsync()
+        return {
+            series: data.serie,
+            correlative: data.suggestedNumber
+        }
+    } catch (error) {
+        // Si la API falla, usar la serie del config con correlativo inicial
+        return {
+            series: serie,
+            correlative: '00000001'
+        }
     }
 }

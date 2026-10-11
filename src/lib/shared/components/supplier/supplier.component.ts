@@ -1,5 +1,8 @@
 import { get } from 'svelte/store'
-import { documentStore } from '$lib/store/document.store'
+import { documentStore, documentTypeStore } from '$lib/store/document.store'
+import { isValidRuc, isDocumentComplete } from '$lib/shared/utils/validation.utils'
+
+export { isValidRuc }
 
 export function setSupplierActions(data: {
   supplier: string
@@ -8,51 +11,60 @@ export function setSupplierActions(data: {
   codeAddress?: string
   address: string
 }) {
-  documentStore.update(body => {
-    const current = body['cac:AccountingSupplierParty']?.['cac:Party'] ?? {}
+  const docType = get(documentTypeStore)
+  const isGuiaRemision = docType === '09' || docType === '31'
+  const supplierKey = isGuiaRemision ? 'cac:DespatchSupplierParty' : 'cac:AccountingSupplierParty'
 
-    return {
-      ...body,
-      'cac:AccountingSupplierParty': {
-        ...body['cac:AccountingSupplierParty'],
-        'cac:Party': {
-          ...current,
-          'cac:PartyIdentification': {
-            ...current['cac:PartyIdentification'],
-            'cbc:ID': {
-              ...current['cac:PartyIdentification']?.['cbc:ID'],
-              _attributes: {
-                ...current['cac:PartyIdentification']?.['cbc:ID']?._attributes,
-                schemeID: '6',
-              },
-              _text: data.numberDocument,
-            }
-          },
-          ...(data.tradeName.trim().length >= 3 ? {
-            'cac:PartyName': {
-              'cbc:Name': { _text: data.tradeName }
-            }
-          } : {
-            'cac:PartyName': undefined
-          }),
-          'cac:PartyLegalEntity': {
-            ...current['cac:PartyLegalEntity'],
-            'cbc:RegistrationName': { _text: data.supplier },
-            'cac:RegistrationAddress': {
-              ...current['cac:PartyLegalEntity']?.['cac:RegistrationAddress'],
-              'cbc:AddressTypeCode': { _text: data.codeAddress || '0000' },
-              ...(data.address.trim().length >= 3 ? {
-                'cac:AddressLine': {
-                  ...current['cac:PartyLegalEntity']?.['cac:RegistrationAddress']?.['cac:AddressLine'],
-                  'cbc:Line': { _text: data.address }
-                }
-              } : {
-                'cac:AddressLine': undefined
-              }),
-            }
+  documentStore.update(body => {
+    const current = body[supplierKey]?.['cac:Party'] ?? {}
+
+    const partyData = {
+      ...body[supplierKey],
+      'cac:Party': {
+        ...current,
+        'cac:PartyIdentification': {
+          ...current['cac:PartyIdentification'],
+          'cbc:ID': {
+            ...current['cac:PartyIdentification']?.['cbc:ID'],
+            _attributes: {
+              ...current['cac:PartyIdentification']?.['cbc:ID']?._attributes,
+              schemeID: '6',
+            },
+            _text: data.numberDocument,
+          }
+        },
+        ...(data.tradeName.trim().length >= 3 ? {
+          'cac:PartyName': {
+            'cbc:Name': { _text: data.tradeName }
+          }
+        } : {
+          'cac:PartyName': undefined
+        }),
+        'cac:PartyLegalEntity': {
+          ...current['cac:PartyLegalEntity'],
+          'cbc:RegistrationName': { _text: data.supplier },
+          'cac:RegistrationAddress': {
+            ...current['cac:PartyLegalEntity']?.['cac:RegistrationAddress'],
+            // Solo agregar AddressTypeCode si NO es guía de remisión
+            ...(!isGuiaRemision ? {
+              'cbc:AddressTypeCode': { _text: data.codeAddress || '0000' }
+            } : {}),
+            ...(data.address.trim().length >= 3 ? {
+              'cac:AddressLine': {
+                ...current['cac:PartyLegalEntity']?.['cac:RegistrationAddress']?.['cac:AddressLine'],
+                'cbc:Line': { _text: data.address }
+              }
+            } : {
+              'cac:AddressLine': undefined
+            }),
           }
         }
       }
+    }
+
+    return {
+      ...body,
+      [supplierKey]: partyData
     }
   })
 }
@@ -65,7 +77,10 @@ export function getSupplierData(): {
   address: string
 } {
   const doc = get(documentStore)
-  const party = doc['cac:AccountingSupplierParty']?.['cac:Party']
+  const docType = get(documentTypeStore)
+  const isGuiaRemision = docType === '09' || docType === '31'
+  const supplierKey = isGuiaRemision ? 'cac:DespatchSupplierParty' : 'cac:AccountingSupplierParty'
+  const party = doc[supplierKey]?.['cac:Party']
 
   if (!party) return { tradeName: '', name: '', ruc: '', address: '', codeAddress: '' }
 
@@ -78,10 +93,6 @@ export function getSupplierData(): {
   }
 }
 
-export function isValidRuc(ruc: string): boolean {
-  return /^(10|15|16|17|20)\d{9}$/.test(ruc)
-}
-
 export function isRucComplete(ruc: string): boolean {
-  return ruc.length === 11 && isValidRuc(ruc)
+  return isDocumentComplete('6', ruc)
 }

@@ -12,6 +12,8 @@
   import { buildTotalsActions } from "$lib/shared/components/summary/summary-panel.component";
   import { convertDecimalToInt, convertIntToDecimal, roundToTwoDecimals } from "$lib/shared/utils/convertnumber.utils";
 
+  let { hidden = false } = $props();
+
   let items = $state<LineItem[]>([]);
   let isOpen = $state(false);
   let mode = $state<"create" | "edit">("create");
@@ -149,7 +151,7 @@
   }
 </script>
 
-<div class="overflow-hidden rounded-[1.15rem] border border-[color:color-mix(in_oklab,var(--form-color-3)_22%,transparent)] bg-[var(--form-panel-bg)]">
+<div class="overflow-hidden rounded-[1.15rem] border border-[color:color-mix(in_oklab,var(--form-color-3)_22%,transparent)] bg-[var(--form-panel-bg)]" class:hidden>
   <!-- Header -->
   <div class="flex items-center justify-between gap-3 border-b border-[color:color-mix(in_oklab,var(--form-color-3)_16%,transparent)] px-5 py-3">
     <p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--form-text-soft)]">

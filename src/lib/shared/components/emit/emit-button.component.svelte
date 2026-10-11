@@ -1,9 +1,7 @@
 <script lang="ts">
-  import {
-    validateDocument,
-    type ValidationError,
-  } from "$lib/shared/utils/validate-documents";
+  import { validateDocument, type ValidationError } from "$lib/shared/utils/validate-documents";
   import { resetDocument, documentTypeStore } from "$lib/store/document.store";
+  import { validationErrorsStore } from "$lib/store/validation-errors.store";
   import {CATALOGO01} from "$lib/constants/catalagos"
 
   function getDocumentTypeLabel(): string{
@@ -16,7 +14,7 @@
     $props();
 
   let emitting = $state(false);
-  let errors = $state<ValidationError[]>([]);
+  let toastErrors = $state<ValidationError[]>([]);
   let errorTimeout: ReturnType<typeof setTimeout> | null = null;
 
   async function handleEmitASYNC() {
@@ -25,14 +23,23 @@
   const result = validateDocument()
 
   if (result.length > 0) {
-    errors = result
+    // Actualizar el store para que los inputs muestren los errores (permanece hasta próximo "Emitir")
+    validationErrorsStore.setErrors(result)
+
+    // Mostrar toast temporal (desaparece en 4 segundos)
+    toastErrors = result
 
     if (errorTimeout) clearTimeout(errorTimeout)
-
-    errorTimeout = setTimeout(() => errors = [], 4000)
+    errorTimeout = setTimeout(() => {
+      toastErrors = []
+    }, 4000)
 
     return
   }
+
+  // Limpiar errores si la validación pasa
+  validationErrorsStore.clearErrors()
+  toastErrors = []
 
   emitting = true
 
@@ -49,9 +56,9 @@
 </script>
 
 <!-- Toast -->
-{#if errors.length > 0}
+{#if toastErrors.length > 0}
   <div class="fixed bottom-6 left-6 z-50 flex flex-col gap-2">
-    {#each errors as error}
+    {#each toastErrors as error}
       <div
         class="flex items-center gap-3 rounded-[1.15rem] border border-[color:color-mix(in_oklab,var(--form-color-3)_30%,transparent)] bg-[var(--form-panel-bg)] px-4 py-3 shadow-lg"
       >

@@ -15,9 +15,14 @@ export function resolveHeaderOptions(doc: Record<string, any>) {
     const hasDate     = !!doc["cbc:IssueDate"]?._text;
     const hasTime     = !!doc["cbc:IssueTime"]?._text;
     const hasCurrency = !!doc["cbc:DocumentCurrencyCode"]?._text;
+    // Para guías, la fecha de inicio de traslado se obtiene de TransitPeriod
+    const hasDeliveryDate = !!doc["cac:Shipment"]?.["cac:ShipmentStage"]?.["cac:TransitPeriod"]?.["cbc:StartDate"]?._text;
 
     const date     = hasDate ? doc["cbc:IssueDate"]._text : TODAY();
     const currency = hasCurrency ? doc["cbc:DocumentCurrencyCode"]._text : DEFAULT_CURRENCY;
+    const deliveryDate = hasDeliveryDate
+        ? doc["cac:Shipment"]["cac:ShipmentStage"]["cac:TransitPeriod"]["cbc:StartDate"]._text
+        : TODAY();
 
     // Solo generamos time si tampoco vino, Y la fecha tampoco vino
     // (si ya había fecha pero no hora, no inventamos hora)
@@ -26,7 +31,7 @@ export function resolveHeaderOptions(doc: Record<string, any>) {
         : (hasDate ? undefined : getCurrentTime());
 
     return {
-        values: { date, time, currency },
+        values: { date, time, currency, deliveryDate },
         needsSync: !hasDate || !hasCurrency,
     };
 }
@@ -35,12 +40,19 @@ export function buildHeaderOptionsAction(data: {
     date: string
     currency: string
     time?: string
+    deliveryDate?: string
+    isGuia?: boolean
 }) {
-    return {
+    const baseAction = {
         'cbc:IssueDate': { _text: data.date },
         ...(data.time ? {
             'cbc:IssueTime': { _text: data.time }
         } : {}),
         'cbc:DocumentCurrencyCode': { _text: data.currency },
-    }
+    };
+
+    // Para guías NO agregamos LoadingTransportEvent
+    // El TransitPeriod.StartDate ya se maneja en shipment-info.component.ts
+
+    return baseAction;
 }
