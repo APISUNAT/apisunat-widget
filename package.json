@@ -1,6 +1,6 @@
 {
 	"name": "@apisunat/apisunat-widget",
-	"version": "0.1.6",
+	"version": "0.2.1",
 	"description": "Widget de facturación electrónica SUNAT (custom element Svelte)",
 	"license": "SEE LICENSE IN LICENSE",
 	"type": "module",
