@@ -2,7 +2,7 @@
 	"name": "@apisunat/apisunat-widget",
 	"version": "0.1.6",
 	"description": "Widget de facturación electrónica SUNAT (custom element Svelte)",
-	"license": "MIT",
+	"license": "SEE LICENSE IN LICENSE",
 	"type": "module",
 	"main": "./dist/apisunat-widget.js",
 	"module": "./dist/apisunat-widget.js",
@@ -53,11 +53,13 @@
 		"vite": "^8.0.7"
 	},
 	"keywords": [
-		"svelte",
 		"sunat",
+		"apisunat",
+		"facturador",
 		"facturacion",
-		"peru",
-		"custom-element",
-		"widget"
+		"electronica",
+		"widget",
+		"api",
+		"ubl"
 	]
 }

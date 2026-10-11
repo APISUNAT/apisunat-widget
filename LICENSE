@@ -1,21 +1,20 @@
-MIT License
+SOFTWARE LICENSE AGREEMENT - APISUNAT WIDGET
 
-Copyright (c) 2026 APISUNAT
+Copyright (c) 2026 APISUNAT. All rights reserved.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Permission is hereby granted, free of charge, to any person or entity to use and integrate this software (the "Widget") into any website, platform, or application, including those operated for commercial or for-profit purposes, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+1. COPY AND REPLICATION RESTRICTIONS:
+You are strictly prohibited from copying, modifying, adapting, translating, reverse engineering, decompiling, disassembling, sublicensing, or redistributing the source code of this Widget, in whole or in part, to create a derivative work, a competing product, a clone, or a standalone copy of this software. This license grants permission for integration and usage only, not for replication or distribution of the codebase as a standalone asset.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+2. BACKEND AND API SERVICE USAGE:
+This Widget requires connectivity to APISUNAT backend servers and API endpoints to function. This license DOES NOT grant free, unrestricted, or unconditional access to APISUNAT backend services, APIs, or data.
+* Usage of the backend services requires a valid access token generated through the official APISUNAT website.
+* Access to and usage of the API endpoints, backend services, and any associated fees are strictly governed by the separate Terms and Conditions and Pricing Policies found on the official APISUNAT website.
+* Unauthorized access, token sharing, or abuse of the API endpoints via this Widget is strictly prohibited and may result in immediate revocation of service access.
+
+3. COPYRIGHT NOTICE:
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software if it is bundled or built as part of a legitimate application deployment.
+
+4. DISCLAIMER OF LIABILITY:
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS (APISUNAT) BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
