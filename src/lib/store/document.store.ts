@@ -107,15 +107,37 @@ export const emitBody = {
         'cbc:CustomizationID': { _text: '2.0' },
         'cbc:ID': null,
         'cbc:IssueDate': null,
-        'cbc:IssueTime': [],
+        'cbc:IssueTime': null,
         'cbc:DespatchAdviceTypeCode': { _text: '09' },
-        'cbc:Note': [],
-        'cac:AdditionalDocumentReference': [],
+        'cbc:Note': null,
+        'cac:AdditionalDocumentReference': null,
         'cac:DespatchSupplierParty': null,
         'cac:DeliveryCustomerParty': null,
-        'cac:BuyerCustomerParty': [],
-        'cac:SellerSupplierParty': [],
-        'cac:Shipment': [],
+        'cac:Shipment': {
+            'cbc:ID': { _text: 'SUNAT_Envio' },
+            'cbc:HandlingCode': null,
+            'cbc:Information': null,
+            'cbc:GrossWeightMeasure': null,
+            'cbc:SpecialInstructions': null,
+            'cbc:ReturnVehicleIndicator': null,
+            'cbc:ReturnPackagingIndicator': null,
+            'cbc:TransbordoIndicator': null,
+            'cbc:VehicleM1L': null,
+            'cbc:TotalTransferIndicator': null,
+            'cbc:CarrierPartyIndicator': null,
+            'cac:ShipmentStage': {
+                'cbc:TransportModeCode': null,
+                'cac:TransitPeriod': null,
+                'cac:CarrierParty': null,
+                'cac:LoadingTransportEvent': null,
+                'cac:DriverPerson': null,
+            },
+            'cac:Delivery': {
+                'cac:DeliveryAddress': null,
+                'cac:Despatch': null,
+            },
+            'cac:TransportHandlingUnit': null,
+        },
         'cac:DespatchLine': [],
     },
     '31': {
@@ -123,14 +145,38 @@ export const emitBody = {
         'cbc:CustomizationID': { _text: '2.0' },
         'cbc:ID': null,
         'cbc:IssueDate': null,
-        'cbc:IssueTime': [],
+        'cbc:IssueTime': null,
         'cbc:DespatchAdviceTypeCode': { _text: '31' },
         'cbc:Note': [],
         'cac:AdditionalDocumentReference': [],
         'cac:DespatchSupplierParty': null,
         'cac:DeliveryCustomerParty': null,
         'cac:OriginatorCustomerParty': null,
-        'cac:Shipment': [],
+        'cac:Shipment': {
+            'cbc:ID': { _text: 'SUNAT_Envio' },
+            'cbc:HandlingCode': null,
+            'cbc:Information': null,
+            'cbc:GrossWeightMeasure': null,
+            'cbc:SpecialInstructions': null,
+            'cbc:ReturnVehicleIndicator': null,
+            'cbc:ReturnPackagingIndicator': null,
+            'cbc:TransbordoIndicator': null,
+            'cbc:VehicleM1L': null,
+            'cbc:TotalTransferIndicator': null,
+            'cbc:CarrierPartyIndicator': null,
+            'cac:ShipmentStage': {
+                'cbc:TransportModeCode': null,
+                'cac:TransitPeriod': null,
+                'cac:CarrierParty': null,
+                'cac:LoadingTransportEvent': null,
+                'cac:DriverPerson': null,
+            },
+            'cac:Delivery': {
+                'cac:DeliveryAddress': null,
+                'cac:Despatch': null,
+            },
+            'cac:TransportHandlingUnit': null,
+        },
         'cac:DespatchLine': [],
     },
     '14': {
@@ -245,6 +291,35 @@ function applyNoteInWords(output: Record<string, any>): Record<string, any> {
 }
 
 /**
+ * Limpia recursivamente un objeto eliminando:
+ * - null
+ * - undefined
+ * - Arrays vacíos []
+ * - Objetos vacíos {}
+ */
+function cleanEmptyFields(obj: any): any {
+    if (obj === null || obj === undefined) {
+        return undefined
+    }
+
+    if (Array.isArray(obj)) {
+        const cleaned = obj.map(cleanEmptyFields).filter(item => item !== undefined)
+        return cleaned.length > 0 ? cleaned : undefined
+    }
+
+    if (typeof obj === 'object') {
+        const cleaned = Object.fromEntries(
+            Object.entries(obj)
+                .map(([key, value]) => [key, cleanEmptyFields(value)])
+                .filter(([_, value]) => value !== undefined)
+        )
+        return Object.keys(cleaned).length > 0 ? cleaned : undefined
+    }
+
+    return obj
+}
+
+/**
  * Toma los datos del store y los estructura según el tipo de comprobante activo,
  * usando `emitBody` como esqueleto para respetar el orden de campos exigido por UBL.
  */
@@ -255,9 +330,54 @@ export function getDocumentOutput(): Record<string, any> {
     if (!type || !emitBody[type]) return {}
 
     const template = emitBody[type]
+    const isGuiaRemision = type === '09' || type === '31'
+
     const rawOutput = Object.fromEntries(
         Object.keys(template).map((key) => {
-            const fixedKeys = ['cbc:UBLVersionID', 'cbc:CustomizationID']
+            const fixedKeys = ['cbc:UBLVersionID', 'cbc:CustomizationID', 'cbc:DespatchAdviceTypeCode']
+
+            // Para cac:Shipment en guías, reconstruir usando el template para respetar orden
+            if (key === 'cac:Shipment' && isGuiaRemision && doc[key]) {
+                const shipmentTemplate = (template as any)[key]
+                const shipmentData = doc[key]
+
+                // Reconstruir Shipment en el orden del template
+                const orderedShipment = Object.fromEntries(
+                    Object.keys(shipmentTemplate).map((shipmentKey) => {
+                        let value = shipmentData[shipmentKey]
+
+                        // Si el valor no existe pero el template tiene un valor por defecto, usarlo
+                        if ((value === null || value === undefined) && shipmentTemplate[shipmentKey] !== null) {
+                            value = shipmentTemplate[shipmentKey]
+                        }
+
+                        // Para ShipmentStage, reconstruir también en orden
+                        if (shipmentKey === 'cac:ShipmentStage' && value) {
+                            const stageTemplate = shipmentTemplate[shipmentKey]
+                            const orderedStage = Object.fromEntries(
+                                Object.keys(stageTemplate).map((stageKey) => [stageKey, value[stageKey]])
+                                    .filter(([_, v]) => v !== null && v !== undefined && !(Array.isArray(v) && v.length === 0))
+                            )
+                            return [shipmentKey, orderedStage]
+                        }
+
+                        // Para Delivery, reconstruir en orden
+                        if (shipmentKey === 'cac:Delivery' && value) {
+                            const deliveryTemplate = shipmentTemplate[shipmentKey]
+                            const orderedDelivery = Object.fromEntries(
+                                Object.keys(deliveryTemplate).map((deliveryKey) => [deliveryKey, value[deliveryKey]])
+                                    .filter(([_, v]) => v !== null && v !== undefined)
+                            )
+                            return [shipmentKey, orderedDelivery]
+                        }
+
+                        return [shipmentKey, value]
+                    }).filter(([_, v]) => v !== null && v !== undefined && !(Array.isArray(v) && v.length === 0))
+                )
+
+                return [key, orderedShipment]
+            }
+
             return [key, fixedKeys.includes(key) ? (template as any)[key] : doc[key]]
         })
     )
@@ -267,13 +387,21 @@ export function getDocumentOutput(): Record<string, any> {
         Object.entries(rawOutput).filter(([_, value]) => value !== null && value !== undefined)
     )
 
-    const output = applyNoteInWords(filteredOutput)
+    const outputWithNotes = applyNoteInWords(filteredOutput)
 
-    const email = output['cac:AccountingCustomerParty']
-        ?.['cac:Party']
-        ?.['cac:Contact']
-        ?.['cbc:ElectronicMail']
-        ?.['_text']
+    // Limpiar recursivamente campos vacíos (null, undefined, [], {})
+    const output = cleanEmptyFields(outputWithNotes) || {}
+
+    // Para guías de remisión, el email está en _customerEmail (campo temporal)
+    const isGuia = ['09', '31'].includes(type ?? '')
+    const email = isGuia
+        ? doc['_customerEmail']
+        : output['cac:AccountingCustomerParty']
+            ?.['cac:Party']
+            ?.['cac:Contact']
+            ?.['cbc:ElectronicMail']
+            ?.['_text']
+
     return {
         personaId:    config.personaId,
         personaToken: config.personaToken,
@@ -291,9 +419,14 @@ export function getDocumentOutput(): Record<string, any> {
  */
 export function getDocumentFileName(): string {
     const doc        = get(documentStore)
-    const ruc        = doc['cac:AccountingSupplierParty']?.['cac:Party']?.['cac:PartyIdentification']?.['cbc:ID']?._text
     const docType    = get(documentTypeStore)
     const documentID = doc['cbc:ID']?._text
+
+    // Para guías de remisión (09 y 31) usar DespatchSupplierParty
+    const isGuia = ['09', '31'].includes(docType ?? '')
+    const ruc = isGuia
+        ? doc['cac:DespatchSupplierParty']?.['cac:Party']?.['cac:PartyIdentification']?.['cbc:ID']?._text
+        : doc['cac:AccountingSupplierParty']?.['cac:Party']?.['cac:PartyIdentification']?.['cbc:ID']?._text
 
     return `${ruc}-${docType}-${documentID}`
 }

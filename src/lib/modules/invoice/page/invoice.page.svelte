@@ -17,18 +17,25 @@
     showHeader = true,
     showSupplier = true,
     showCustomer = true,
-    showCustomerRuc = true,
-    showCustomerName = true,
-    showCustomerAddress = true,
-    showCustomerEmail = true,
-    showCustomerPhone = true,
-    showRetention = true,
+    showLines = true,
     showPaymentTerms = true,
+    showDetraccion = true,
+    showRetention = true,
+    showNotes = true,
+    showSummary = true,
+    componentOrder = null as string[] | null,
     onEmitClick = undefined as (() => Promise<any>) | undefined,
   } = $props();
 
   const sectionLabel =
     "text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--form-text-soft)]";
+
+  // Helper para obtener el orden CSS de cada componente
+  function getOrder(componentName: string): number {
+    if (!componentOrder) return 999;
+    const index = componentOrder.indexOf(componentName);
+    return index >= 0 ? index : 999;
+  }
 
   // Verificar si la operación es sujeta a detracción (códigos que empiezan con "10")
   const isDetraccionOperation = $derived(
@@ -49,54 +56,41 @@
   class="relative isolate min-h-full p-3 [font-family:var(--form-font-family)] text-[var(--form-text-color)] md:p-4"
 >
   <div class="bg-[var(--form-color-2)]">
-    <div class="grid gap-4 px-4 py-4">
-      {#if showHeader}
-        <section class="space-y-3 pt-1">
-          <p class={sectionLabel}>Documento</p>
-          <HeaderDocument />
-        </section>
-      {/if}
+    <div class="grid gap-4 px-4 py-4" style="display: flex; flex-direction: column;">
+      <section class="space-y-3 pt-1" class:hidden={!showHeader} style="order: {getOrder('header')}">
+        <p class={sectionLabel}>Documento</p>
+        <HeaderDocument hidden={!showHeader} />
+      </section>
 
-      <section class="space-y-3 pt-1">
+      <section class="space-y-3 pt-1" style="order: {getOrder('headerOptions')}">
         <p class={sectionLabel}></p>
         <HeaderOptions />
       </section>
 
-      {#if showSupplier}
-        <section class="space-y-3 pt-1">
-          <p class={sectionLabel}>Emisor</p>
-          <Supplier />
-        </section>
-      {/if}
+      <section class="space-y-3 pt-1" class:hidden={!showSupplier} style="order: {getOrder('supplier')}">
+        <p class={sectionLabel}>Emisor</p>
+        <Supplier hidden={!showSupplier} />
+      </section>
 
-      {#if showCustomer}
-        <section class="space-y-3 pt-1">
-          <p class={sectionLabel}>Cliente</p>
-          <Customer
-            {showCustomerRuc}
-            {showCustomerName}
-            {showCustomerAddress}
-            {showCustomerEmail}
-            {showCustomerPhone}
-          />
-        </section>
-      {/if}
+      <section class="space-y-3 pt-1" class:hidden={!showCustomer} style="order: {getOrder('customer')}">
+        <Customer hidden={!showCustomer} />
+      </section>
 
-      <section class="space-y-3 pt-1">
+      <section class="space-y-3 pt-1" class:hidden={!showLines} style="order: {getOrder('lines')}">
         <p class={sectionLabel}>Ítems</p>
         <div class="grid gap-4 lg:grid-cols-[70%_1fr] lg:items-start">
-          <Lines />
+          <Lines hidden={!showLines} />
 
           <div class="grid gap-4">
-            <NotesPanel />
+            <NotesPanel hidden={!showNotes} />
 
-            <SummaryPanel />
+            <SummaryPanel hidden={!showSummary} />
 
             {#if showRetention}
               <Retention />
             {/if}
 
-            {#if isDetraccionOperation}
+            {#if isDetraccionOperation && showDetraccion}
               <Detraccion total={$documentStore['cac:LegalMonetaryTotal']?.['cbc:PayableAmount']?._text ?? 0} />
             {/if}
 
@@ -108,7 +102,7 @@
       </section>
 
       {#if onEmitClick}
-        <section class="pt-1 pb-2 flex justify-end">
+        <section class="pt-1 pb-2 flex justify-end" style="order: 9999">
           <EmitButton {onEmitClick} />
         </section>
       {/if}

@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { validationErrorsStore } from '$lib/store/validation-errors.store';
+
   let {
     label = '',
     value = $bindable(''),
@@ -12,6 +14,8 @@
     onlyNumbers = false,
     maxDecimals = undefined,
     oninput = undefined,
+    pattern = undefined,
+    fieldName = undefined,
   }: {
     label?: string;
     value?: string;
@@ -25,7 +29,13 @@
     onlyNumbers?: boolean;
     maxDecimals?: number;
     oninput?: (e: Event) => void;
+    pattern?: string;
+    fieldName?: string;
   } = $props();
+
+  // Obtener errores del store
+  const errors = $derived($validationErrorsStore);
+  const hasError = $derived(fieldName ? errors.some(e => e.field === fieldName) : false);
 
   function handleInput(event: Event) {
     const target = event.target as HTMLInputElement;
@@ -55,6 +65,12 @@
       }
     }
 
+    // Si hay un pattern personalizado, aplicar validación
+    if (pattern) {
+      // Convertir a mayúsculas y solo permitir A-Z y 0-9
+      val = val.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    }
+
     // Sincroniza el DOM con el valor ya filtrado para que el navegador
     // no muestre por un instante el carácter rechazado.
     target.value = val;
@@ -63,8 +79,11 @@
     oninput?.(event);
   }
 
-  const inputClass =
-    'block w-full rounded-xl border border-[color:color-mix(in_oklab,var(--form-color-3)_30%,transparent)] bg-[var(--form-field-bg)] px-4 py-3 ps-11 text-sm font-medium text-[var(--form-text-color)] outline-none';
+  const inputClass = $derived(
+    hasError
+      ? 'block w-full rounded-xl border-2 border-red-500 bg-[var(--form-field-bg)] px-4 py-3 ps-11 text-sm font-medium text-[var(--form-text-color)] outline-none disabled:opacity-50 disabled:cursor-not-allowed'
+      : 'block w-full rounded-xl border border-[color:color-mix(in_oklab,var(--form-color-3)_30%,transparent)] bg-[var(--form-field-bg)] px-4 py-3 ps-11 text-sm font-medium text-[var(--form-text-color)] outline-none disabled:opacity-50 disabled:cursor-not-allowed'
+  );
 </script>
 
 <div class="grid gap-1.5 text-[13px] text-[var(--form-text-muted)]">
@@ -83,6 +102,7 @@
       {disabled}
       {required}
       maxlength={maxLength}
+      pattern={pattern}
       inputmode={onlyNumbers ? (maxDecimals !== undefined ? 'decimal' : 'numeric') : undefined}
       oninput={handleInput}
       class={inputClass}

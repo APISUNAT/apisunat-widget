@@ -13,6 +13,7 @@
   import InvoiceForm from "$lib/modules/invoice/page/invoice.page.svelte";
   import ReceiptForm from "$lib/modules/receipt/page/receipt.page.svelte";
   import NoteForm from "$lib/modules/notes/page/notes.page.svelte";
+  import SendersWaybillForm from "$lib/modules/senders-waybill/page/senders-waybill.page.svelte";
   import {
     loadDocument,
     initDocument,
@@ -31,14 +32,13 @@
     "03": ReceiptForm,
     "07": NoteForm,
     "08": NoteForm,
-
+    "09": SendersWaybillForm,
+    "31": SendersWaybillForm,
   };
 
   let { config = {} as InvoiceConfig } = $props();
 
   $effect(() => {
-
-
     runtimeConfigStore.set({
       personaId: config.personaId,
       personaToken: config.personaToken,
@@ -48,102 +48,27 @@
   });
 
   const CurrentForm = $derived(FORMS[config?.type ?? ""] ?? InvoiceForm);
-  const showHeader = $derived(config?.components?.header !== false);
-  const showRetention = $derived(config?.components?.retention !== false);
-  const showSupplier = $derived(config?.components?.supplier !== false);
 
-  // Customer puede ser boolean o configurarse con notación de punto (customer.ruc, customer.name, etc.)
-  const customerConfig = $derived(config?.components?.customer);
-  const components = $derived(config?.components);
+  // Props simples que se pasan a las páginas (config.config.display sobreescribe defaults)
+  const showHeader = $derived(config?.config?.display?.header ?? true);
+  const showSupplier = $derived(config?.config?.display?.supplier ?? true);
+  const showCustomer = $derived(config?.config?.display?.customer ?? true);
+  const showLines = $derived(config?.config?.display?.lines ?? true);
+  const showPaymentTerms = $derived(config?.config?.display?.paymentTerms ?? true);
+  const showDetraccion = $derived(config?.config?.display?.detraccion ?? true);
+  const showRetention = $derived(config?.config?.display?.retention ?? true);
+  const showNotes = $derived(config?.config?.display?.notes ?? true);
+  const showSummary = $derived(config?.config?.display?.summary ?? true);
+  const showBillingReference = $derived(config?.config?.display?.billingReference ?? true);
+  const showDeliveryCustomer = $derived(config?.config?.display?.deliveryCustomer ?? true);
+  const showDeliveryOptions = $derived(config?.config?.display?.deliveryOptions ?? true);
+  const showAddresses = $derived(config?.config?.display?.addresses ?? true);
+  const showWaybillItems = $derived(config?.config?.display?.waybillItems ?? true);
+  const showGrossWeight = $derived(config?.config?.display?.grossWeight ?? true);
+  const showRelatedDocuments = $derived(config?.config?.display?.relatedDocuments ?? true);
 
-  const showCustomer = $derived.by(() => {
-    // Si customer es un objeto, mostrar si al menos un campo está en true
-    if (typeof customerConfig === 'object' && customerConfig !== null) {
-      return Object.values(customerConfig).some(v => v !== false);
-    }
-    // Si customer es boolean, usar ese valor
-    if (typeof customerConfig === 'boolean') return customerConfig;
-
-    // Si hay algún campo customer.* en true, mostrar la sección
-    if (components && typeof components === 'object') {
-      const customerFields = ['customer.ruc', 'customer.name', 'customer.address', 'customer.email', 'customer.phone'];
-      const hasAnyCustomerField = customerFields.some(field => (components as any)[field] === true);
-      if (hasAnyCustomerField) return true;
-    }
-
-    return true; // Por defecto mostrar
-  });
-
-  const showCustomerRuc = $derived.by(() => {
-    // Primero verificar si existe customer.ruc en components
-    if (components && typeof components === 'object' && 'customer.ruc' in components) {
-      return (components as any)['customer.ruc'] !== false;
-    }
-    // Si customer es un objeto, verificar la propiedad ruc
-    if (typeof customerConfig === 'object' && customerConfig !== null && 'ruc' in customerConfig) {
-      return customerConfig.ruc !== false;
-    }
-    // Si customer es boolean, usar ese valor
-    if (typeof customerConfig === 'boolean') {
-      return customerConfig !== false;
-    }
-    return true;
-  });
-
-  const showCustomerName = $derived.by(() => {
-    if (components && typeof components === 'object' && 'customer.name' in components) {
-      return (components as any)['customer.name'] !== false;
-    }
-    if (typeof customerConfig === 'object' && customerConfig !== null && 'name' in customerConfig) {
-      return customerConfig.name !== false;
-    }
-    if (typeof customerConfig === 'boolean') {
-      return customerConfig !== false;
-    }
-    return true;
-  });
-
-  const showCustomerAddress = $derived.by(() => {
-    if (components && typeof components === 'object' && 'customer.address' in components) {
-      return (components as any)['customer.address'] !== false;
-    }
-    if (typeof customerConfig === 'object' && customerConfig !== null && 'address' in customerConfig) {
-      return customerConfig.address !== false;
-    }
-    if (typeof customerConfig === 'boolean') {
-      return customerConfig !== false;
-    }
-    return true;
-  });
-
-  const showCustomerEmail = $derived.by(() => {
-    if (components && typeof components === 'object' && 'customer.email' in components) {
-      return (components as any)['customer.email'] !== false;
-    }
-    if (typeof customerConfig === 'object' && customerConfig !== null && 'email' in customerConfig) {
-      return customerConfig.email !== false;
-    }
-    if (typeof customerConfig === 'boolean') {
-      return customerConfig !== false;
-    }
-    return true;
-  });
-
-  const showCustomerPhone = $derived.by(() => {
-    if (components && typeof components === 'object' && 'customer.phone' in components) {
-      return (components as any)['customer.phone'] !== false;
-    }
-    if (typeof customerConfig === 'object' && customerConfig !== null && 'phone' in customerConfig) {
-      return customerConfig.phone !== false;
-    }
-    if (typeof customerConfig === 'boolean') {
-      return customerConfig !== false;
-    }
-    return true;
-  });
-
-  const showLines = $derived(config?.components?.lines !== false);
-  const showPaymentTerms = $derived(config?.components?.paymentTerms !== false);
+  // Orden de componentes (si se especifica)
+  const componentOrder = $derived(config?.config?.order ?? null);
 
   $effect(() => {
     if (!config?.type) return;
@@ -197,14 +122,20 @@
       {showHeader}
       {showSupplier}
       {showCustomer}
-      {showCustomerRuc}
-      {showCustomerName}
-      {showCustomerAddress}
-      {showCustomerEmail}
-      {showCustomerPhone}
       {showLines}
       {showPaymentTerms}
+      {showDetraccion}
       {showRetention}
+      {showNotes}
+      {showSummary}
+      {showBillingReference}
+      {showDeliveryCustomer}
+      {showDeliveryOptions}
+      {showAddresses}
+      {showWaybillItems}
+      {showGrossWeight}
+      {showRelatedDocuments}
+      {componentOrder}
       onEmitClick={config?.onEmit ? emitDocument : undefined}
     />
   {/key}

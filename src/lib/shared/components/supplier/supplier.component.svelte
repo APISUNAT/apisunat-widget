@@ -15,6 +15,8 @@
   } from "./supplier.component";
   import { getSupplierGETAsync } from "$lib/api/documents.api";
 
+  let { hidden = false } = $props();
+
   let tradeName = $state("");
   let name = $state("");
   let ruc = $state("");
@@ -136,7 +138,7 @@
   });
 </script>
 
-<div class="grid gap-3 md:grid-cols-[2fr_280px_3fr]">
+<div class="grid gap-3 md:grid-cols-[2fr_280px_3fr]" class:hidden>
   <Input
     placeholder="Razon social"
     showLabel={false}

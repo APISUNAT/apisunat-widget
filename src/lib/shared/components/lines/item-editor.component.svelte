@@ -9,6 +9,7 @@
   } from "$lib/constants/catalagos";
   import Input from "$lib/shared/ui/input.svelte";
   import SelectString from "$lib/shared/ui/select.svelte";
+  // import Toggle from "$lib/shared/ui/toggle.svelte"; // Comentado - No requerido por el momento
   import { documentStore, documentTypeStore } from "$lib/store/document.store";
   import {
     createEditableItem,
@@ -30,6 +31,7 @@
 
   let editorItem = $state(createEditableItem());
   let lastEdited = $state<"valor" | "precio" | null>(null);
+  // let isAdditionalDataOpen = $state(false); // Comentado - No requerido por el momento
 
   const fieldLabelClass = "font-medium";
 
@@ -331,6 +333,86 @@
               </div>
             </div>
           </div>
+
+          <!-- Datos Adicionales (DAM/DS) -->
+          <!-- NOTA: Comentado temporalmente - No requerido para facturas/boletas por el momento -->
+          <!--
+          <div class="border-t border-[color:color-mix(in_oklab,var(--form-color-3)_20%,transparent)] pt-4">
+            <button
+              type="button"
+              onclick={() => (isAdditionalDataOpen = !isAdditionalDataOpen)}
+              class="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-medium text-[var(--form-text-color)] transition hover:bg-[color:color-mix(in_oklab,var(--form-color-3)_10%,transparent)]"
+            >
+              <span class="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--form-text-soft)]">
+                Datos Adicionales
+              </span>
+              <svg
+                class="size-4 shrink-0 transition-transform duration-200"
+                class:rotate-180={isAdditionalDataOpen}
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+              >
+                <path d="m6 9 6 6 6-6" />
+              </svg>
+            </button>
+
+            {#if isAdditionalDataOpen}
+              <div class="mt-3 space-y-4 px-3">
+                <div>
+                  <Input
+                    label="Partida arancelaria"
+                    bind:value={editorItem.partidaArancelaria}
+                    placeholder="1-10 dígitos"
+                    maxLength={10}
+                    onlyNumbers={true}
+                  />
+                  <p class="mt-1 text-xs text-[var(--form-text-soft)]">
+                    Opcional. Solo números, no puede ser solo ceros.
+                  </p>
+                </div>
+
+                <div>
+                  <p class="text-xs font-medium text-[var(--form-text-soft)] mb-2">
+                    Número y serie de declaración aduanera (DAM) o DS
+                  </p>
+
+                  <div class="grid gap-3 sm:grid-cols-2">
+                    <Input
+                      label="Serie"
+                      bind:value={editorItem.damSerie}
+                      placeholder="1-4 dígitos"
+                      maxLength={4}
+                      onlyNumbers={true}
+                    />
+
+                    <Input
+                      label="Número de DAM/DS"
+                      bind:value={editorItem.damNumero}
+                      placeholder="999-9999-99-999999"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Toggle
+                    label="Indicador de bien normalizado"
+                    checked={editorItem.bienNormalizado === '1'}
+                    onchange={(e) => {
+                      editorItem.bienNormalizado = e.target.checked ? '1' : '0';
+                    }}
+                  />
+                  <p class="mt-1 text-xs text-[var(--form-text-soft)]">
+                    Activa si el bien está normalizado según SUNAT.
+                  </p>
+                </div>
+              </div>
+            {/if}
+          </div>
+          -->
         </div>
 
         <!-- Footer -->
