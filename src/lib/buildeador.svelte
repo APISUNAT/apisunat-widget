@@ -51,6 +51,7 @@
 
   // Props simples que se pasan a las páginas (config.config.display sobreescribe defaults)
   const showHeader = $derived(config?.config?.display?.header ?? true);
+  const showHeaderOptions = $derived(config?.config?.display?.headerOptions ?? true);
   const showSupplier = $derived(config?.config?.display?.supplier ?? true);
   const showCustomer = $derived(config?.config?.display?.customer ?? true);
   const showLines = $derived(config?.config?.display?.lines ?? true);
@@ -120,6 +121,7 @@
   {#key `${config?.type ?? ""}-${config?.serie ?? ""}-${$documentResetKey}`}
     <CurrentForm
       {showHeader}
+      {showHeaderOptions}
       {showSupplier}
       {showCustomer}
       {showLines}

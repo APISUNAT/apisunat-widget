@@ -11,6 +11,7 @@
   import { CATALOGO02 } from "$lib/constants/catalagos";
   import { buildTotalsActions } from "$lib/shared/components/summary/summary-panel.component";
   import { convertDecimalToInt, convertIntToDecimal, roundToTwoDecimals } from "$lib/shared/utils/convertnumber.utils";
+  import { validationErrorsStore } from "$lib/store/validation-errors.store";
 
   let { hidden = false } = $props();
 
@@ -27,6 +28,10 @@
       (c) => c.value === ($documentStore["cbc:DocumentCurrencyCode"]?._text ?? "PEN")
     )?.symbol ?? "S/"
   );
+
+  // Detectar si hay error de validación en las líneas
+  const errors = $derived($validationErrorsStore);
+  const hasError = $derived(errors.some(e => e.field === 'lines'));
 
   /** Arma el payload que espera addInvoiceLineActions a partir de un LineItem/EditableItem. */
   function toLinePayload(id: number, data: EditableItem) {
@@ -151,7 +156,7 @@
   }
 </script>
 
-<div class="overflow-hidden rounded-[1.15rem] border border-[color:color-mix(in_oklab,var(--form-color-3)_22%,transparent)] bg-[var(--form-panel-bg)]" class:hidden>
+<div class="overflow-hidden rounded-[1.15rem] bg-[var(--form-panel-bg)]" class:hidden class:border-2={hasError} class:border-red-500={hasError} class:border={!hasError} class:border-[color:color-mix(in_oklab,var(--form-color-3)_22%,transparent)]={!hasError}>
   <!-- Header -->
   <div class="flex items-center justify-between gap-3 border-b border-[color:color-mix(in_oklab,var(--form-color-3)_16%,transparent)] px-5 py-3">
     <p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--form-text-soft)]">

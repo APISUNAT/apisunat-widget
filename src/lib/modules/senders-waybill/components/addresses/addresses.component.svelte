@@ -259,7 +259,7 @@
             placeholder="Código"
             icon={documentIcon}
             maxLength={4}
-            pattern="[A-Z0-9]{0,4}"
+            pattern={"[A-Z0-9]{0,4}"}
             fieldName="departure.code"
           />
           <Input
@@ -280,7 +280,7 @@
             placeholder="Código"
             icon={documentIcon}
             maxLength={4}
-            pattern="[A-Z0-9]{0,4}"
+            pattern={"[A-Z0-9]{0,4}"}
             fieldName="departure.code"
           />
           <Input
@@ -342,7 +342,7 @@
             placeholder="Código"
             icon={documentIcon}
             maxLength={4}
-            pattern="[A-Z0-9]{0,4}"
+            pattern={"[A-Z0-9]{0,4}"}
             fieldName="arrival.code"
           />
           <Input
@@ -363,7 +363,7 @@
             placeholder="Código"
             icon={documentIcon}
             maxLength={4}
-            pattern="[A-Z0-9]{0,4}"
+            pattern={"[A-Z0-9]{0,4}"}
             fieldName="arrival.code"
           />
           <Input

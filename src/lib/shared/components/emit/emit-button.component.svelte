@@ -2,6 +2,7 @@
   import { validateDocument, type ValidationError } from "$lib/shared/utils/validate-documents";
   import { resetDocument, documentTypeStore } from "$lib/store/document.store";
   import { validationErrorsStore } from "$lib/store/validation-errors.store";
+  import { runtimeConfigStore } from "$lib/store/config.store";
   import {CATALOGO01} from "$lib/constants/catalagos"
 
   function getDocumentTypeLabel(): string{
@@ -69,6 +70,7 @@
   </div>
 {/if}
 <!-- Botón -->
+{#if $runtimeConfigStore.personaToken}
 <button
   type="button"
   onclick={(event) => {
@@ -81,3 +83,4 @@
 >
   {emitting ? "Emitiendo..." : `Emitir ${getDocumentTypeLabel()}`}
 </button>
+{/if}

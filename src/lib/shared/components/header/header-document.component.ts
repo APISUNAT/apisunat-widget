@@ -75,10 +75,10 @@ export async function loadLastDocumentAction(): Promise<{ series: string; correl
             correlative: data.suggestedNumber
         }
     } catch (error) {
-        // Si la API falla, usar la serie del config con correlativo inicial
+        // Si la API falla, usar la serie del config pero dejar correlativo vacío para ingreso manual
         return {
             series: serie,
-            correlative: '00000001'
+            correlative: ''
         }
     }
 }
