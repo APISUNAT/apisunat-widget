@@ -92,7 +92,8 @@
         if (!result) return;
         series = result.series;
         correlative = result.correlative;
-        locked = true;
+        // Solo bloquear si se obtuvo un correlativo válido de la API
+        locked = result.correlative !== '';
       });
     });
   });
@@ -169,7 +170,7 @@
           bind:value={correlative}
           icon={documentIcon}
           maxLength={8}
-          disabled={locked || series.trim() !== ''}
+          disabled={locked}
         />
       </div>
     </div>
@@ -194,7 +195,7 @@
           bind:value={correlative}
           icon={documentIcon}
           maxLength={8}
-          disabled={locked || series.trim() !== ''}
+          disabled={locked}
         />
       </div>
     </div>
@@ -226,7 +227,7 @@
           bind:value={correlative}
           icon={documentIcon}
           maxLength={8}
-          disabled={locked || series.trim() !== ''}
+          disabled={locked}
         />
       </div>
     </div>
